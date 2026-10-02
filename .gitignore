@@ -1,0 +1,32 @@
+# Dependency directories
+node_modules/
+
+# Environment and secrets
+.env
+*.env.local
+
+# PostgreSQL local cluster data and logs
+database/data/
+*.log
+database/*.log
+
+# User uploaded storage content
+storage/attendance-photos/*
+!storage/attendance-photos/.gitkeep
+storage/payslips/*
+!storage/payslips/.gitkeep
+
+# Operating System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Editor directories
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

@@ -1,0 +1,38 @@
+{
+  "name": "sultan-arab-apps",
+  "version": "1.0.0",
+  "description": "SULTAN ARAB APP - Sistem Absensi, Manajemen Karyawan, dan Payroll",
+  "main": "apps/server/src/index.js",
+  "scripts": {
+    "start": "node apps/server/src/index.js",
+    "dev": "node --watch apps/server/src/index.js",
+    "db:init": "node scripts/init-local-db.js",
+    "db:start": "node scripts/start-local-db.js",
+    "db:stop": "node scripts/stop-local-db.js",
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node scripts/seed.js",
+    "test:db": "node database/tests/verify_schema.js",
+    "test:api": "node tests/verify_api.js",
+    "test": "node tests/run_all_tests.js"
+  },
+  "keywords": [
+    "sultan-arab",
+    "attendance",
+    "payroll",
+    "postgresql",
+    "web-phone",
+    "web-pc"
+  ],
+  "author": "Sultan Arab Dev Team",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.13.3",
+    "uuid": "^11.1.0"
+  }
+}
