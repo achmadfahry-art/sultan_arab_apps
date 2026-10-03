@@ -67,14 +67,14 @@ Sistem ini dirancang tanpa ketergantungan pihak ketiga yang mengikat (database m
 
 ### 🌐 9. Akses Jaringan Lokal & Tailscale (Q10)
 - Aplikasi diikat ke `0.0.0.0:3000` dan dapat diakses dari mana saja melalui Tailscale:
-  - ⭐ **HTTPS Resmi (Rekomendasi Kamera Live):** `https://fahry-work.tail0f1c60.ts.net`
+  - ⭐ **HTTPS Resmi (Rekomendasi Kamera Live):** 
   - **HTTP IP Langsung:** `http://100.84.77.41:3000`
 
 ---
 
 ## 👥 Roster & Akun Pengguna Resmi (Q04)
 
-Semua akun terdaftar menggunakan kata sandi bawaan: `<username>123` (dapat disesuaikan).
+Semua akun terdaftar menggunakan kata sandi bawaan: 
 
 | Nama | Role / Jabatan | Username | Penugasan Cabang | Hari Libur Tetap |
 |---|---|---|---|---|
