@@ -10,6 +10,10 @@ database/data/
 *.log
 database/*.log
 
+# Database backups (berisi data operasional)
+backups/
+*.dump
+
 # User uploaded storage content
 storage/attendance-photos/*
 !storage/attendance-photos/.gitkeep

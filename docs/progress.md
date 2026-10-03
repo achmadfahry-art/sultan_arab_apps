@@ -1,7 +1,7 @@
 # SULTAN ARAB APP — Laporan Kemajuan Proyek (Progress Log)
 
-**Tanggal Pembaruan:** 2 Oktober 2026  
-**Status Keseluruhan:** Seluruh Fondasi Teknis, Backend API, Database PostgreSQL Mandiri, 4 Layar Utama (Phone & PC), dan Seluruh Keputusan Bisnis **Q01–Q11 TELAH DIIMPLEMENTASIKAN & LULUS PENGUJIAN 100%**.
+**Tanggal Pembaruan:** 3 Oktober 2026  
+**Status Keseluruhan:** Seluruh Fondasi Teknis, Backend API, Database PostgreSQL Mandiri, 4 Layar Utama (Phone & PC), Optimasi Khusus Ponsel (Mobile-First tanpa Overload), Tombol Tambah Cabang, Pembersihan Menyeluruh Data Uji, serta Pembaruan Shift Siang (12:00 - 21:00) **TELAH DIIMPLEMENTASIKAN & LULUS PENGUJIAN 100%**.
 
 ---
 
@@ -9,8 +9,8 @@
 
 | Kode | Pertanyaan & Keputusan Pengguna | Status Implementasi | Bukti Teknis & Lokasi |
 |---|---|---|---|
-| **Q01** | **Cabang Nyata:**<br>1. Head Quarter Bekasi: `maps.app.goo.gl/dYmZ7xPSgDNKJc6b9` (`-6.2122736, 107.0218103`)<br>2. Cabang Cikarang: `maps.app.goo.gl/SrRQo58zHMmpju5k7` (`-6.3001269, 107.1638182`) | **SELESAI** | Migrasi `003_real_branches_and_roster.sql`. Validasi Geofence Haversine radius 150m di backend `apps/server/src/utils/geo.js`. |
-| **Q02** | **Aturan Shift & Presensi:**<br>- Staff Kantor & Admin Non-shift (08:00 - 17:00)<br>- Crew Toko: Shift Pagi (08:00 - 17:00) & Shift Siang (12:30 - 21:00)<br>- Toleransi 15 menit<br>- Pemilihan shift diserahkan mandiri ke masing-masing personal<br>- Wajib **hanya absen masuk, absen pulang tidak wajib (opsional)** | **SELESAI** | Ditambahkan selector shift personal di layar presensi `#attendance`, flag toleransi 15 menit, dan perubahan alur bahwa check-out opsional di `attendance.js`. |
+| **Q01** | **Cabang Nyata & Dinamis:**<br>1. Head Quarter Bekasi (`-6.2122736, 107.0218103`)<br>2. Cabang Cikarang (`-6.3001269, 107.1638182`)<br>3. Tombol **`+ Cabang`** pada dashboard pengelola | **SELESAI** | Migrasi `003` & `004`. Disediakan tombol interaktif `+ Cabang` dengan modal pembuat cabang baru, pembaca link Google Maps/GPS, dan pembuatan otomatis shift crew toko. |
+| **Q02** | **Aturan Shift & Presensi:**<br>- Staff Kantor & Admin Non-shift (08:00 - 17:00)<br>- Crew Toko: Shift Pagi (08:00 - 17:00) & Shift Siang (**12:00 - 21:00**)<br>- Toleransi 15 menit<br>- Pemilihan shift diserahkan mandiri ke masing-masing personal<br>- Wajib **hanya absen masuk, absen pulang tidak wajib (opsional)** | **SELESAI** | Jadwal Shift Siang dimutakhirkan ke **12:00 - 21:00** di database dan UI. Selector shift dinamis memfilter shift cabang terpilih di `#attendance`. |
 | **Q03** | **Kamera / Foto:** Foto wajah atau foto lokasi dalam toko/kantor, toko dilengkapi Wi-Fi | **SELESAI** | Capture langsung via kamera peramban (`getUserMedia`) atau tombol file picker untuk foto lokasi / wajah. |
 | **Q04** | **Jadwal Libur Tim Resmi:**<br>- Staff Kantor: Fahry, Fauzi, Miftah (Libur Ahad)<br>- Admin: Eka (Libur Selasa)<br>- Crew Toko Bekasi: Adit (Senin), Mufti (Kamis), Kamal (Rabu)<br>- Crew Toko Cikarang: Milkan (Kamis), Refan (Selasa) | **SELESAI** | Terdaftar pada tabel `day_off_rules` & `employee_schedules`. Master akun dan profil dibuat di migrasi `003`. |
 | **Q05** | **Uang Makan & Kunjungan Luar:**<br>- Uang makan Rp10.000 diberikan ketika hadir fisik toko<br>- Tombol khusus **Kunjungan Luar** yang **TIDAK** mendapat uang makan | **SELESAI** | Tombol Kunjungan Luar tersedia di UI presensi, tercatat `attendance_type = 'kunjungan_luar'` dengan `is_meal_allowance_eligible = false`. Payroll menghitung uang makan hanya untuk absensi hadir fisik. |

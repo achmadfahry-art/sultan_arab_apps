@@ -14,7 +14,7 @@ Dokumen ini mencatat seluruh keputusan arsitektur, pilihan teknis, dan pemetaan 
 | 4 | **Penyimpanan Berkas** | Direktori privat server `storage/attendance-photos` dan `storage/payslips` di luar public web. Path relatif disimpan di database. | `blueprint_fulu.md` Bagian 10. |
 | 5 | **Identitas Visual** | Warna Merah Sultan (`#C90000`), Emas (`#EFB52B`), Putih (`#FFFFFF`), Latar (`#F6F7F9`). Logo resmi Mahkota Sultan Arab diintegrasikan dari `C:/Users/fahry-work/Documents/Sultan Arab/logo sultan arab.jpg`. | Mockup pengguna di `tampilan app fulus sultan arab.jpeg` & `fulus.md` Bagian 9. |
 | 6 | **Pencegahan Duplikasi** | Menggunakan `idempotency_key` pada setiap transaksi absen masuk dan pulang. | `blueprint_fulu.md` Bagian 5 & 16. |
-| 7 | **Perlakuan Data** | Seluruh data cabang (Bekasi Duta Harapan, Cikarang Jababeka), data karyawan (Ahmad, Siti), nominal gaji, dan jadwal ditandai eksplisit sebagai `[DATA UJI]` (sintetis). Tidak ada aturan bisnis yang dikarang. | Instruksi pengguna & `fulus.md` Bagian 9 & 12. |
+| 7 | **Pembersihan Data Uji** | Seluruh data cabang sintetis, data karyawan sintetis (Ahmad & Siti), serta nominal gaji uji telah dihapus permanen melalui migrasi `004_remove_test_data_and_shift_update.sql`. Basis data kini murni memuat entitas operasional resmi. | Permintaan pengguna 3 Okt 2026. |
 
 ---
 
@@ -22,8 +22,8 @@ Dokumen ini mencatat seluruh keputusan arsitektur, pilihan teknis, dan pemetaan 
 
 | ID | Topik Keputusan | Status | Keputusan & Implementasi Teknis |
 |---|---|---|---|
-| **Q01** | Cabang & Koordinat GPS | **DITETAPKAN & AKTIF** | 1. **Head Quarter Bekasi (Pusat Grosir)**: `https://maps.app.goo.gl/dYmZ7xPSgDNKJc6b9` (Lat `-6.2122736`, Lon `107.0218103`).<br>2. **Cabang Cikarang**: `https://maps.app.goo.gl/SrRQo58zHMmpju5k7` (Lat `-6.3001269`, Lon `107.1638182`). Radius geofence ditetapkan 150 meter. |
-| **Q02** | Jam Shift & Presensi | **DITETAPKAN & AKTIF** | - **Staff Kantor & Admin**: Non-shift (08:00 – 17:00).<br>- **Crew Toko**: Shift Pagi (08:00 – 17:00) & Shift Siang (12:30 – 21:00).<br>- Toleransi keterlambatan 15 menit.<br>- **Pemilihan shift diserahkan mandiri ke masing-masing personal crew** di form presensi.<br>- **Wajib hanya absen masuk; absen pulang tidak wajib (opsional)**. |
+| **Q01** | Cabang & Koordinat GPS | **DITETAPKAN & AKTIF** | 1. **Head Quarter Bekasi (Pusat Grosir)**: (Lat `-6.2122736`, Lon `107.0218103`).<br>2. **Cabang Cikarang**: (Lat `-6.3001269`, Lon `107.1638182`). Radius geofence default 150 meter.<br>3. **Dukungan Tambah Cabang**: Disediakan tombol interaktif `+ Cabang` pada dashboard pengelola lengkap dengan input koordinat, alamat, radius, dan pembuatan shift otomatis. |
+| **Q02** | Jam Shift & Presensi | **DITETAPKAN & AKTIF** | - **Staff Kantor & Admin**: Non-shift (08:00 – 17:00).<br>- **Crew Toko**: Shift Pagi (08:00 – 17:00) & Shift Siang (**12:00 – 21:00**).<br>- Toleransi keterlambatan 15 menit.<br>- **Pemilihan shift diserahkan mandiri ke masing-masing personal crew** di form presensi.<br>- **Wajib hanya absen masuk; absen pulang tidak wajib (opsional)**. |
 | **Q03** | Foto & Bukti Kehadiran | **DITETAPKAN & AKTIF** | Foto wajah atau foto lokasi dalam toko/kantor via kamera atau upload foto. Toko dilengkapi fasilitas Wi-Fi. |
 | **Q04** | Jadwal Libur Tim Resmi | **DITETAPKAN & AKTIF** | - **Staff Kantor**: Fahry, Fauzi, Miftah (Libur Ahad).<br>- **Admin**: Eka (Libur Selasa).<br>- **Crew Toko Bekasi**: Adit (Senin), Mufti (Kamis), Kamal (Rabu).<br>- **Crew Toko Cikarang**: Milkan (Kamis), Refan (Selasa).<br>Tercatat pada tabel `day_off_rules` dan `employee_schedules`. |
 | **Q05** | Uang Makan & Kunjungan Luar | **DITETAPKAN & AKTIF** | - Uang makan Rp10.000 hanya diberikan jika hadir fisik toko (`attendance_type = 'hadir'`).<br>- Disediakan tombol khusus **Kunjungan Luar** (`attendance_type = 'kunjungan_luar'`) yang **TIDAK mendapat uang makan**. |

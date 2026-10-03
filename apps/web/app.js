@@ -3,7 +3,7 @@
  * Mendukung tampilan Ponsel dan PC secara responsif.
  * Diperbarui dengan keputusan bisnis Q01 - Q11:
  * - Cabang: HQ Bekasi & Cabang Cikarang
- * - Shift: Staff & Admin (Non-Shift 08-17), Crew Toko (Pagi 08-17, Siang 12:30-21), Toleransi 15 Menit
+ * - Shift: Staff & Admin (Non-Shift 08-17), Crew Toko (Pagi 08-17, Siang 12:00-21), Toleransi 15 Menit
  * - Aturan Absen: Wajib hanya masuk, pulang tidak wajib
  * - Uang Makan: Rp10.000 saat hadir toko; tombol Kunjungan Luar tidak dapat uang makan
  * - Manager PDF Payslip Upload per anggota staf
@@ -175,12 +175,12 @@ function renderLogin() {
           <form id="login-form">
             <div class="form-group">
               <label class="form-label" for="login-username">Username / Akun</label>
-              <input type="text" id="login-username" class="form-control" placeholder="Contoh: fauzi, eka, adit, owner" required autofocus>
+              <input type="text" id="login-username" class="form-control" placeholder="Masukkan username" autocomplete="username" autocapitalize="none" required autofocus>
             </div>
             <div class="form-group">
               <label class="form-label" for="login-password">Password</label>
               <div style="position: relative;">
-                <input type="password" id="login-password" class="form-control" placeholder="Masukkan password" required>
+                <input type="password" id="login-password" class="form-control" placeholder="Masukkan password" autocomplete="current-password" required>
                 <button type="button" id="btn-toggle-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 0.85rem; color: var(--text-muted);">
                   👁
                 </button>
@@ -190,23 +190,6 @@ function renderLogin() {
               MASUK KE APLIKASI
             </button>
           </form>
-
-          <div class="login-test-helpers">
-            <p style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
-              Pintasan Uji Akun Tim Resmi (Q04):
-            </p>
-            <div class="test-role-buttons">
-              <button class="btn-role-quick" data-user="fauzi" data-pass="fauzi123">🏢 Fauzi (Manager)</button>
-              <button class="btn-role-quick" data-user="fahry" data-pass="fahry123">👨‍💼 Fahry (Staff Kantor)</button>
-              <button class="btn-role-quick" data-user="eka" data-pass="eka123">👩‍💼 Eka (Admin)</button>
-              <button class="btn-role-quick" data-user="adit" data-pass="adit123">🏪 Adit (Crew Bekasi)</button>
-              <button class="btn-role-quick" data-user="milkan" data-pass="milkan123">🏪 Milkan (Crew Cikarang)</button>
-              <button class="btn-role-quick" data-user="owner" data-pass="owner123">👑 Owner</button>
-            </div>
-            <div style="margin-top: 10px; font-size: 0.72rem; color: var(--text-muted);">
-              Akses Tailscale HP: <strong style="color:var(--primary-red);">https://fahry-work.tail0f1c60.ts.net</strong>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -265,11 +248,11 @@ function renderHeader() {
       </div>
       <div class="header-user-info">
         <div class="user-avatar-badge">${escapeHtml(state.user.displayName ? state.user.displayName.charAt(0).toUpperCase() : 'U')}</div>
-        <div>
+        <div class="header-user-meta">
           <div style="font-size: 0.85rem; font-weight: 700;">${escapeHtml(state.user.displayName)}</div>
           <div style="font-size: 0.72rem; color: var(--accent-gold-dark);">${escapeHtml(state.user.roles.join(', '))}</div>
         </div>
-        <button id="btn-header-logout" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Keluar</button>
+        <button id="btn-header-logout" class="btn btn-secondary btn-header-logout">Keluar</button>
       </div>
     </header>
   `;
@@ -411,7 +394,7 @@ function renderHome() {
         <div style="display: flex; gap: 12px; align-items: center;">
           <span style="font-size: 1.5rem;">⏰</span>
           <div>
-            <strong>Pilihan Shift:</strong> Staff/Admin (08:00 - 17:00) • Crew Pagi (08:00 - 17:00) • Crew Siang (12:30 - 21:00).
+            <strong>Pilihan Shift:</strong> Staff/Admin (08:00 - 17:00) • Crew Pagi (08:00 - 17:00) • Crew Siang (12:00 - 21:00).
             <div style="color: var(--text-muted); font-size: 0.8rem;">Pemilihan shift diserahkan kepada masing-masing personal saat absen masuk.</div>
           </div>
         </div>
@@ -456,9 +439,7 @@ function renderAttendance() {
       <div class="form-group">
         <label class="form-label" for="attendance-shift-select">Pilih Shift Kerja Anda (Toleransi 15 Menit):</label>
         <select id="attendance-shift-select" class="form-control">
-          ${state.shifts.map(s => `
-            <option value="${s.id}">${escapeHtml(s.name)} (${s.start_time.slice(0,5)} - ${s.end_time.slice(0,5)})</option>
-          `).join('')}
+          ${renderShiftOptions(targetBranch.id)}
         </select>
       </div>
 
@@ -524,9 +505,9 @@ function renderAttendance() {
         </button>
       </div>
 
-      <!-- Tip HTTPS Tailscale -->
+      <!-- Tip HTTPS -->
       <div id="camera-https-tip" style="display: none; background: #E8F4FD; border: 1px solid #BEE3F8; border-radius: var(--border-radius-sm); padding: 8px 12px; margin-bottom: 16px; font-size: 0.78rem; color: #2B6CB0;">
-        💡 <strong>Tips Kamera HP:</strong> Untuk preview video kamera langsung di browser tanpa batasan keamanan HTTP, gunakan alamat HTTPS resmi: <a href="https://fahry-work.tail0f1c60.ts.net" target="_blank" style="font-weight: 700; text-decoration: underline; color: #2B6CB0;">https://fahry-work.tail0f1c60.ts.net</a>.
+        💡 <strong>Tips Kamera HP:</strong> Preview kamera langsung hanya tersedia melalui alamat <strong>HTTPS</strong>. Gunakan tombol kamera di atas untuk memotret langsung.
       </div>
 
       <!-- GPS Status Box -->
@@ -536,9 +517,6 @@ function renderAttendance() {
           <div style="font-weight: 700; font-size: 0.92rem;" id="gps-status-title">Memeriksa GPS Perangkat...</div>
           <div style="font-size: 0.8rem; color: var(--text-muted);" id="gps-coords-text">Mencari koordinat akurat...</div>
         </div>
-        <button type="button" id="btn-simulate-gps" class="btn btn-secondary" style="font-size: 0.72rem; padding: 4px 8px;">
-          Set Titik Toko [Uji]
-        </button>
       </div>
 
       <div style="background: #F1F3F5; padding: 10px 14px; border-radius: var(--border-radius-sm); margin-bottom: 20px; font-size: 0.82rem; color: var(--text-muted);">
@@ -557,19 +535,13 @@ function renderAttendance() {
 function renderManagement() {
   return `
     <div style="margin-bottom: 20px;">
-      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px;">
+      <div class="mgmt-header">
         <div>
           <span class="badge badge-test">PENGELOLA SULTAN ARAB</span>
-          <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--primary-red);">
-            Dashboard Pengelola
-          </h2>
-          <p style="font-size: 0.88rem; color: var(--text-muted);">
-            Khusus Owner dan Manager (Q07). Akses Tailscale HP: <code>100.84.77.41:3000</code>.
-          </p>
+          <h2 class="mgmt-title">Dashboard Pengelola</h2>
+          <p class="mgmt-subtitle">Khusus Owner dan Manager.</p>
         </div>
-        <div>
-          <button id="btn-refresh-monitoring" class="btn btn-secondary">🔄 Muat Ulang Data</button>
-        </div>
+        <button id="btn-refresh-monitoring" class="btn btn-secondary btn-refresh-mgmt" title="Muat ulang data">🔄 <span>Muat Ulang</span></button>
       </div>
 
       <!-- KPI Summary Cards -->
@@ -607,16 +579,16 @@ function renderManagement() {
       <!-- Tabs Navigasi Pengelola -->
       <div class="nav-tabs">
         <button class="nav-tab-btn ${state.activeManagementTab === 'monitoring' ? 'active' : ''}" data-tab="monitoring">
-          Monitoring Absensi
+          📍 Monitoring
         </button>
         <button class="nav-tab-btn ${state.activeManagementTab === 'payroll' ? 'active' : ''}" data-tab="payroll">
-          Slip Gaji PDF &amp; Payroll
+          📄 Slip Gaji
         </button>
         <button class="nav-tab-btn ${state.activeManagementTab === 'master' ? 'active' : ''}" data-tab="master">
-          Data Karyawan &amp; Cabang
+          👥 Karyawan &amp; Cabang
         </button>
         <button class="nav-tab-btn ${state.activeManagementTab === 'schedules' ? 'active' : ''}" data-tab="schedules">
-          Jadwal &amp; Libur
+          🗓️ Jadwal &amp; Libur
         </button>
       </div>
 
@@ -633,16 +605,16 @@ function renderManagementTabContent() {
       return `
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Live Monitoring Absensi Hari Ini</h3>
+            <h3 class="card-title">Monitoring Absensi Hari Ini</h3>
             <span class="badge badge-info">Semua Cabang</span>
           </div>
           <div class="table-responsive">
-            <table class="table" id="table-monitoring">
+            <table class="table table-stack" id="table-monitoring">
               <thead>
                 <tr>
                   <th>Nama</th>
                   <th>Cabang</th>
-                  <th>Shift Dipilih</th>
+                  <th>Shift</th>
                   <th>Jam Masuk</th>
                   <th>Tipe Hadir</th>
                   <th>Uang Makan</th>
@@ -651,7 +623,7 @@ function renderManagementTabContent() {
                 </tr>
               </thead>
               <tbody id="monitoring-table-body">
-                <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Memuat monitoring...</td></tr>
+                <tr><td colspan="8" class="cell-empty">Memuat monitoring...</td></tr>
               </tbody>
             </table>
           </div>
@@ -659,35 +631,30 @@ function renderManagementTabContent() {
       `;
     case 'payroll':
       return `
-        <!-- Tabel Unggah Slip Gaji PDF Masing-Masing Anggota Staf (Q06) -->
+        <!-- Unggah Slip Gaji PDF Masing-Masing Anggota Staf (Q06) -->
         <div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--primary-red);">
           <div class="card-header">
             <div>
-              <span class="badge badge-test" style="margin-bottom: 4px;">FITUR RESMI Q06</span>
-              <h3 class="card-title">📄 Tabel Unggah Slip Gaji PDF Staf</h3>
-              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">
-                Tersedia kolom upload PDF untuk masing-masing anggota staf Sultan Arab. Klik tombol <strong>Upload PDF</strong> untuk mengirimkan slip gaji.
-              </p>
+              <h3 class="card-title">📄 Slip Gaji PDF Staf</h3>
+              <p class="card-subtitle">Unggah slip gaji PDF untuk masing-masing anggota staf.</p>
             </div>
-            <div style="display: flex; gap: 8px;">
-              <button id="btn-upload-pdf-modal" class="btn btn-primary">📤 Unggah Slip PDF Bebas</button>
-              <button id="btn-refresh-staff-slips-payroll" class="btn btn-secondary">🔄 Segarkan</button>
+            <div class="card-actions">
+              <button id="btn-upload-pdf-modal" class="btn btn-primary">📤 Unggah PDF</button>
+              <button id="btn-refresh-staff-slips-payroll" class="btn btn-secondary" title="Segarkan">🔄</button>
             </div>
           </div>
           <div class="table-responsive">
-            <table class="table">
+            <table class="table table-stack">
               <thead>
                 <tr>
-                  <th>Kode</th>
-                  <th>Nama Anggota Staf</th>
+                  <th>Anggota Staf</th>
                   <th>Cabang / Jabatan</th>
-                  <th>Status Slip PDF Terakhir</th>
-                  <th style="min-width: 160px; color: var(--primary-red);">Kolom Upload PDF (Q06)</th>
-                  <th>Notifikasi WA</th>
+                  <th>Slip PDF Terakhir</th>
+                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody id="payroll-staff-slips-tbody">
-                <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Memuat daftar staf...</td></tr>
+                <tr><td colspan="4" class="cell-empty">Memuat daftar staf...</td></tr>
               </tbody>
             </table>
           </div>
@@ -697,13 +664,11 @@ function renderManagementTabContent() {
         <div class="card" style="margin-bottom: 20px;">
           <div class="card-header">
             <div>
-              <h3 class="card-title">⚙️ Riwayat Kalkulasi &amp; Draft Payroll Periode 27–26</h3>
-              <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
-                Hitung draft payroll (uang makan Rp10.000 hanya hadir fisik) dan finalisasi oleh Owner.
-              </p>
+              <h3 class="card-title">⚙️ Draft Payroll Periode 27–26</h3>
+              <p class="card-subtitle">Uang makan Rp10.000 hanya untuk hadir fisik. Finalisasi oleh Owner.</p>
             </div>
-            <div style="display: flex; gap: 8px;">
-              <button id="btn-input-commission-modal" class="btn btn-secondary">➕ Input Komisi</button>
+            <div class="card-actions">
+              <button id="btn-input-commission-modal" class="btn btn-secondary">➕ Komisi</button>
               <button id="btn-calculate-payroll" class="btn btn-secondary">⚙️ Hitung Draft</button>
             </div>
           </div>
@@ -716,14 +681,13 @@ function renderManagementTabContent() {
       return `
         <div class="card" style="margin-bottom: 20px;">
           <div class="card-header">
-            <h3 class="card-title">Daftar Karyawan Resmi (Q04)</h3>
-            <button id="btn-add-employee-modal" class="btn btn-secondary">➕ Tambah Karyawan</button>
+            <h3 class="card-title">👥 Daftar Karyawan</h3>
+            <button id="btn-add-employee-modal" class="btn btn-secondary">+ Karyawan</button>
           </div>
           <div class="table-responsive">
-            <table class="table">
+            <table class="table table-stack">
               <thead>
                 <tr>
-                  <th>Kode</th>
                   <th>Nama</th>
                   <th>Jabatan</th>
                   <th>Cabang</th>
@@ -731,7 +695,7 @@ function renderManagementTabContent() {
                 </tr>
               </thead>
               <tbody id="master-employee-body">
-                <tr><td colspan="5" style="text-align: center;">Memuat karyawan...</td></tr>
+                <tr><td colspan="4" class="cell-empty">Memuat karyawan...</td></tr>
               </tbody>
             </table>
           </div>
@@ -739,29 +703,21 @@ function renderManagementTabContent() {
 
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Cabang Resmi Sultan Arab (Q01)</h3>
+            <h3 class="card-title">🏢 Daftar Cabang</h3>
+            <button id="btn-add-branch-modal" class="btn btn-primary">+ Cabang</button>
           </div>
           <div class="table-responsive">
-            <table class="table">
+            <table class="table table-stack">
               <thead>
                 <tr>
-                  <th>Kode</th>
                   <th>Nama Cabang</th>
                   <th>Radius</th>
                   <th>Koordinat</th>
-                  <th>Alamat / Tautan Maps</th>
+                  <th>Alamat</th>
                 </tr>
               </thead>
               <tbody id="master-branch-body">
-                ${state.branches.map(b => `
-                  <tr>
-                    <td><strong>${escapeHtml(b.code)}</strong></td>
-                    <td>${escapeHtml(b.name)}</td>
-                    <td>${b.radius_m || 150} meter</td>
-                    <td>${b.latitude || '-'}, ${b.longitude || '-'}</td>
-                    <td>${escapeHtml(b.address || '-')}</td>
-                  </tr>
-                `).join('')}
+                ${renderBranchRows()}
               </tbody>
             </table>
           </div>
@@ -827,13 +783,44 @@ function renderManagementTabContent() {
 
 // --- VIEW 5: RIWAYAT & SLIP GAJI ---
 function renderHistory() {
+  const items = state.attendanceHistory;
   return `
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">Riwayat Absensi Pribadi</h3>
+        <h3 class="card-title">📅 Riwayat Absensi</h3>
         <span class="badge badge-info">${escapeHtml(state.user.displayName)}</span>
       </div>
-      <div class="table-responsive">
+      ${items.length === 0 ? `
+        <p class="cell-empty">Belum ada riwayat absensi.</p>
+      ` : `
+      <!-- Ponsel: daftar ringkas -->
+      <ul class="history-list mobile-only">
+        ${items.map(h => {
+          const isKunjungan = h.attendance_type === 'kunjungan_luar';
+          return `
+            <li class="history-item">
+              <div class="history-date">
+                <span class="history-day">${formatDayShort(h.work_date)}</span>
+                <span class="history-num">${formatDayNum(h.work_date)}</span>
+              </div>
+              <div class="history-body">
+                <div class="history-row">
+                  <strong>${isKunjungan ? '🚗 Kunjungan Luar' : '🏢 Hadir'}</strong>
+                  <span class="history-time">${formatTime(h.check_in_time)}</span>
+                </div>
+                <div class="history-sub">${escapeHtml(h.branch_name || '-')}</div>
+                <div class="history-badges">
+                  <span class="badge ${statusBadgeClass(h.status)}">${statusLabel(h.status)}</span>
+                  ${isKunjungan ? `<span class="badge badge-warning">Tanpa Uang Makan</span>` : `<span class="badge badge-success">Uang Makan Rp10.000</span>`}
+                </div>
+              </div>
+            </li>
+          `;
+        }).join('')}
+      </ul>
+
+      <!-- PC: tabel -->
+      <div class="table-responsive desktop-only">
         <table class="table">
           <thead>
             <tr>
@@ -846,26 +833,24 @@ function renderHistory() {
             </tr>
           </thead>
           <tbody>
-            ${state.attendanceHistory.length === 0 ? `
-              <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Belum ada riwayat absensi.</td></tr>
-            ` : state.attendanceHistory.map(h => {
-              const inTime = h.check_in_time ? new Date(h.check_in_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+            ${items.map(h => {
               const isKunjungan = h.attendance_type === 'kunjungan_luar';
               const mealBadge = isKunjungan ? `<span class="badge badge-warning">Rp0 (Kunjungan)</span>` : `<span class="badge badge-success">Rp10.000</span>`;
               return `
                 <tr>
-                  <td><strong>${h.work_date}</strong></td>
+                  <td><strong>${formatDateLong(h.work_date)}</strong></td>
                   <td>${escapeHtml(h.branch_name || '-')}</td>
                   <td>${isKunjungan ? '🚗 Kunjungan Luar' : '🏢 Hadir Toko'}</td>
-                  <td>${inTime}</td>
+                  <td>${formatTime(h.check_in_time)}</td>
                   <td>${mealBadge}</td>
-                  <td><span class="badge badge-success">${h.status}</span></td>
+                  <td><span class="badge ${statusBadgeClass(h.status)}">${statusLabel(h.status)}</span></td>
                 </tr>
               `;
             }).join('')}
           </tbody>
         </table>
       </div>
+      `}
     </div>
   `;
 }
@@ -926,12 +911,6 @@ function attachLoginEvents() {
     });
   }
 
-  document.querySelectorAll('.btn-role-quick').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.getElementById('login-username').value = btn.dataset.user;
-      document.getElementById('login-password').value = btn.dataset.pass;
-    });
-  });
 
   if (form) {
     form.addEventListener('submit', async (e) => {
@@ -999,7 +978,6 @@ function initAttendanceView() {
   const btnRetake = document.getElementById('btn-retake-photo');
   const fileFallback = document.getElementById('file-photo-fallback');
   const btnSubmit = document.getElementById('btn-submit-attendance');
-  const btnSimulateGps = document.getElementById('btn-simulate-gps');
   const btnTypeHadir = document.getElementById('btn-type-hadir');
   const btnTypeKunjungan = document.getElementById('btn-type-kunjungan');
 
@@ -1230,7 +1208,12 @@ function initAttendanceView() {
     updateGpsUI();
   };
 
-  if (branchSelect) branchSelect.addEventListener('change', checkDistance);
+  if (branchSelect) {
+    branchSelect.addEventListener('change', () => {
+      if (shiftSelect) shiftSelect.innerHTML = renderShiftOptions(branchSelect.value);
+      checkDistance();
+    });
+  }
 
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
@@ -1247,19 +1230,6 @@ function initAttendanceView() {
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
-  }
-
-  if (btnSimulateGps) {
-    btnSimulateGps.addEventListener('click', () => {
-      const branch = getTargetBranch();
-      state.currentGps.lat = parseFloat(branch.latitude || -6.2122736);
-      state.currentGps.lon = parseFloat(branch.longitude || 107.0218103);
-      state.currentGps.accuracy = 5;
-      state.currentGps.distance = 0;
-      state.currentGps.isWithinRadius = true;
-      updateGpsUI();
-      showToast('Koordinat GPS disetel sesuai titik cabang toko!', 'success');
-    });
   }
 
   // Submit
@@ -1356,7 +1326,7 @@ async function loadMonitoringData() {
     if (!tbody) return;
 
     if (res.data.records.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center;">Belum ada data kehadiran hari ini.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="cell-empty">Belum ada data kehadiran hari ini.</td></tr>`;
       return;
     }
 
@@ -1375,17 +1345,17 @@ async function loadMonitoringData() {
 
       return `
         <tr>
-          <td><strong>${escapeHtml(r.employee_name)}</strong><br><small style="color:var(--text-muted);">${r.employee_code}</small></td>
-          <td>${escapeHtml(r.branch_name || '-')}</td>
-          <td>${escapeHtml(r.shift_name || 'Non-Shift')}</td>
-          <td>${inTime}</td>
-          <td>${isKunjungan ? '🚗 Kunjungan Luar' : (r.check_in_time ? '🏢 Hadir Toko' : 'Belum Absen')}</td>
-          <td>${mealText}</td>
-          <td>${locBadge}</td>
-          <td>
+          <td class="cell-title" data-label="Nama"><strong>${escapeHtml(r.employee_name)}</strong> <small class="cell-code">${escapeHtml(r.employee_code)}</small></td>
+          <td data-label="Cabang">${escapeHtml(r.branch_name || '-')}</td>
+          <td data-label="Shift">${escapeHtml(r.shift_name || 'Non-Shift')}</td>
+          <td data-label="Jam Masuk">${inTime}</td>
+          <td data-label="Tipe Hadir">${isKunjungan ? '🚗 Kunjungan Luar' : (r.check_in_time ? '🏢 Hadir Toko' : 'Belum Absen')}</td>
+          <td data-label="Uang Makan">${mealText}</td>
+          <td data-label="Lokasi GPS">${locBadge}</td>
+          <td class="${r.session_id ? 'cell-actions' : 'cell-hide-mobile'}" data-label="Aksi">
             ${r.session_id ? `
-              <button class="btn btn-secondary btn-adjust" data-session="${r.session_id}" style="padding: 4px 8px; font-size: 0.78rem;">
-                Koreksi
+              <button class="btn btn-secondary btn-adjust btn-sm" data-session="${r.session_id}">
+                ✏️ Koreksi
               </button>
             ` : '-'}
           </td>
@@ -1408,52 +1378,45 @@ async function loadStaffSlipsTable(tbodyId) {
 
   const res = await api('/api/v1/payroll/staff-slips');
   if (!res.ok || !res.data.staff) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--accent-red);">Gagal memuat daftar staf.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="cell-empty" style="color: var(--primary-red);">Gagal memuat daftar staf.</td></tr>`;
     return;
   }
 
   const staffList = res.data.staff;
   if (staffList.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Tidak ada data staf aktif.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="cell-empty">Tidak ada data staf aktif.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = staffList.map(s => {
     const hasSlip = !!s.pdf_path;
     const slipStatusBadge = hasSlip
-      ? `<span class="badge badge-success">📄 ${escapeHtml(s.original_filename || 'Slip Gaji.pdf')} (${Math.round((s.file_size || 0)/1024)} KB)</span><div style="font-size: 0.72rem; color: var(--text-muted); margin-top:2px;">Terbit: ${new Date(s.published_at).toLocaleDateString('id-ID')} • ${escapeHtml(s.period_label || '')}</div>`
+      ? `<span class="badge badge-success badge-wrap">📄 ${escapeHtml(s.original_filename || 'Slip Gaji.pdf')} (${Math.round((s.file_size || 0)/1024)} KB)</span><div class="cell-note">Terbit: ${new Date(s.published_at).toLocaleDateString('id-ID')} • ${escapeHtml(s.period_label || '')}</div>`
       : `<span class="badge badge-warning">⚠️ Belum Ada Slip PDF</span>`;
 
     return `
       <tr>
-        <td><strong>${escapeHtml(s.employee_code)}</strong></td>
-        <td>
-          <div style="font-weight: 700;">${escapeHtml(s.employee_name)}</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(s.phone || '-')}</div>
+        <td class="cell-title" data-label="Anggota Staf">
+          <strong>${escapeHtml(s.employee_name)}</strong> <small class="cell-code">${escapeHtml(s.employee_code)}</small>
+          <div class="cell-note">${escapeHtml(s.phone || '-')}</div>
         </td>
-        <td>
+        <td class="cell-full" data-label="Cabang / Jabatan">
           <div>${escapeHtml(s.branch_name || 'Head Quarter')}</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(s.job_title || 'Crew Toko')}</div>
+          <div class="cell-note">${escapeHtml(s.job_title || 'Crew Toko')}</div>
         </td>
-        <td>${slipStatusBadge}</td>
-        <td>
-          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <button class="btn btn-primary btn-upload-slip-for-staff" data-id="${s.employee_id}" data-name="${escapeHtml(s.employee_name)}" style="padding: 4px 10px; font-size: 0.8rem; font-weight: 600;">
+        <td class="cell-full" data-label="Slip PDF Terakhir">${slipStatusBadge}</td>
+        <td class="cell-actions" data-label="Aksi">
+          <div class="action-group">
+            <button class="btn btn-primary btn-sm btn-upload-slip-for-staff" data-id="${s.employee_id}" data-name="${escapeHtml(s.employee_name)}">
               📤 ${hasSlip ? 'Ganti PDF' : 'Upload PDF'}
             </button>
             ${hasSlip ? `
-              <a href="/api/v1/payroll/slips/${s.payslip_id}/download" target="_blank" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;">
-                👁️ Unduh
-              </a>
+              <a href="/api/v1/payroll/slips/${s.payslip_id}/download" target="_blank" class="btn btn-secondary btn-sm">👁️ Unduh</a>
+            ` : ''}
+            ${s.whatsAppReminderLink ? `
+              <a href="${s.whatsAppReminderLink}" target="_blank" class="btn btn-sm btn-wa">📲 WA</a>
             ` : ''}
           </div>
-        </td>
-        <td>
-          ${s.whatsAppReminderLink ? `
-            <a href="${s.whatsAppReminderLink}" target="_blank" class="btn btn-secondary" style="background:#25D366; color:#fff; border:none; padding:4px 8px; font-size:0.75rem; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
-              📲 WA
-            </a>
-          ` : '-'}
         </td>
       </tr>
     `;
@@ -1493,7 +1456,7 @@ async function loadPayrollData() {
         <p style="color: var(--text-muted); font-size: 0.88rem;">Belum ada draft kalkulasi payroll. Anda bisa klik "Hitung Draft" atau langsung klik "Unggah Slip Gaji (PDF)".</p>
       ` : `
         <div class="table-responsive">
-          <table class="table">
+          <table class="table table-stack">
             <thead>
               <tr>
                 <th>Periode</th>
@@ -1507,16 +1470,18 @@ async function loadPayrollData() {
             <tbody>
               ${runs.map(run => `
                 <tr>
-                  <td><strong>${escapeHtml(run.period_label)}</strong></td>
-                  <td>v${run.version}</td>
-                  <td>${run.total_karyawan || 0} orang</td>
-                  <td>Rp ${formatNumber(run.total_net_pay || 0)}</td>
-                  <td><span class="badge ${run.status === 'published' ? 'badge-success' : 'badge-warning'}">${run.status.toUpperCase()}</span></td>
-                  <td>
-                    <button class="btn btn-secondary btn-view-run" data-run="${run.id}" style="padding: 4px 8px; font-size: 0.78rem;">Rincian</button>
-                    ${state.user.isOwner && run.status !== 'published' ? `
-                      <button class="btn btn-primary btn-finalize-run" data-run="${run.id}" style="padding: 4px 8px; font-size: 0.78rem;">👑 Finalisasi</button>
-                    ` : ''}
+                  <td class="cell-title" data-label="Periode"><strong>${escapeHtml(run.period_label)}</strong></td>
+                  <td data-label="Versi">v${run.version}</td>
+                  <td data-label="Karyawan">${run.total_karyawan || 0} orang</td>
+                  <td data-label="Total Nominal">Rp ${formatNumber(run.total_net_pay || 0)}</td>
+                  <td data-label="Status"><span class="badge ${run.status === 'published' ? 'badge-success' : 'badge-warning'}">${run.status.toUpperCase()}</span></td>
+                  <td class="cell-actions" data-label="Aksi">
+                    <div class="action-group">
+                      <button class="btn btn-secondary btn-sm btn-view-run" data-run="${run.id}">Rincian</button>
+                      ${state.user.isOwner && run.status !== 'published' ? `
+                        <button class="btn btn-primary btn-sm btn-finalize-run" data-run="${run.id}">👑 Finalisasi</button>
+                      ` : ''}
+                    </div>
                   </td>
                 </tr>
               `).join('')}
@@ -1588,19 +1553,23 @@ async function loadMasterData() {
   if (!tbody) return;
 
   if (empRes.ok && empRes.data.employees) {
-    tbody.innerHTML = empRes.data.employees.map(e => `
+    tbody.innerHTML = empRes.data.employees.length === 0
+      ? `<tr><td colspan="4" class="cell-empty">Belum ada karyawan.</td></tr>`
+      : empRes.data.employees.map(e => `
       <tr>
-        <td><strong>${escapeHtml(e.employee_code)}</strong></td>
-        <td>${escapeHtml(e.name)}</td>
-        <td>${escapeHtml(e.job_title || 'Crew Toko')}</td>
-        <td>${escapeHtml(e.branch_name || 'Head Quarter')}</td>
-        <td><span class="badge badge-success">Aktif</span></td>
+        <td class="cell-title" data-label="Nama"><strong>${escapeHtml(e.name)}</strong> <small class="cell-code">${escapeHtml(e.employee_code)}</small></td>
+        <td data-label="Jabatan">${escapeHtml(e.job_title || 'Crew Toko')}</td>
+        <td data-label="Cabang">${escapeHtml(e.branch_name || 'Head Quarter')}</td>
+        <td data-label="Status"><span class="badge badge-success">Aktif</span></td>
       </tr>
     `).join('');
   }
 
   const btnAdd = document.getElementById('btn-add-employee-modal');
   if (btnAdd) btnAdd.addEventListener('click', openAddEmployeeModal);
+
+  const btnAddBranch = document.getElementById('btn-add-branch-modal');
+  if (btnAddBranch) btnAddBranch.addEventListener('click', openAddBranchModal);
 }
 
 async function loadScheduleForms() {
@@ -2063,7 +2032,7 @@ async function openRunDetailModal(runId) {
         <strong>Status:</strong> ${run.status.toUpperCase()}
       </div>
       <div class="table-responsive">
-        <table class="table">
+        <table class="table table-stack">
           <thead>
             <tr>
               <th>Karyawan</th>
@@ -2078,11 +2047,11 @@ async function openRunDetailModal(runId) {
               const snap = it.calculation_snapshot || {};
               return `
                 <tr>
-                  <td><strong>${escapeHtml(it.employee_name)}</strong></td>
-                  <td>${snap.totalHadirUangMakan || 0} hari</td>
-                  <td>${snap.totalKunjunganLuar || 0} hari</td>
-                  <td>Rp ${formatNumber(snap.totalUangMakan || 0)}</td>
-                  <td><strong style="color:var(--primary-red);">Rp ${formatNumber(it.net_pay)}</strong></td>
+                  <td class="cell-title" data-label="Karyawan"><strong>${escapeHtml(it.employee_name)}</strong></td>
+                  <td data-label="Hadir Toko">${snap.totalHadirUangMakan || 0} hari</td>
+                  <td data-label="Kunjungan Luar">${snap.totalKunjunganLuar || 0} hari</td>
+                  <td data-label="Uang Makan">Rp ${formatNumber(snap.totalUangMakan || 0)}</td>
+                  <td data-label="Total Net Pay"><strong style="color:var(--primary-red);">Rp ${formatNumber(it.net_pay)}</strong></td>
                 </tr>
               `;
             }).join('')}
@@ -2161,7 +2130,224 @@ function closeModal() {
   if (container) container.innerHTML = '';
 }
 
+// --- Cabang: Render Baris & Modal Tambah Cabang ---
+function renderBranchRows() {
+  if (!state.branches.length) {
+    return `<tr><td colspan="4" class="cell-empty">Belum ada cabang. Klik "+ Cabang" untuk menambahkan.</td></tr>`;
+  }
+  return state.branches.map(b => {
+    const hasCoord = b.latitude && b.longitude;
+    const coordText = hasCoord ? `${parseFloat(b.latitude).toFixed(5)}, ${parseFloat(b.longitude).toFixed(5)}` : '-';
+    return `
+      <tr>
+        <td class="cell-title" data-label="Nama Cabang"><strong>${escapeHtml(b.name)}</strong> <small class="cell-code">${escapeHtml(b.code)}</small></td>
+        <td data-label="Radius">${b.radius_m || 150} m</td>
+        <td data-label="Koordinat">
+          ${hasCoord ? `<a href="https://www.google.com/maps?q=${encodeURIComponent(b.latitude + ',' + b.longitude)}" target="_blank" rel="noopener">📍 ${coordText}</a>` : '-'}
+        </td>
+        <td class="cell-full" data-label="Alamat">${escapeHtml(b.address || '-')}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Mengurai teks koordinat "lat, lon" atau tautan Google Maps berisi koordinat.
+function parseCoordinateText(text) {
+  if (!text) return null;
+  let decoded = String(text);
+  try { decoded = decodeURIComponent(decoded); } catch (e) { /* teks biasa */ }
+  const patterns = [/@(-?\d+\.\d+),\s*(-?\d+\.\d+)/, /[?&](?:q|query|ll)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/, /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/, /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/];
+  for (const re of patterns) {
+    const m = decoded.match(re);
+    if (m) {
+      const lat = parseFloat(m[1]);
+      const lon = parseFloat(m[2]);
+      if (Math.abs(lat) <= 90 && Math.abs(lon) <= 180) return { lat, lon };
+    }
+  }
+  return null;
+}
+
+function openAddBranchModal() {
+  const modalContainer = document.getElementById('modal-container');
+  modalContainer.innerHTML = `
+    <div class="modal-overlay active">
+      <div class="modal-card">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-red), #9E0000);">
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff;">🏢 Tambah Cabang Baru</h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem;">✕</button>
+        </div>
+        <form id="form-add-branch">
+          <div class="modal-body">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label" for="add-branch-code">Kode Cabang</label>
+                <input type="text" id="add-branch-code" class="form-control" placeholder="Contoh: CBG-BGR" maxlength="50" required style="text-transform: uppercase;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="add-branch-radius">Radius Absen (meter)</label>
+                <input type="number" id="add-branch-radius" class="form-control" value="150" min="10" max="5000" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="add-branch-name">Nama Cabang</label>
+              <input type="text" id="add-branch-name" class="form-control" placeholder="Contoh: Cabang Bogor" maxlength="150" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="add-branch-address">Alamat</label>
+              <input type="text" id="add-branch-address" class="form-control" placeholder="Alamat lengkap cabang">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="add-branch-coord">Koordinat Lokasi Toko</label>
+              <input type="text" id="add-branch-coord" class="form-control" placeholder="-6.2122736, 107.0218103 atau tempel link Google Maps">
+              <small id="add-branch-coord-hint" class="form-hint">Dipakai untuk validasi radius absen. Tautan pendek maps.app.goo.gl tidak memuat koordinat — buka dulu lalu salin koordinatnya.</small>
+            </div>
+            <button type="button" id="btn-branch-use-my-location" class="btn btn-secondary btn-block">📍 Gunakan Lokasi Saya Saat Ini</button>
+            <p class="form-hint" style="margin-top: 10px;">Shift Pagi (08:00–17:00) &amp; Siang (12:00–21:00) otomatis dibuat untuk cabang baru.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+            <button type="submit" id="btn-submit-branch" class="btn btn-primary">Simpan Cabang</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  const coordInput = document.getElementById('add-branch-coord');
+  const coordHint = document.getElementById('add-branch-coord-hint');
+  coordInput.addEventListener('input', () => {
+    if (!coordInput.value.trim()) {
+      coordHint.style.color = '';
+      return;
+    }
+    const c = parseCoordinateText(coordInput.value);
+    coordHint.style.color = c ? '#137333' : 'var(--primary-red)';
+    coordHint.textContent = c ? `✅ Terbaca: ${c.lat.toFixed(6)}, ${c.lon.toFixed(6)}` : '⚠️ Koordinat belum terbaca. Format: lat, lon';
+  });
+
+  document.getElementById('btn-branch-use-my-location').addEventListener('click', (ev) => {
+    const btn = ev.currentTarget;
+    if (!navigator.geolocation) {
+      showToast('Browser tidak mendukung GPS.', 'error');
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Mengambil lokasi...';
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        coordInput.value = `${pos.coords.latitude.toFixed(7)}, ${pos.coords.longitude.toFixed(7)}`;
+        coordInput.dispatchEvent(new Event('input'));
+        btn.disabled = false;
+        btn.textContent = '📍 Gunakan Lokasi Saya Saat Ini';
+        showToast(`Lokasi diambil (akurasi ±${Math.round(pos.coords.accuracy)}m).`, 'success');
+      },
+      (err) => {
+        btn.disabled = false;
+        btn.textContent = '📍 Gunakan Lokasi Saya Saat Ini';
+        showToast('Gagal mengambil lokasi: ' + err.message, 'error');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  document.getElementById('form-add-branch').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const coordText = coordInput.value.trim();
+    const coord = coordText ? parseCoordinateText(coordText) : null;
+    if (coordText && !coord) {
+      showToast('Koordinat tidak valid. Gunakan format: lat, lon', 'error');
+      return;
+    }
+
+    const submitBtn = document.getElementById('btn-submit-branch');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Menyimpan...';
+
+    const res = await api('/api/v1/branches', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: document.getElementById('add-branch-code').value,
+        name: document.getElementById('add-branch-name').value,
+        address: document.getElementById('add-branch-address').value,
+        radius_m: document.getElementById('add-branch-radius').value,
+        latitude: coord ? coord.lat : null,
+        longitude: coord ? coord.lon : null
+      })
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Simpan Cabang';
+
+    if (res.ok && res.data.success) {
+      showToast(`Cabang "${res.data.branch.name}" berhasil ditambahkan!`, 'success');
+      closeModal();
+      await loadInitialData();
+      const tbody = document.getElementById('master-branch-body');
+      if (tbody) tbody.innerHTML = renderBranchRows();
+      const kpi = document.getElementById('kpi-total-cabang');
+      if (kpi) kpi.textContent = state.branches.length;
+    } else {
+      showToast(res.data.error || 'Gagal menambah cabang.', 'error');
+    }
+  });
+}
+
 // --- Utilities ---
+// Opsi shift sesuai cabang terpilih (Non-Shift Staff/Admin selalu tersedia, tanpa duplikat).
+function renderShiftOptions(branchId) {
+  const seen = new Set();
+  const list = state.shifts.filter(s => {
+    const isNonShift = /^non-shift/i.test(s.name);
+    if (!isNonShift && branchId && s.branch_id && s.branch_id !== branchId) return false;
+    const key = `${s.name}|${s.start_time}|${s.end_time}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return list.map(s => `
+    <option value="${s.id}">${escapeHtml(s.name)} (${s.start_time.slice(0, 5)} - ${s.end_time.slice(0, 5)})</option>
+  `).join('');
+}
+
+function toDate(value) {
+  if (!value) return null;
+  const str = String(value);
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(str) ? new Date(str + 'T00:00:00') : new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function formatDayShort(value) {
+  const d = toDate(value);
+  return d ? d.toLocaleDateString('id-ID', { weekday: 'short' }) : '-';
+}
+
+function formatDayNum(value) {
+  const d = toDate(value);
+  return d ? d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) : '-';
+}
+
+function formatDateLong(value) {
+  const d = toDate(value);
+  return d ? d.toLocaleDateString('id-ID', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+}
+
+function formatTime(value) {
+  const d = value ? new Date(value) : null;
+  return d && !isNaN(d.getTime()) ? d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+}
+
+function statusLabel(status) {
+  const map = { present: 'Hadir', late: 'Terlambat', incomplete: 'Tidak Lengkap', off: 'Libur', absent: 'Tidak Hadir' };
+  return map[status] || escapeHtml(status || '-');
+}
+
+function statusBadgeClass(status) {
+  if (status === 'late' || status === 'incomplete') return 'badge-warning';
+  if (status === 'absent') return 'badge-danger';
+  if (status === 'off') return 'badge-info';
+  return 'badge-success';
+}
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)

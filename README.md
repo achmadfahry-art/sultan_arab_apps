@@ -31,13 +31,14 @@ Sistem ini dirancang tanpa ketergantungan pihak ketiga yang mengikat (database m
 - Mendukung cabang aktif:
   - **Head Quarter Bekasi (Pusat Grosir)**: Titik koordinat resmi dengan radius 150 meter.
   - **Cabang Cikarang**: Titik koordinat resmi dengan radius 150 meter.
+- **Tombol `+ Cabang` Dinamis**: Pengelola (Owner/Manager) dapat menambahkan cabang baru langsung lewat dashboard pengelola lengkap dengan input koordinat / Google Maps, dan shift crew toko otomatis terbit.
 - Perhitungan jarak akurat menggunakan formula **Haversine** di sisi server untuk memvalidasi presensi staf.
 
 ### ⏰ 2. Shift Mandiri & Toleransi Keterlambatan (Q02)
 - Staf kantor dan admin bekerja dengan jam kerja reguler (**08:00 – 17:00 WIB**).
 - Crew toko memilih shift kerja secara mandiri saat absen masuk:
   - **Shift Pagi**: 08:00 – 17:00 WIB
-  - **Shift Siang**: 12:30 – 21:00 WIB
+  - **Shift Siang**: 12:00 – 21:00 WIB
 - Toleransi keterlambatan **15 menit** otomatis diperhitungkan sistem.
 - **Wajib hanya absen masuk**, absen pulang bersifat fleksibel/opsional.
 

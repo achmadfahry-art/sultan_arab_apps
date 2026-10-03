@@ -40,12 +40,31 @@ async function verifyDatabase() {
       throw new Error('Role wajib tidak lengkap');
     }
 
-    // Cek Data Uji Cabang & Karyawan
-    const branchRes = await client.query(`SELECT name, is_test_data FROM branches;`);
-    console.log('[Test DB] Cabang ditemukan:', branchRes.rows);
-    if (branchRes.rows.some(b => !b.is_test_data)) {
-      console.warn('[Peringatan] Ada cabang tanpa penanda data uji');
+    // Pastikan tidak ada data uji tersisa di data operasional
+    const branchRes = await client.query(`SELECT name FROM branches WHERE active = true ORDER BY name;`);
+    console.log('[Test DB] Cabang aktif:', branchRes.rows.map(b => b.name));
+    if (branchRes.rows.length === 0) {
+      throw new Error('Belum ada cabang aktif');
     }
+    const leftover = await client.query(`
+      SELECT 'branches' AS tabel, count(*)::int AS jumlah FROM branches WHERE is_test_data = true OR name ILIKE '%DATA UJI%'
+      UNION ALL SELECT 'employees', count(*)::int FROM employees WHERE is_test_data = true OR name ILIKE '%DATA UJI%'
+      UNION ALL SELECT 'shifts', count(*)::int FROM shifts WHERE is_test_data = true OR name ILIKE '%DATA UJI%'
+      UNION ALL SELECT 'payroll_periods', count(*)::int FROM payroll_periods WHERE label ILIKE '%DATA UJI%'
+      UNION ALL SELECT 'pay_components', count(*)::int FROM pay_components WHERE name ILIKE '%DATA UJI%'
+      UNION ALL SELECT 'profiles', count(*)::int FROM profiles WHERE display_name ILIKE '%DATA UJI%';
+    `);
+    const dirty = leftover.rows.filter(r => r.jumlah > 0);
+    if (dirty.length > 0) {
+      throw new Error('Masih ada data uji: ' + dirty.map(r => `${r.tabel}=${r.jumlah}`).join(', '));
+    }
+    console.log('[Test DB] Tidak ada data uji tersisa di tabel operasional.');
+
+    const siang = await client.query(`SELECT DISTINCT start_time::text, end_time::text FROM shifts WHERE name ILIKE 'Shift Siang%';`);
+    if (siang.rows.some(r => r.start_time !== '12:00:00' || r.end_time !== '21:00:00')) {
+      throw new Error('Shift Siang harus 12:00 - 21:00: ' + JSON.stringify(siang.rows));
+    }
+    console.log('[Test DB] Shift Siang terverifikasi 12:00 - 21:00.');
 
     console.log('[Test DB] PENGUJIAN DATABASE BERHASIL 100%!');
   } catch (err) {

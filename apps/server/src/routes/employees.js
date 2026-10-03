@@ -48,7 +48,7 @@ router.post('/', requireAuth, requireRoles(['owner', 'manager']), async (req, re
       `INSERT INTO employees (employee_code, name, job_title, hire_date, is_test_data)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *;`,
-      [employee_code.trim(), name.trim(), job_title || 'Crew Toko', hire_date || new Date(), is_test_data !== undefined ? is_test_data : true]
+      [employee_code.trim(), name.trim(), job_title || 'Crew Toko', hire_date || new Date(), is_test_data === true]
     );
     const newEmp = empRes.rows[0];
 
