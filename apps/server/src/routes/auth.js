@@ -73,15 +73,49 @@ router.post('/login', async (req, res) => {
       ipAddress: req.ip
     });
 
+    // Fetch employee data if linked
+    const empRes = await db.query(
+      `SELECT e.id, e.employee_code, e.name, e.job_title,
+              ea.branch_id, b.name as branch_name, b.code as branch_code
+       FROM employees e
+       LEFT JOIN employee_assignments ea ON e.id = ea.employee_id AND ea.is_primary = true
+       LEFT JOIN branches b ON ea.branch_id = b.id
+       WHERE e.user_id = $1 AND e.active = true
+       LIMIT 1`,
+      [user.id]
+    );
+    const employee = empRes.rows.length > 0 ? empRes.rows[0] : null;
+
+    // Fetch branch access for managers/supervisors
+    const branchAccessRes = await db.query(
+      `SELECT branch_id FROM user_branch_access WHERE user_id = $1`,
+      [user.id]
+    );
+    const branchAccess = branchAccessRes.rows.map(b => b.branch_id);
+
     return res.json({
       success: true,
       message: 'Login berhasil.',
       token: rawToken,
       user: {
         id: user.id,
+        sessionId: sessionRes.rows[0].id,
         loginIdentifier: user.login_identifier,
         displayName: user.display_name || user.login_identifier,
-        roles
+        phone: user.phone,
+        avatarUrl: user.avatar_url,
+        roles,
+        isOwner: roles.includes('owner'),
+        isManager: roles.includes('manager'),
+        isSupervisor: roles.includes('supervisor'),
+        isKaryawan: roles.includes('karyawan'),
+        employeeId: employee ? employee.id : null,
+        employeeCode: employee ? employee.employee_code : null,
+        employeeName: employee ? employee.name : null,
+        jobTitle: employee ? employee.job_title : null,
+        assignedBranchId: employee ? employee.branch_id : null,
+        assignedBranchName: employee ? employee.branch_name : null,
+        accessibleBranchIds: branchAccess
       }
     });
   } catch (err) {

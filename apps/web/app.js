@@ -196,9 +196,18 @@ function renderLogin() {
   `;
 }
 
+function isManagerOrOwner(user) {
+  if (!user) return false;
+  if (user.isOwner || user.isManager) return true;
+  if (Array.isArray(user.roles)) {
+    return user.roles.includes('owner') || user.roles.includes('manager');
+  }
+  return false;
+}
+
 // --- Render Shell Parts ---
 function renderSidebar() {
-  const isManagerOrOwner = state.user && (state.user.isOwner || state.user.isManager);
+  const isMgrOrOwner = isManagerOrOwner(state.user);
   return `
     <aside class="app-sidebar">
       <div class="sidebar-brand">
@@ -221,7 +230,7 @@ function renderSidebar() {
         <li class="sidebar-item ${state.route === '#payslips' ? 'active' : ''}">
           <a href="#payslips"><span>💵</span> Slip Gaji</a>
         </li>
-        ${isManagerOrOwner ? `
+        ${isMgrOrOwner ? `
         <li class="sidebar-item ${state.route === '#management' ? 'active' : ''}">
           <a href="#management"><span>📊</span> Dashboard Pengelola</a>
         </li>
@@ -259,7 +268,7 @@ function renderHeader() {
 }
 
 function renderBottomNav() {
-  const isManagerOrOwner = state.user && (state.user.isOwner || state.user.isManager);
+  const isMgrOrOwner = isManagerOrOwner(state.user);
   return `
     <nav class="bottom-nav">
       <a href="#home" class="bottom-nav-item ${state.route === '#home' ? 'active' : ''}">
@@ -278,7 +287,7 @@ function renderBottomNav() {
         <span class="bottom-nav-icon">💵</span>
         <span>Slip</span>
       </a>
-      ${isManagerOrOwner ? `
+      ${isMgrOrOwner ? `
       <a href="#management" class="bottom-nav-item ${state.route === '#management' ? 'active' : ''}">
         <span class="bottom-nav-icon">📊</span>
         <span>Kelola</span>
@@ -376,7 +385,7 @@ function renderHome() {
         <span class="quick-icon">💵</span>
         <div class="quick-label">Slip Gaji</div>
       </div>
-      ${(state.user.isOwner || state.user.isManager) ? `
+      ${isManagerOrOwner(state.user) ? `
       <div class="quick-card" onclick="window.location.hash='#management'">
         <span class="quick-icon">📊</span>
         <div class="quick-label">Dashboard Kelola</div>
@@ -856,10 +865,10 @@ function renderHistory() {
 }
 
 function renderPayslips() {
-  const isManagerOrOwner = state.user && (state.user.isOwner || state.user.isManager);
+  const isMgrOrOwner = isManagerOrOwner(state.user);
   return `
     <div style="margin-bottom: 20px;">
-      ${isManagerOrOwner ? `
+      ${isMgrOrOwner ? `
       <!-- Banner Pengelola: Arahkan ke Dashboard Pengelola -->
       <div class="card" style="border: 2px solid var(--primary-red); background: #FFF9F9; margin-bottom: 16px;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
@@ -931,6 +940,12 @@ function attachLoginEvents() {
 
       if (res.ok && res.data.success) {
         state.user = res.data.user;
+        if (state.user && state.user.roles) {
+          state.user.isOwner = Boolean(state.user.isOwner || state.user.roles.includes('owner'));
+          state.user.isManager = Boolean(state.user.isManager || state.user.roles.includes('manager'));
+          state.user.isSupervisor = Boolean(state.user.isSupervisor || state.user.roles.includes('supervisor'));
+          state.user.isKaryawan = Boolean(state.user.isKaryawan || state.user.roles.includes('karyawan'));
+        }
         showToast('Selamat datang, ' + state.user.displayName, 'success');
         await loadInitialData();
         state.route = '#home';
