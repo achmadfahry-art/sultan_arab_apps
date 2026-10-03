@@ -239,6 +239,7 @@ function renderSidebar() {
       <div class="sidebar-footer">
         <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">${escapeHtml(state.user.displayName)}</div>
         <div style="font-size: 0.75rem; color: var(--accent-gold-dark); margin-bottom: 8px;">Role: ${escapeHtml(state.user.roles.join(', '))}</div>
+        <button id="btn-sidebar-change-pwd" class="btn btn-secondary btn-block" style="padding: 7px; margin-bottom: 6px; font-size: 0.82rem;">🔑 Ubah Password</button>
         <button id="btn-sidebar-logout" class="btn btn-secondary btn-block" style="padding: 8px;">Keluar</button>
       </div>
     </aside>
@@ -261,6 +262,7 @@ function renderHeader() {
           <div style="font-size: 0.85rem; font-weight: 700;">${escapeHtml(state.user.displayName)}</div>
           <div style="font-size: 0.72rem; color: var(--accent-gold-dark);">${escapeHtml(state.user.roles.join(', '))}</div>
         </div>
+        <button id="btn-header-change-pwd" class="btn btn-secondary btn-header-action" title="Ubah Password Akun" style="margin-right: 6px;">🔑 <span class="hide-on-mobile">Password</span></button>
         <button id="btn-header-logout" class="btn btn-secondary btn-header-logout">Keluar</button>
       </div>
     </header>
@@ -391,6 +393,10 @@ function renderHome() {
         <div class="quick-label">Dashboard Kelola</div>
       </div>
       ` : ''}
+      <div class="quick-card" id="quick-card-change-pwd">
+        <span class="quick-icon">🔑</span>
+        <div class="quick-label">Ubah Password</div>
+      </div>
     </div>
 
     <!-- Aturan Shift & Jadwal Pribadi -->
@@ -701,10 +707,11 @@ function renderManagementTabContent() {
                   <th>Jabatan</th>
                   <th>Cabang</th>
                   <th>Status</th>
+                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody id="master-employee-body">
-                <tr><td colspan="4" class="cell-empty">Memuat karyawan...</td></tr>
+                <tr><td colspan="5" class="cell-empty">Memuat karyawan...</td></tr>
               </tbody>
             </table>
           </div>
@@ -971,6 +978,13 @@ function attachShellEvents() {
   const btnSLogout = document.getElementById('btn-sidebar-logout');
   if (btnHLogout) btnHLogout.addEventListener('click', logoutAction);
   if (btnSLogout) btnSLogout.addEventListener('click', logoutAction);
+
+  const btnHChangePwd = document.getElementById('btn-header-change-pwd');
+  const btnSChangePwd = document.getElementById('btn-sidebar-change-pwd');
+  const quickChangePwd = document.getElementById('quick-card-change-pwd');
+  if (btnHChangePwd) btnHChangePwd.addEventListener('click', openChangePasswordModal);
+  if (btnSChangePwd) btnSChangePwd.addEventListener('click', openChangePasswordModal);
+  if (quickChangePwd) quickChangePwd.addEventListener('click', openChangePasswordModal);
 }
 
 function attachViewEvents() {
@@ -1569,15 +1583,27 @@ async function loadMasterData() {
 
   if (empRes.ok && empRes.data.employees) {
     tbody.innerHTML = empRes.data.employees.length === 0
-      ? `<tr><td colspan="4" class="cell-empty">Belum ada karyawan.</td></tr>`
+      ? `<tr><td colspan="5" class="cell-empty">Belum ada karyawan.</td></tr>`
       : empRes.data.employees.map(e => `
       <tr>
         <td class="cell-title" data-label="Nama"><strong>${escapeHtml(e.name)}</strong> <small class="cell-code">${escapeHtml(e.employee_code)}</small></td>
         <td data-label="Jabatan">${escapeHtml(e.job_title || 'Crew Toko')}</td>
         <td data-label="Cabang">${escapeHtml(e.branch_name || 'Head Quarter')}</td>
         <td data-label="Status"><span class="badge badge-success">Aktif</span></td>
+        <td class="cell-actions" data-label="Aksi">
+          <button class="btn btn-secondary btn-sm btn-reset-emp-pwd" data-id="${e.id}" title="Reset password jika karyawan lupa">
+            🔑 Reset Password
+          </button>
+        </td>
       </tr>
     `).join('');
+
+    document.querySelectorAll('.btn-reset-emp-pwd').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const emp = empRes.data.employees.find(x => x.id === btn.dataset.id);
+        if (emp) openResetEmployeePasswordModal(emp);
+      });
+    });
   }
 
   const btnAdd = document.getElementById('btn-add-employee-modal');
@@ -2304,6 +2330,187 @@ function openAddBranchModal() {
       if (kpi) kpi.textContent = state.branches.length;
     } else {
       showToast(res.data.error || 'Gagal menambah cabang.', 'error');
+    }
+  });
+}
+
+// Modal Ubah Password Mandiri (Perorangan)
+function openChangePasswordModal() {
+  const modalContainer = document.getElementById('modal-container');
+  modalContainer.innerHTML = `
+    <div class="modal-overlay active">
+      <div class="modal-card">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-red), #9E0000);">
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff;">🔑 Ubah Password Akun</h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem;">✕</button>
+        </div>
+        <form id="form-change-password">
+          <div class="modal-body">
+            <div style="background: #F8F9FA; border-left: 3px solid var(--accent-gold-dark); padding: 10px 14px; border-radius: 4px; margin-bottom: 16px; font-size: 0.85rem;">
+              Akun: <strong>${escapeHtml(state.user.displayName || '')}</strong> (<code>${escapeHtml(state.user.loginIdentifier || '')}</code>)<br>
+              <span style="color: var(--text-muted); font-size: 0.8rem;">Gunakan password baru yang aman minimal 6 karakter.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="input-current-password">Password Saat Ini</label>
+              <div style="position: relative;">
+                <input type="password" id="input-current-password" class="form-control" placeholder="Masukkan password lama" required autocomplete="current-password">
+                <button type="button" id="btn-peek-current" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1rem;" title="Lihat/Sembunyikan">👁️</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="input-new-password">Password Baru</label>
+              <div style="position: relative;">
+                <input type="password" id="input-new-password" class="form-control" placeholder="Minimal 6 karakter" required minlength="6" autocomplete="new-password">
+                <button type="button" id="btn-peek-new" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1rem;" title="Lihat/Sembunyikan">👁️</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="input-confirm-password">Konfirmasi Password Baru</label>
+              <div style="position: relative;">
+                <input type="password" id="input-confirm-password" class="form-control" placeholder="Ketik ulang password baru" required minlength="6" autocomplete="new-password">
+                <button type="button" id="btn-peek-confirm" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1rem;" title="Lihat/Sembunyikan">👁️</button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+            <button type="submit" id="btn-submit-change-pwd" class="btn btn-primary">Simpan Password Baru</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  const setupToggle = (inputId, btnId) => {
+    const input = document.getElementById(inputId);
+    const btn = document.getElementById(btnId);
+    if (input && btn) {
+      btn.addEventListener('click', () => {
+        input.type = input.type === 'password' ? 'text' : 'password';
+      });
+    }
+  };
+  setupToggle('input-current-password', 'btn-peek-current');
+  setupToggle('input-new-password', 'btn-peek-new');
+  setupToggle('input-confirm-password', 'btn-peek-confirm');
+
+  const form = document.getElementById('form-change-password');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const curPass = document.getElementById('input-current-password').value;
+    const newPass = document.getElementById('input-new-password').value;
+    const confPass = document.getElementById('input-confirm-password').value;
+
+    if (newPass.length < 6) {
+      showToast('Password baru minimal 6 karakter.', 'error');
+      return;
+    }
+    if (newPass !== confPass) {
+      showToast('Konfirmasi password baru tidak cocok.', 'error');
+      return;
+    }
+
+    const submitBtn = document.getElementById('btn-submit-change-pwd');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Menyimpan...';
+
+    const res = await api('/api/v1/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        current_password: curPass,
+        new_password: newPass,
+        confirm_password: confPass
+      })
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Simpan Password Baru';
+
+    if (res.ok && res.data.success) {
+      showToast(res.data.message || 'Password berhasil diubah!', 'success');
+      closeModal();
+    } else {
+      showToast(res.data.error || 'Gagal mengubah password.', 'error');
+    }
+  });
+}
+
+// Modal Reset Password Karyawan oleh Pengelola (Manager & Owner)
+function openResetEmployeePasswordModal(emp) {
+  const modalContainer = document.getElementById('modal-container');
+  modalContainer.innerHTML = `
+    <div class="modal-overlay active">
+      <div class="modal-card">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--accent-gold-dark), #8a6a12);">
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff;">🔑 Reset Password Karyawan</h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem;">✕</button>
+        </div>
+        <form id="form-reset-emp-password">
+          <div class="modal-body">
+            <div style="background: #FFF9E6; border-left: 4px solid var(--accent-gold-dark); padding: 12px 14px; border-radius: 4px; margin-bottom: 16px; font-size: 0.88rem; color: #5c4400;">
+              <strong>Target Akun:</strong> ${escapeHtml(emp.name)} (${escapeHtml(emp.login_identifier || emp.employee_code)})<br>
+              <strong>Jabatan:</strong> ${escapeHtml(emp.job_title || 'Crew Toko')} • ${escapeHtml(emp.branch_name || 'Cabang')}<br>
+              <div style="margin-top: 6px; font-size: 0.8rem; color: #7a5d00;">
+                ⚠️ <em>Fungsi ini digunakan jika karyawan lupa password. Seluruh sesi aktif karyawan akan otomatis dihentikan dan karyawan harus login kembali menggunakan password baru ini.</em>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="input-reset-new-password">Password Baru:</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="input-reset-new-password" class="form-control" value="sultan123" required minlength="6" placeholder="Masukkan password baru">
+                <button type="button" id="btn-use-default-pwd" class="btn btn-secondary" style="white-space: nowrap; font-size: 0.82rem;" title="Isi default sultan123">Default</button>
+              </div>
+              <small class="form-hint">Standar awal reset adalah <code>sultan123</code>. Anda dapat menggantinya sesuai kebutuhan.</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+            <button type="submit" id="btn-submit-reset-emp-pwd" class="btn btn-primary" style="background: var(--accent-gold-dark); border-color: var(--accent-gold-dark);">Konfirmasi Reset Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btn-use-default-pwd').addEventListener('click', () => {
+    document.getElementById('input-reset-new-password').value = 'sultan123';
+  });
+
+  const form = document.getElementById('form-reset-emp-password');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const newPass = document.getElementById('input-reset-new-password').value.trim();
+    if (newPass.length < 6) {
+      showToast('Password baru minimal 6 karakter.', 'error');
+      return;
+    }
+
+    if (!emp.user_id) {
+      showToast('Karyawan ini belum terhubung ke akun user sistem.', 'error');
+      return;
+    }
+
+    const submitBtn = document.getElementById('btn-submit-reset-emp-pwd');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Mereset...';
+
+    const res = await api('/api/v1/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_id: emp.user_id,
+        new_password: newPass
+      })
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Konfirmasi Reset Password';
+
+    if (res.ok && res.data.success) {
+      showToast(res.data.message || 'Password karyawan berhasil direset!', 'success');
+      closeModal();
+    } else {
+      showToast(res.data.error || 'Gagal mereset password.', 'error');
     }
   });
 }

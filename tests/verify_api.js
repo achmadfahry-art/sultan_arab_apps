@@ -338,6 +338,61 @@ async function runApiTests() {
   const cleanupOutput = execSync('node scripts/cleanup-old-photos.js', { encoding: 'utf8', cwd: path.resolve(__dirname, '..') });
   console.log('   OK! Output Pembersihan Foto:\n', cleanupOutput.trim().split('\n').map(l => '     ' + l).join('\n'));
 
+  // 17. Ubah Password Mandiri (Perorangan)
+  console.log('17. Menguji Ubah Password Mandiri (Change Password)...');
+  const wrongOld = await request('POST', '/api/v1/auth/change-password', {
+    current_password: 'wrongpassword',
+    new_password: 'newSecretPass123',
+    confirm_password: 'newSecretPass123'
+  }, empCookie);
+  if (wrongOld.status !== 400 || wrongOld.data.success) {
+    throw new Error('Password lama yang salah seharusnya ditolak (HTTP ' + wrongOld.status + ')');
+  }
+
+  const mismatch = await request('POST', '/api/v1/auth/change-password', {
+    current_password: FIX.password,
+    new_password: 'newSecretPass123',
+    confirm_password: 'differentPassword'
+  }, empCookie);
+  if (mismatch.status !== 400 || mismatch.data.success) {
+    throw new Error('Konfirmasi password beda seharusnya ditolak (HTTP ' + mismatch.status + ')');
+  }
+
+  const changeOk = await request('POST', '/api/v1/auth/change-password', {
+    current_password: FIX.password,
+    new_password: 'newSecretPass123',
+    confirm_password: 'newSecretPass123'
+  }, empCookie);
+  if (changeOk.status !== 200 || !changeOk.data.success) {
+    throw new Error('Ubah password mandiri gagal: ' + JSON.stringify(changeOk.data));
+  }
+  // Revert back
+  await request('POST', '/api/v1/auth/change-password', {
+    current_password: 'newSecretPass123',
+    new_password: FIX.password,
+    confirm_password: FIX.password
+  }, empCookie);
+  console.log('   OK! Validasi password lama, konfirmasi cocok, dan perubahan mandiri berhasil.');
+
+  // 18. Reset Password oleh Pengelola (Preventif lupa password)
+  console.log('18. Menguji Reset Password oleh Pengelola (Preventif)...');
+  const empTriesReset = await request('POST', '/api/v1/auth/reset-password', {
+    user_id: FIX.ids.users[0],
+    new_password: 'anyPassword123'
+  }, empCookie);
+  if (empTriesReset.status !== 403) {
+    throw new Error('Karyawan biasa seharusnya dilarang mereset password (HTTP ' + empTriesReset.status + ')');
+  }
+
+  const mgrResetOk = await request('POST', '/api/v1/auth/reset-password', {
+    user_id: FIX.ids.users[0],
+    new_password: 'sultanReset123'
+  }, mgrCookie);
+  if (mgrResetOk.status !== 200 || !mgrResetOk.data.success) {
+    throw new Error('Pengelola reset password karyawan gagal: ' + JSON.stringify(mgrResetOk.data));
+  }
+  console.log('   OK! Reset password karyawan oleh pengelola berhasil & hak akses dibatasi.');
+
   console.log('\n======================================================');
   console.log(' SELURUH PENGUJIAN API & ATURAN SISTEM BERHASIL 100%!');
   console.log('======================================================');

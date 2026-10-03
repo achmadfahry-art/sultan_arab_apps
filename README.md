@@ -75,7 +75,7 @@ Sistem ini dirancang tanpa ketergantungan pihak ketiga yang mengikat (database m
 
 ## 👥 Roster & Akun Pengguna Resmi (Q04)
 
-Semua akun terdaftar menggunakan kata sandi bawaan: 
+Semua akun terdaftar menggunakan kata sandi bawaan (default: `password123`, Fauzi: `fauzi123`, Owner: `owner123`): 
 
 | Nama | Role / Jabatan | Username | Penugasan Cabang | Hari Libur Tetap |
 |---|---|---|---|---|
@@ -89,6 +89,16 @@ Semua akun terdaftar menggunakan kata sandi bawaan:
 | **Milkan** | Crew Toko | `milkan` | Cabang Cikarang | Kamis |
 | **Refan** | Crew Toko | `refan` | Cabang Cikarang | Selasa |
 | **Owner** | **Owner Sultan Arab** | `owner` | Seluruh Cabang | - |
+
+### 🔑 Pengelolaan Password & Keamanan
+1. **Ubah Password Mandiri (Setiap Akun)**:
+   - Tombol `🔑 Ubah Password` tersedia langsung di **Beranda (Quick Card)**, **Header Atas**, dan **Sidebar Bawah**.
+   - Setiap pengguna dapat mengganti kata sandi mereka sendiri kapan saja dengan memasukkan password lama dan password baru (minimal 6 karakter).
+2. **Reset Password oleh Pengelola (Preventif Lupa Password)**:
+   - Terletak di **Dashboard Pengelola** → Tab **👥 Karyawan & Cabang**.
+   - Pada baris tiap karyawan terdapat tombol `🔑 Reset Password`.
+   - Jika ada karyawan yang lupa kata sandi, Manager atau Owner dapat meresetnya ke password baru (atau default `sultan123`). Sesi aktif lama karyawan akan langsung dicabut secara otomatis demi keamanan.
+   - Proteksi wewenang: Manager tidak dapat mereset akun Owner maupun sesama Manager.
 
 ---
 

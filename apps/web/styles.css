@@ -263,14 +263,22 @@ a:hover {
   font-size: 0.88rem;
   color: var(--text-muted);
 }
-.btn-header-logout {
+.btn-header-logout, .btn-header-action {
   padding: 6px 12px;
   font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 /* Visibility helpers */
 .mobile-only { display: block; }
 .desktop-only { display: none; }
+.hide-on-mobile { display: inline; }
+@media (max-width: 600px) {
+  .hide-on-mobile { display: none !important; }
+}
 
 /* History list (ponsel) */
 .history-list {
