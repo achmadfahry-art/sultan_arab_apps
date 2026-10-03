@@ -1180,6 +1180,20 @@ a:hover {
 
 /* --- RESPONSIVE BREAKPOINT FOR PC (min-width: 860px) --- */
 @media (min-width: 860px) {
+  body {
+    background-color: #3b0000;
+    background-image: url('/assets/bg_desktop.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
+  }
+
+  .login-view {
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+  }
+
   .mobile-only {
     display: none;
   }
@@ -1188,10 +1202,13 @@ a:hover {
   }
   .app-sidebar {
     display: flex;
+    background: #FFFFFF;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.16);
   }
   .app-main {
     margin-left: var(--sidebar-width);
     padding-bottom: 28px; /* No bottom nav needed on PC */
+    background: transparent;
   }
   .bottom-nav {
     display: none;
@@ -1201,6 +1218,23 @@ a:hover {
   }
   .app-header {
     padding: 14px 32px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  }
+  .mgmt-header {
+    background: #FFFFFF;
+    padding: 18px 24px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
+  }
+  .nav-tabs {
+    background: #FFFFFF;
+    padding: 6px 14px;
+    border-radius: var(--border-radius-sm);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
   }
   .content-container {
     max-width: 1200px;

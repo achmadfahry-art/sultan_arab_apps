@@ -236,12 +236,6 @@ function renderSidebar() {
         </li>
         ` : ''}
       </ul>
-      <div class="sidebar-footer">
-        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">${escapeHtml(state.user.displayName)}</div>
-        <div style="font-size: 0.75rem; color: var(--accent-gold-dark); margin-bottom: 8px;">Role: ${escapeHtml(state.user.roles.join(', '))}</div>
-        <button id="btn-sidebar-change-pwd" class="btn btn-secondary btn-block" style="padding: 7px; margin-bottom: 6px; font-size: 0.82rem;">🔑 Ubah Password</button>
-        <button id="btn-sidebar-logout" class="btn btn-secondary btn-block" style="padding: 8px;">Keluar</button>
-      </div>
     </aside>
   `;
 }
@@ -975,15 +969,11 @@ function attachShellEvents() {
   };
 
   const btnHLogout = document.getElementById('btn-header-logout');
-  const btnSLogout = document.getElementById('btn-sidebar-logout');
   if (btnHLogout) btnHLogout.addEventListener('click', logoutAction);
-  if (btnSLogout) btnSLogout.addEventListener('click', logoutAction);
 
   const btnHChangePwd = document.getElementById('btn-header-change-pwd');
-  const btnSChangePwd = document.getElementById('btn-sidebar-change-pwd');
   const quickChangePwd = document.getElementById('quick-card-change-pwd');
   if (btnHChangePwd) btnHChangePwd.addEventListener('click', openChangePasswordModal);
-  if (btnSChangePwd) btnSChangePwd.addEventListener('click', openChangePasswordModal);
   if (quickChangePwd) quickChangePwd.addEventListener('click', openChangePasswordModal);
 }
 
