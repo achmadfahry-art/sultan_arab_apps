@@ -74,7 +74,7 @@ Sistem ini dirancang tanpa ketergantungan pihak ketiga yang mengikat (database m
 
 ## 👥 Roster & Akun Pengguna Resmi (Q04)
 
-Semua akun terdaftar menggunakan kata sandi bawaan: `<username>123` (dapat disesuaikan).
+Semua akun terdaftar menggunakan kata sandi bawaan: 
 
 | Nama | Role / Jabatan | Username | Penugasan Cabang | Hari Libur Tetap |
 |---|---|---|---|---|
