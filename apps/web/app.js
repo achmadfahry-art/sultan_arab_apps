@@ -33,6 +33,48 @@ const state = {
   currentGps: { lat: null, lon: null, accuracy: null, distance: null, isWithinRadius: false }
 };
 
+// --- System SVG Icons (Enterprise Lucide / Heroicons Standard) ---
+function uiIcon(name, extraClass = '', size = 18) {
+  const icons = {
+    home: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+    camera: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>`,
+    calendar: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>`,
+    'file-text': `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>`,
+    chart: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>`,
+    key: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-2-2"/></svg>`,
+    users: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+    building: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>`,
+    car: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>`,
+    clock: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    'map-pin': `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`,
+    zap: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+    check: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+    'check-circle': `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+    'alert-circle': `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`,
+    refresh: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>`,
+    search: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>`,
+    printer: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>`,
+    plus: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>`,
+    edit: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>`,
+    upload: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>`,
+    download: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>`,
+    dollar: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+    close: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>`,
+    eye: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`,
+    eyeOff: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>`,
+    smartphone: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>`,
+    folder: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>`,
+    logout: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>`,
+    shield: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+    palmtree: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8c0-2.76-2.46-5-5.5-5S2 5.24 2 8h11Z"/><path d="M13 7.14A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-11"/><path d="M5.8 15.5c1.5 1.5 3.2 2.5 5.2 3.1V22"/><path d="M11 22v-6.5a6.5 6.5 0 0 1 2-4.5"/></svg>`,
+    crown: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>`,
+    phone: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
+    external: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>`,
+    settings: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`
+  };
+  return icons[name] || '';
+}
+
 // --- HTTP Client Helper ---
 async function api(path, options = {}) {
   options.headers = options.headers || {};
@@ -185,8 +227,8 @@ function renderLogin() {
               <label class="form-label" for="login-password">Password</label>
               <div style="position: relative;">
                 <input type="password" id="login-password" class="form-control" placeholder="Masukkan password" autocomplete="current-password" required>
-                <button type="button" id="btn-toggle-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 0.85rem; color: var(--text-muted);">
-                  👁
+                <button type="button" id="btn-toggle-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center;" title="Lihat/Sembunyikan Password">
+                  ${uiIcon('eye', '', 16)}
                 </button>
               </div>
             </div>
@@ -223,20 +265,20 @@ function renderSidebar() {
       </div>
       <ul class="sidebar-menu">
         <li class="sidebar-item ${state.route === '#home' ? 'active' : ''}">
-          <a href="#home"><span>🏠</span> Beranda Karyawan</a>
+          <a href="#home">${uiIcon('home', '', 18)} <span>Beranda Karyawan</span></a>
         </li>
         <li class="sidebar-item ${state.route === '#attendance' ? 'active' : ''}">
-          <a href="#attendance"><span>📸</span> Absen Masuk</a>
+          <a href="#attendance">${uiIcon('camera', '', 18)} <span>Absen Masuk</span></a>
         </li>
         <li class="sidebar-item ${state.route === '#history' ? 'active' : ''}">
-          <a href="#history"><span>📅</span> Riwayat Absensi</a>
+          <a href="#history">${uiIcon('calendar', '', 18)} <span>Riwayat Absensi</span></a>
         </li>
         <li class="sidebar-item ${state.route === '#payslips' ? 'active' : ''}">
-          <a href="#payslips"><span>💵</span> Slip Gaji</a>
+          <a href="#payslips">${uiIcon('file-text', '', 18)} <span>Slip Gaji</span></a>
         </li>
         ${isMgrOrOwner ? `
         <li class="sidebar-item ${state.route === '#management' ? 'active' : ''}">
-          <a href="#management"><span>📊</span> Dashboard Pengelola</a>
+          <a href="#management">${uiIcon('chart', '', 18)} <span>Dashboard Pengelola</span></a>
         </li>
         ` : ''}
       </ul>
@@ -257,11 +299,15 @@ function renderHeader() {
       <div class="header-user-info">
         <div class="user-avatar-badge">${escapeHtml(state.user.displayName ? state.user.displayName.charAt(0).toUpperCase() : 'U')}</div>
         <div class="header-user-meta">
-          <div style="font-size: 0.85rem; font-weight: 700;">${escapeHtml(state.user.displayName)}</div>
-          <div style="font-size: 0.72rem; color: var(--accent-gold-dark);">${escapeHtml(state.user.roles.join(', '))}</div>
+          <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">${escapeHtml(state.user.displayName)}</div>
+          <div style="font-size: 0.72rem; color: var(--accent-gold); font-weight: 600;">${escapeHtml(state.user.roles.join(', '))}</div>
         </div>
-        <button id="btn-header-change-pwd" class="btn btn-secondary btn-header-action" title="Ubah Password Akun" style="margin-right: 6px;">🔑 <span class="hide-on-mobile">Password</span></button>
-        <button id="btn-header-logout" class="btn btn-secondary btn-header-logout">Keluar</button>
+        <button id="btn-header-change-pwd" class="btn btn-secondary btn-header-action" title="Ubah Password Akun" style="margin-right: 6px;">
+          ${uiIcon('key', '', 15)} <span class="hide-on-mobile">Password</span>
+        </button>
+        <button id="btn-header-logout" class="btn btn-secondary btn-header-logout">
+          ${uiIcon('logout', '', 15)} <span>Keluar</span>
+        </button>
       </div>
     </header>
   `;
@@ -272,24 +318,24 @@ function renderBottomNav() {
   return `
     <nav class="bottom-nav">
       <a href="#home" class="bottom-nav-item ${state.route === '#home' ? 'active' : ''}">
-        <span class="bottom-nav-icon">🏠</span>
+        ${uiIcon('home', '', 20)}
         <span>Beranda</span>
       </a>
       <a href="#attendance" class="bottom-nav-item ${state.route === '#attendance' ? 'active' : ''}">
-        <span class="bottom-nav-icon">📸</span>
+        ${uiIcon('camera', '', 20)}
         <span>Absen</span>
       </a>
       <a href="#history" class="bottom-nav-item ${state.route === '#history' ? 'active' : ''}">
-        <span class="bottom-nav-icon">📅</span>
+        ${uiIcon('calendar', '', 20)}
         <span>Riwayat</span>
       </a>
       <a href="#payslips" class="bottom-nav-item ${state.route === '#payslips' ? 'active' : ''}">
-        <span class="bottom-nav-icon">💵</span>
+        ${uiIcon('file-text', '', 20)}
         <span>Slip</span>
       </a>
       ${isMgrOrOwner ? `
       <a href="#management" class="bottom-nav-item ${state.route === '#management' ? 'active' : ''}">
-        <span class="bottom-nav-icon">📊</span>
+        ${uiIcon('chart', '', 20)}
         <span>Kelola</span>
       </a>
       ` : ''}
@@ -321,15 +367,15 @@ function renderHome() {
   const checkInEvent = todayEvents.find(e => e.event_type === 'check_in');
   const isKunjunganLuar = state.todaySession && state.todaySession.attendance_type === 'kunjungan_luar';
 
-  let statusBadge = `<span class="badge badge-warning">Belum Absen Masuk Hari Ini</span>`;
+  let statusBadge = `<span class="badge badge-warning">${uiIcon('alert-circle', '', 13)} Belum Absen Masuk Hari Ini</span>`;
   let buttonActionText = 'ABSEN MASUK SEKARANG';
 
   if (checkInEvent) {
     const inTime = new Date(checkInEvent.server_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
     if (isKunjunganLuar) {
-      statusBadge = `<span class="badge badge-info">🚗 Kunjungan Luar (Jam ${inTime}) - Tanpa Uang Makan</span>`;
+      statusBadge = `<span class="badge badge-info">${uiIcon('car', '', 13)} Kunjungan Luar (${inTime}) • Tanpa Uang Makan</span>`;
     } else {
-      statusBadge = `<span class="badge badge-success">✅ Sudah Hadir (Jam ${inTime}) - Uang Makan Rp10.000 Aktif</span>`;
+      statusBadge = `<span class="badge badge-success">${uiIcon('check-circle', '', 13)} Sudah Hadir (${inTime}) • Uang Makan Rp10.000</span>`;
     }
     buttonActionText = 'ABSEN LAGI / KOREKSI';
   }
@@ -343,7 +389,7 @@ function renderHome() {
           <span class="badge badge-test" style="margin-bottom: 8px;">SULTAN ARAB OPERASIONAL</span>
           <h2 class="employee-hero-name">${escapeHtml(state.user.displayName)}</h2>
           <div class="employee-hero-branch">
-            📍 ${escapeHtml(branchName)} • ${escapeHtml(state.user.jobTitle || 'Staff')}
+            ${uiIcon('map-pin', '', 14)} ${escapeHtml(branchName)} • ${escapeHtml(state.user.jobTitle || 'Staff')}
           </div>
         </div>
         <div class="employee-clock-box">
@@ -352,13 +398,13 @@ function renderHome() {
         </div>
       </div>
 
-      <div style="background: rgba(255,255,255,0.15); border-radius: var(--border-radius-sm); padding: 12px 16px; display: flex; flex-direction: column; gap: 6px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 600; font-size: 0.9rem;">Status Absensi Hari Ini:</span>
+      <div style="background: rgba(255,255,255,0.14); border-radius: var(--radius-sm); padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; border: 1px solid rgba(255,255,255,0.12);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <span style="font-weight: 600; font-size: 0.88rem; color: #FFFFFF;">Status Absensi Hari Ini:</span>
           ${statusBadge}
         </div>
-        <div style="font-size: 0.75rem; color: var(--accent-gold-light);">
-          ℹ️ Aturan Q02: Wajib hanya absen masuk, pulang tidak wajib.
+        <div style="font-size: 0.76rem; color: #FDE68A; display: flex; align-items: center; gap: 6px;">
+          ${uiIcon('shield', '', 13)} Aturan Q02: Wajib hanya absen masuk, pulang tidak wajib.
         </div>
       </div>
     </div>
@@ -366,7 +412,7 @@ function renderHome() {
     <!-- Tombol Utama Absensi -->
     <div class="action-box-main">
       <a href="#attendance" class="btn-absen-hero">
-        <span>📸</span>
+        ${uiIcon('camera', '', 20)}
         <span>${buttonActionText}</span>
       </a>
     </div>
@@ -374,25 +420,25 @@ function renderHome() {
     <!-- Menu Cepat Navigasi -->
     <div class="quick-grid">
       <div class="quick-card" onclick="window.location.hash='#attendance'">
-        <span class="quick-icon">📸</span>
+        ${uiIcon('camera', '', 26)}
         <div class="quick-label">Absen Masuk</div>
       </div>
       <div class="quick-card" onclick="window.location.hash='#history'">
-        <span class="quick-icon">📅</span>
+        ${uiIcon('calendar', '', 26)}
         <div class="quick-label">Riwayat Absensi</div>
       </div>
       <div class="quick-card" onclick="window.location.hash='#payslips'">
-        <span class="quick-icon">💵</span>
+        ${uiIcon('file-text', '', 26)}
         <div class="quick-label">Slip Gaji</div>
       </div>
       ${isManagerOrOwner(state.user) ? `
       <div class="quick-card" onclick="window.location.hash='#management'">
-        <span class="quick-icon">📊</span>
+        ${uiIcon('chart', '', 26)}
         <div class="quick-label">Dashboard Kelola</div>
       </div>
       ` : ''}
       <div class="quick-card" id="quick-card-change-pwd">
-        <span class="quick-icon">🔑</span>
+        ${uiIcon('key', '', 26)}
         <div class="quick-label">Ubah Password</div>
       </div>
     </div>
@@ -400,19 +446,23 @@ function renderHome() {
     <!-- Aturan Shift & Jadwal Pribadi -->
     <div class="card" style="margin-bottom: 20px;">
       <div class="card-header">
-        <h3 class="card-title">Jadwal Shift &amp; Libur Anda (Q02 &amp; Q04)</h3>
+        <h3 class="card-title">${uiIcon('clock', '', 18)} Jadwal Shift &amp; Libur Anda (Q02 &amp; Q04)</h3>
         <span class="badge badge-info">Toleransi 15 Menit</span>
       </div>
-      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.9rem;">
-        <div style="display: flex; gap: 12px; align-items: center;">
-          <span style="font-size: 1.5rem;">⏰</span>
+      <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.9rem;">
+        <div style="display: flex; gap: 14px; align-items: flex-start;">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: #EFF6FF; color: #1D4ED8; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            ${uiIcon('clock', '', 18)}
+          </div>
           <div>
             <strong>Pilihan Shift:</strong> Staff/Admin (08:00 - 17:00) • Crew Pagi (08:00 - 17:00) • Crew Siang (12:00 - 21:00) • Lembur (08:00 - 21:00).
-            <div style="color: var(--text-muted); font-size: 0.8rem;">Pemilihan shift diserahkan kepada masing-masing personal saat absen masuk.</div>
+            <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Pemilihan shift diserahkan kepada masing-masing personal saat absen masuk.</div>
           </div>
         </div>
-        <div style="display: flex; gap: 12px; align-items: center; border-top: 1px solid var(--border-color); padding-top: 8px;">
-          <span style="font-size: 1.5rem;">🌴</span>
+        <div style="display: flex; gap: 14px; align-items: flex-start; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: #FFFBEB; color: #B45309; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            ${uiIcon('palmtree', '', 18)}
+          </div>
           <div>
             <strong>Ketentuan Libur:</strong> Staff Kantor (Libur Ahad), Admin Eka (Selasa), Crew Bekasi (Adit: Senin, Mufti: Kamis, Kamal: Rabu), Crew Cikarang (Milkan: Kamis, Refan: Selasa).
           </div>
@@ -436,14 +486,20 @@ function renderAttendance() {
       </div>
 
       <!-- Tipe Absensi: Hadir Toko vs Kunjungan Luar (Q05) -->
-      <div style="background: #FFF8E1; border: 1px solid #FFE082; padding: 12px; border-radius: var(--border-radius-sm); margin-bottom: 16px;">
-        <label class="form-label" style="font-weight: 700; color: #8D6E63;">Pilih Jenis Kehadiran Hari Ini (Q05):</label>
-        <div style="display: flex; gap: 10px; margin-top: 6px;">
-          <button type="button" id="btn-type-hadir" class="btn btn-primary" style="flex: 1; padding: 8px; font-size: 0.85rem;">
-            🏢 Hadir di Toko / Kantor<br><small style="font-weight:400;">(Dapat Uang Makan Rp10.000)</small>
+      <div style="background: var(--bg-main); border: 1px solid var(--border-color); padding: 14px; border-radius: var(--radius-md); margin-bottom: 18px;">
+        <label class="form-label" style="font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Pilih Jenis Kehadiran Hari Ini (Q05):</label>
+        <div style="display: flex; gap: 10px;">
+          <button type="button" id="btn-type-hadir" class="btn btn-primary" style="flex: 1; padding: 10px 12px; font-size: 0.85rem; flex-direction: column; gap: 2px;">
+            <div style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
+              ${uiIcon('building', '', 16)} Hadir di Toko / Kantor
+            </div>
+            <small style="font-weight: 500; font-size: 0.74rem; opacity: 0.9;">(Dapat Uang Makan Rp10.000)</small>
           </button>
-          <button type="button" id="btn-type-kunjungan" class="btn btn-secondary" style="flex: 1; padding: 8px; font-size: 0.85rem;">
-            🚗 Kunjungan Luar<br><small style="font-weight:400;">(Tanpa Uang Makan)</small>
+          <button type="button" id="btn-type-kunjungan" class="btn btn-secondary" style="flex: 1; padding: 10px 12px; font-size: 0.85rem; flex-direction: column; gap: 2px;">
+            <div style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
+              ${uiIcon('car', '', 16)} Kunjungan Luar
+            </div>
+            <small style="font-weight: 500; font-size: 0.74rem; color: var(--text-muted);">(Tanpa Uang Makan)</small>
           </button>
         </div>
       </div>
@@ -475,8 +531,8 @@ function renderAttendance() {
         
         <!-- Live Viewfinder Controls -->
         <div class="camera-overlay" id="camera-controls">
-          <button type="button" id="btn-switch-camera" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.78rem; border-radius: 20px; background: rgba(0,0,0,0.65); color: #fff; border: 1px solid rgba(255,255,255,0.4);" title="Balik Kamera Depan / Belakang">
-            🔄 Balik Kamera
+          <button type="button" id="btn-switch-camera" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.8rem; border-radius: var(--radius-pill); background: rgba(15, 23, 42, 0.75); color: #fff; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(4px);" title="Balik Kamera Depan / Belakang">
+            ${uiIcon('refresh', '', 14)} Balik Kamera
           </button>
           <button type="button" id="btn-take-photo" class="btn-capture" title="Ambil Foto Wajah/Toko">
             <div class="btn-capture-inner"></div>
@@ -485,13 +541,15 @@ function renderAttendance() {
 
         <!-- Fallback Container if Live Stream is not available / HTTP -->
         <div id="camera-fallback-card" style="display: none; text-align: center; padding: 24px 16px; color: #fff; z-index: 5;">
-          <div style="font-size: 2.8rem; margin-bottom: 8px;">📷</div>
+          <div style="display: flex; justify-content: center; margin-bottom: 12px; color: #F59E0B;">
+            ${uiIcon('camera', '', 40)}
+          </div>
           <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 6px;">Kamera Siap Digunakan</div>
-          <p style="font-size: 0.82rem; color: #E0E0E0; margin-bottom: 16px; max-width: 320px; margin-left: auto; margin-right: auto;">
+          <p style="font-size: 0.82rem; color: #E2E8F0; margin-bottom: 16px; max-width: 320px; margin-left: auto; margin-right: auto;">
             Tekan tombol di bawah untuk mengambil foto langsung menggunakan kamera HP Anda:
           </p>
           <button type="button" id="btn-open-native-camera" class="btn btn-primary" style="font-size: 0.95rem; font-weight: 700; padding: 10px 22px; border-radius: 30px; box-shadow: 0 4px 14px rgba(201,0,0,0.5);">
-            📸 Buka Kamera HP Sekarang
+            ${uiIcon('camera', '', 18)} Buka Kamera HP Sekarang
           </button>
         </div>
       </div>
@@ -503,42 +561,46 @@ function renderAttendance() {
       <input type="file" id="file-photo-fallback" accept="image/*" style="display: none;">
 
       <!-- Tombol Aksi Kamera & Foto -->
-      <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+      <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
         <button type="button" id="btn-retake-photo" class="btn btn-secondary" style="flex: 1; display: none; font-size: 0.85rem;">
-          🔄 Ambil Foto Ulang
+          ${uiIcon('refresh', '', 15)} Ambil Foto Ulang
         </button>
         <button type="button" id="btn-trigger-front-cam" class="btn btn-secondary" style="flex: 1; font-size: 0.82rem; font-weight: 600;">
-          🤳 Kamera Depan (Selfie)
+          ${uiIcon('smartphone', '', 15)} Kamera Depan (Selfie)
         </button>
         <button type="button" id="btn-trigger-rear-cam" class="btn btn-secondary" style="flex: 1; font-size: 0.82rem; font-weight: 600;">
-          🏪 Kamera Belakang (Toko)
+          ${uiIcon('building', '', 15)} Kamera Belakang (Toko)
         </button>
-        <button type="button" id="btn-trigger-file" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.82rem;">
-          📁 Galeri
+        <button type="button" id="btn-trigger-file" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.82rem;">
+          ${uiIcon('folder', '', 15)} Galeri
         </button>
       </div>
 
       <!-- Tip HTTPS -->
-      <div id="camera-https-tip" style="display: none; background: #E8F4FD; border: 1px solid #BEE3F8; border-radius: var(--border-radius-sm); padding: 8px 12px; margin-bottom: 16px; font-size: 0.78rem; color: #2B6CB0;">
+      <div id="camera-https-tip" style="display: none; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 16px; font-size: 0.8rem; color: #1D4ED8;">
         💡 <strong>Tips Kamera HP:</strong> Preview kamera langsung hanya tersedia melalui alamat <strong>HTTPS</strong>. Gunakan tombol kamera di atas untuk memotret langsung.
       </div>
 
       <!-- GPS Status Box -->
       <div class="location-status-box" id="gps-status-box">
-        <div class="location-icon">📍</div>
+        <div class="location-icon" style="color: var(--primary-red);">${uiIcon('map-pin', '', 22)}</div>
         <div style="flex: 1;">
-          <div style="font-weight: 700; font-size: 0.92rem;" id="gps-status-title">Memeriksa GPS Perangkat...</div>
+          <div style="font-weight: 700; font-size: 0.92rem; color: var(--text-main);" id="gps-status-title">Memeriksa GPS Perangkat...</div>
           <div style="font-size: 0.8rem; color: var(--text-muted);" id="gps-coords-text">Mencari koordinat akurat...</div>
         </div>
       </div>
 
-      <div style="background: #F1F3F5; padding: 10px 14px; border-radius: var(--border-radius-sm); margin-bottom: 20px; font-size: 0.82rem; color: var(--text-muted);">
-        <div>🕒 Waktu Kirim: <span id="device-time-display">${new Date().toLocaleTimeString('id-ID')} WIB</span></div>
-        <div style="margin-top: 2px;">🛡️ Anti Duplikasi Idempotency: Aktif</div>
+      <div style="background: var(--bg-main); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 0.82rem; color: var(--text-muted);">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          ${uiIcon('clock', '', 14)} Waktu Kirim: <span id="device-time-display" style="font-weight: 600; color: var(--text-main);">${new Date().toLocaleTimeString('id-ID')} WIB</span>
+        </div>
+        <div style="margin-top: 4px; display: flex; align-items: center; gap: 6px;">
+          ${uiIcon('shield', '', 14)} Anti Duplikasi Idempotency: Aktif
+        </div>
       </div>
 
       <button type="button" id="btn-submit-attendance" class="btn btn-primary btn-block btn-large">
-        KIRIM ABSEN MASUK SEKARANG
+        ${uiIcon('check', '', 18)} KIRIM ABSEN MASUK SEKARANG
       </button>
     </div>
   `;
@@ -550,38 +612,40 @@ function renderManagement() {
     <div style="margin-bottom: 20px;">
       <div class="mgmt-header">
         <div>
-          <span class="badge badge-test">PENGELOLA SULTAN ARAB</span>
+          <span class="badge badge-test">${uiIcon('shield', '', 12)} PENGELOLA SULTAN ARAB</span>
           <h2 class="mgmt-title">Dashboard Pengelola</h2>
-          <p class="mgmt-subtitle">Khusus Owner dan Manager.</p>
+          <p class="mgmt-subtitle">Khusus Owner dan Manager Sultan Arab.</p>
         </div>
-        <button id="btn-refresh-monitoring" class="btn btn-secondary btn-refresh-mgmt" title="Muat ulang data">🔄 <span>Muat Ulang</span></button>
+        <button id="btn-refresh-monitoring" class="btn btn-secondary btn-refresh-mgmt" title="Muat ulang data">
+          ${uiIcon('refresh', '', 16)} <span>Muat Ulang</span>
+        </button>
       </div>
 
       <!-- KPI Summary Cards -->
       <div class="kpi-grid">
         <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-red">🏢</div>
+          <div class="kpi-icon kpi-icon-red">${uiIcon('building', '', 20)}</div>
           <div>
             <div class="kpi-value" id="kpi-total-cabang">${state.branches.length}</div>
             <div class="kpi-label">Cabang Toko</div>
           </div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-gold">👥</div>
+          <div class="kpi-icon kpi-icon-gold">${uiIcon('users', '', 20)}</div>
           <div>
             <div class="kpi-value" id="kpi-total-karyawan">-</div>
             <div class="kpi-label">Total Staf &amp; Crew</div>
           </div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-green">✅</div>
+          <div class="kpi-icon kpi-icon-green">${uiIcon('check-circle', '', 20)}</div>
           <div>
             <div class="kpi-value" id="kpi-total-hadir">-</div>
             <div class="kpi-label">Hadir di Toko</div>
           </div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-blue">🚗</div>
+          <div class="kpi-icon kpi-icon-blue">${uiIcon('car', '', 20)}</div>
           <div>
             <div class="kpi-value" id="kpi-kunjungan-luar">-</div>
             <div class="kpi-label">Kunjungan Luar</div>
@@ -592,19 +656,19 @@ function renderManagement() {
       <!-- Tabs Navigasi Pengelola -->
       <div class="nav-tabs">
         <button class="nav-tab-btn ${state.activeManagementTab === 'monitoring' ? 'active' : ''}" data-tab="monitoring">
-          📍 Monitoring
+          ${uiIcon('map-pin', '', 16)} Monitoring
         </button>
         <button class="nav-tab-btn ${state.activeManagementTab === 'recap' ? 'active' : ''}" data-tab="recap">
-          📊 Rekap Bulanan
+          ${uiIcon('chart', '', 16)} Rekap Bulanan
         </button>
         <button class="nav-tab-btn ${state.activeManagementTab === 'payroll' ? 'active' : ''}" data-tab="payroll">
-          📄 Slip Gaji
+          ${uiIcon('file-text', '', 16)} Slip Gaji
         </button>
         <button class="nav-tab-btn ${state.activeManagementTab === 'master' ? 'active' : ''}" data-tab="master">
-          👥 Karyawan &amp; Cabang
+          ${uiIcon('users', '', 16)} Karyawan &amp; Cabang
         </button>
         <button class="nav-tab-btn ${state.activeManagementTab === 'schedules' ? 'active' : ''}" data-tab="schedules">
-          🗓️ Jadwal &amp; Libur
+          ${uiIcon('calendar', '', 16)} Jadwal &amp; Libur
         </button>
       </div>
 
@@ -621,14 +685,17 @@ function renderManagementTabContent() {
       return `
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Monitoring Absensi Hari Ini</h3>
+            <div>
+              <h3 class="card-title">${uiIcon('map-pin', '', 18)} Monitoring Absensi Hari Ini</h3>
+              <p class="card-subtitle">Pemantauan real-time status check-in staf seluruh cabang toko.</p>
+            </div>
             <span class="badge badge-info">Semua Cabang</span>
           </div>
           <div class="table-responsive">
             <table class="table table-stack" id="table-monitoring">
               <thead>
                 <tr>
-                  <th>Nama</th>
+                  <th>Nama Staf</th>
                   <th>Cabang</th>
                   <th>Shift</th>
                   <th>Jam Masuk</th>
@@ -653,12 +720,16 @@ function renderManagementTabContent() {
         <div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--primary-red);">
           <div class="card-header">
             <div>
-              <h3 class="card-title">📄 Slip Gaji PDF Staf</h3>
+              <h3 class="card-title">${uiIcon('file-text', '', 20)} Slip Gaji PDF Staf</h3>
               <p class="card-subtitle">Unggah slip gaji PDF untuk masing-masing anggota staf.</p>
             </div>
             <div class="card-actions">
-              <button id="btn-upload-pdf-modal" class="btn btn-primary">📤 Unggah PDF</button>
-              <button id="btn-refresh-staff-slips-payroll" class="btn btn-secondary" title="Segarkan">🔄</button>
+              <button id="btn-upload-pdf-modal" class="btn btn-primary">
+                ${uiIcon('upload', '', 16)} Unggah PDF
+              </button>
+              <button id="btn-refresh-staff-slips-payroll" class="btn btn-secondary" title="Segarkan">
+                ${uiIcon('refresh', '', 16)}
+              </button>
             </div>
           </div>
           <div class="table-responsive">
@@ -682,12 +753,16 @@ function renderManagementTabContent() {
         <div class="card" style="margin-bottom: 20px;">
           <div class="card-header">
             <div>
-              <h3 class="card-title">⚙️ Draft Payroll Periode 27–26</h3>
-              <p class="card-subtitle">Uang makan Rp10.000 hanya untuk hadir fisik. Finalisasi oleh Owner.</p>
+              <h3 class="card-title">${uiIcon('settings', '', 20)} Draft Payroll Periode 27–26</h3>
+              <p class="card-subtitle">Uang makan Rp10.000 hanya untuk hadir fisik toko. Finalisasi oleh Owner.</p>
             </div>
             <div class="card-actions">
-              <button id="btn-input-commission-modal" class="btn btn-secondary">➕ Komisi</button>
-              <button id="btn-calculate-payroll" class="btn btn-secondary">⚙️ Hitung Draft</button>
+              <button id="btn-input-commission-modal" class="btn btn-secondary">
+                ${uiIcon('plus', '', 16)} Komisi
+              </button>
+              <button id="btn-calculate-payroll" class="btn btn-secondary">
+                ${uiIcon('zap', '', 16)} Hitung Draft
+              </button>
             </div>
           </div>
           <div id="payroll-runs-container">
@@ -699,14 +774,19 @@ function renderManagementTabContent() {
       return `
         <div class="card" style="margin-bottom: 20px;">
           <div class="card-header">
-            <h3 class="card-title">👥 Daftar Karyawan</h3>
-            <button id="btn-add-employee-modal" class="btn btn-secondary">+ Karyawan</button>
+            <div>
+              <h3 class="card-title">${uiIcon('users', '', 20)} Daftar Karyawan</h3>
+              <p class="card-subtitle">Kelola staf, jabatan, cabang penempatan, dan kredensial akun.</p>
+            </div>
+            <button id="btn-add-employee-modal" class="btn btn-secondary">
+              ${uiIcon('plus', '', 16)} Karyawan
+            </button>
           </div>
           <div class="table-responsive">
             <table class="table table-stack">
               <thead>
                 <tr>
-                  <th>Nama</th>
+                  <th>Nama Staf</th>
                   <th>Jabatan</th>
                   <th>Cabang</th>
                   <th>Status</th>
@@ -722,8 +802,13 @@ function renderManagementTabContent() {
 
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">🏢 Daftar Cabang</h3>
-            <button id="btn-add-branch-modal" class="btn btn-primary">+ Cabang</button>
+            <div>
+              <h3 class="card-title">${uiIcon('building', '', 20)} Daftar Cabang</h3>
+              <p class="card-subtitle">Titik lokasi toko, radius absensi, dan jam operasional shift.</p>
+            </div>
+            <button id="btn-add-branch-modal" class="btn btn-primary">
+              ${uiIcon('plus', '', 16)} Cabang
+            </button>
           </div>
           <div class="table-responsive">
             <table class="table table-stack">
@@ -746,18 +831,25 @@ function renderManagementTabContent() {
       return `
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Jadwal Shift &amp; Libur Tim (Q02 &amp; Q04)</h3>
+            <div>
+              <h3 class="card-title">${uiIcon('calendar', '', 20)} Jadwal Shift &amp; Libur Tim</h3>
+              <p class="card-subtitle">Pengaturan jadwal shift kerja mingguan dan pendaftaran libur staf.</p>
+            </div>
           </div>
-          <div style="background: #F8F9FA; padding: 14px; border-radius: var(--border-radius-sm); margin-bottom: 20px; font-size: 0.88rem;">
-            <strong>Ketentuan Libur Tetap:</strong><br>
-            • Staff Kantor (Fahry, Fauzi, Miftah): Libur Ahad<br>
-            • Admin (Eka): Libur Selasa<br>
-            • Crew Toko Bekasi (Adit: Senin, Mufti: Kamis, Kamal: Rabu)<br>
-            • Crew Toko Cikarang (Milkan: Kamis, Refan: Selasa)
+          <div style="background: var(--bg-main); border: 1px solid var(--border-color); padding: 14px 16px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 0.85rem; line-height: 1.6;">
+            <div style="font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+              ${uiIcon('shield', '', 14)} Ketentuan Libur Tetap Sultan Arab:
+            </div>
+            <span style="color: var(--text-muted);">• Staff Kantor (Fahry, Fauzi, Miftah): Libur Ahad</span><br>
+            <span style="color: var(--text-muted);">• Admin (Eka): Libur Selasa</span><br>
+            <span style="color: var(--text-muted);">• Crew Toko Bekasi (Adit: Senin, Mufti: Kamis, Kamal: Rabu)</span><br>
+            <span style="color: var(--text-muted);">• Crew Toko Cikarang (Milkan: Kamis, Refan: Selasa)</span>
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
-            <div>
-              <h4 style="font-size: 1rem; margin-bottom: 12px;">Tetapkan Shift Manual</h4>
+            <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 16px;">
+              <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                ${uiIcon('clock', '', 16)} Tetapkan Shift Manual
+              </h4>
               <form id="form-assign-schedule">
                 <div class="form-group">
                   <label class="form-label">Pilih Karyawan:</label>
@@ -771,11 +863,15 @@ function renderManagementTabContent() {
                   <label class="form-label">Pilih Shift:</label>
                   <select id="schedule-shift-select" class="form-control"></select>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block">Simpan Jadwal</button>
+                <button type="submit" class="btn btn-primary btn-block">
+                  ${uiIcon('check', '', 16)} Simpan Jadwal
+                </button>
               </form>
             </div>
-            <div>
-              <h4 style="font-size: 1rem; margin-bottom: 12px;">Pendaftaran Libur Khusus</h4>
+            <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 16px;">
+              <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                ${uiIcon('palmtree', '', 16)} Pendaftaran Libur Khusus
+              </h4>
               <form id="form-assign-dayoff">
                 <div class="form-group">
                   <label class="form-label">Pilih Karyawan:</label>
@@ -789,7 +885,9 @@ function renderManagementTabContent() {
                   <label class="form-label">Alasan Libur:</label>
                   <input type="text" id="dayoff-reason-input" class="form-control" value="Libur Mingguan" required>
                 </div>
-                <button type="submit" class="btn btn-secondary btn-block">Simpan Libur</button>
+                <button type="submit" class="btn btn-secondary btn-block">
+                  ${uiIcon('check', '', 16)} Simpan Libur
+                </button>
               </form>
             </div>
           </div>
@@ -830,41 +928,47 @@ function renderManagementRecapTab() {
     <div class="card" style="margin-bottom: 20px;">
       <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
         <div>
-          <h3 class="card-title">📊 Rekapitulasi Kehadiran Bulanan Staf</h3>
-          <p class="card-subtitle">Perhitungan akumulasi kehadiran, lembur (08:00–21:00), keterlambatan, dan uang makan terhitung per bulan.</p>
+          <h3 class="card-title">${uiIcon('chart', '', 20)} Rekapitulasi Kehadiran Bulanan Staf</h3>
+          <p class="card-subtitle">Akumulasi kehadiran, lembur (08:00–21:00), keterlambatan, dan uang makan terhitung per bulan.</p>
         </div>
         <div class="card-actions" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <button type="button" class="btn btn-secondary" onclick="window.print()" title="Cetak Tabel Rekapitulasi">🖨️ Cetak</button>
-          <button id="btn-refresh-recap" class="btn btn-secondary" title="Muat Ulang">🔄 Segarkan</button>
+          <button type="button" class="btn btn-secondary" onclick="window.print()" title="Cetak Tabel Rekapitulasi">
+            ${uiIcon('printer', '', 16)} Cetak
+          </button>
+          <button id="btn-refresh-recap" class="btn btn-secondary" title="Muat Ulang">
+            ${uiIcon('refresh', '', 16)} Segarkan
+          </button>
         </div>
       </div>
 
       <!-- Filter Periode & Cabang -->
-      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 14px; margin-bottom: 16px;">
+      <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px;">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: flex-end;">
           <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Bulan:</label>
-            <select id="recap-filter-month" class="form-control" style="padding: 8px 12px;">
+            <label class="form-label" style="font-size: 0.82rem; font-weight: 600;">Bulan:</label>
+            <select id="recap-filter-month" class="form-control">
               ${monthOptions}
             </select>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Tahun:</label>
-            <select id="recap-filter-year" class="form-control" style="padding: 8px 12px;">
+            <label class="form-label" style="font-size: 0.82rem; font-weight: 600;">Tahun:</label>
+            <select id="recap-filter-year" class="form-control">
               <option value="${currentYear - 1}" ${currentYear === currentYear - 1 ? 'selected' : ''}>${currentYear - 1}</option>
               <option value="${currentYear}" ${currentYear === currentYear ? 'selected' : ''}>${currentYear}</option>
               <option value="${currentYear + 1}" ${currentYear === currentYear + 1 ? 'selected' : ''}>${currentYear + 1}</option>
             </select>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Cabang:</label>
-            <select id="recap-filter-branch" class="form-control" style="padding: 8px 12px;">
+            <label class="form-label" style="font-size: 0.82rem; font-weight: 600;">Cabang:</label>
+            <select id="recap-filter-branch" class="form-control">
               <option value="">Semua Cabang</option>
               ${branchOptions}
             </select>
           </div>
           <div>
-            <button id="btn-apply-recap-filter" class="btn btn-primary btn-block" style="padding: 9px 16px;">🔍 Tampilkan Rekap</button>
+            <button id="btn-apply-recap-filter" class="btn btn-primary btn-block">
+              ${uiIcon('search', '', 16)} Tampilkan Rekap
+            </button>
           </div>
         </div>
       </div>
@@ -872,42 +976,42 @@ function renderManagementRecapTab() {
       <!-- Summary KPI Bulanan -->
       <div class="kpi-grid" style="margin-bottom: 18px;">
         <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-blue">👥</div>
+          <div class="kpi-icon kpi-icon-blue">${uiIcon('users', '', 20)}</div>
           <div>
             <div class="kpi-value" id="recap-kpi-employees">-</div>
             <div class="kpi-label">Total Staf Aktif</div>
           </div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-green">🏢</div>
+          <div class="kpi-icon kpi-icon-green">${uiIcon('building', '', 20)}</div>
           <div>
             <div class="kpi-value" id="recap-kpi-hadir">-</div>
             <div class="kpi-label">Hadir Fisik Toko</div>
           </div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-blue">🚗</div>
+          <div class="kpi-icon kpi-icon-blue">${uiIcon('car', '', 20)}</div>
           <div>
             <div class="kpi-value" id="recap-kpi-kunjungan">-</div>
             <div class="kpi-label">Kunjungan Luar</div>
           </div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-yellow">⚡</div>
+          <div class="kpi-icon kpi-icon-gold">${uiIcon('zap', '', 20)}</div>
           <div>
             <div class="kpi-value" id="recap-kpi-lembur">-</div>
             <div class="kpi-label">Shift Lembur (08-21)</div>
           </div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-red">⏰</div>
+          <div class="kpi-icon kpi-icon-red">${uiIcon('clock', '', 20)}</div>
           <div>
             <div class="kpi-value" id="recap-kpi-terlambat">-</div>
             <div class="kpi-label">Terlambat</div>
           </div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-green">💰</div>
+          <div class="kpi-icon kpi-icon-green">${uiIcon('dollar', '', 20)}</div>
           <div>
             <div class="kpi-value" id="recap-kpi-uangmakan">-</div>
             <div class="kpi-label">Total Uang Makan</div>
@@ -946,7 +1050,10 @@ function renderHistory() {
   return `
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">📅 Riwayat Absensi</h3>
+        <div>
+          <h3 class="card-title">${uiIcon('calendar', '', 20)} Riwayat Absensi</h3>
+          <p class="card-subtitle">Log lengkap riwayat presensi harian Anda.</p>
+        </div>
         <span class="badge badge-info">${escapeHtml(state.user.displayName)}</span>
       </div>
       ${items.length === 0 ? `
@@ -964,7 +1071,9 @@ function renderHistory() {
               </div>
               <div class="history-body">
                 <div class="history-row">
-                  <strong>${isKunjungan ? '🚗 Kunjungan Luar' : '🏢 Hadir'}</strong>
+                  <strong style="display:flex; align-items:center; gap:5px;">
+                    ${isKunjungan ? `${uiIcon('car', '', 15)} Kunjungan Luar` : `${uiIcon('building', '', 15)} Hadir Toko`}
+                  </strong>
                   <span class="history-time">${formatTime(h.check_in_time)}</span>
                 </div>
                 <div class="history-sub">${escapeHtml(h.branch_name || '-')}</div>
@@ -999,7 +1108,11 @@ function renderHistory() {
                 <tr>
                   <td><strong>${formatDateLong(h.work_date)}</strong></td>
                   <td>${escapeHtml(h.branch_name || '-')}</td>
-                  <td>${isKunjungan ? '🚗 Kunjungan Luar' : '🏢 Hadir Toko'}</td>
+                  <td>
+                    <span style="display:inline-flex; align-items:center; gap:5px;">
+                      ${isKunjungan ? `${uiIcon('car', '', 15)} Kunjungan Luar` : `${uiIcon('building', '', 15)} Hadir Toko`}
+                    </span>
+                  </td>
                   <td>${formatTime(h.check_in_time)}</td>
                   <td>${mealBadge}</td>
                   <td><span class="badge ${statusBadgeClass(h.status)}">${statusLabel(h.status)}</span></td>
@@ -1023,8 +1136,8 @@ function renderPayslips() {
       <div class="card" style="border: 2px solid var(--primary-red); background: #FFF9F9; margin-bottom: 16px;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div>
-            <span class="badge badge-danger">👑 HAK AKSES PENGELOLA (MANAGER &amp; OWNER)</span>
-            <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--primary-red); margin-top: 4px;">
+            <span class="badge badge-danger">${uiIcon('crown', '', 12)} HAK AKSES PENGELOLA (MANAGER &amp; OWNER)</span>
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--primary-red); margin-top: 6px; margin-bottom: 4px;">
               Pusat Unggah Slip Gaji PDF Staf Ada di Dashboard Pengelola
             </h3>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
@@ -1033,7 +1146,7 @@ function renderPayslips() {
           </div>
           <div>
             <a href="#management" class="btn btn-primary" style="font-weight: 700;">
-              📊 Buka Dashboard Pengelola
+              ${uiIcon('chart', '', 16)} Buka Dashboard Pengelola
             </a>
           </div>
         </div>
@@ -1043,12 +1156,14 @@ function renderPayslips() {
       <div class="card">
         <div class="card-header">
           <div>
-            <h3 class="card-title">Slip Gaji Terbit Anda</h3>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
-              Unduh berkas resmi slip gaji format PDF yang diunggah oleh pengelola.
+            <h3 class="card-title">${uiIcon('file-text', '', 20)} Slip Gaji Terbit Anda</h3>
+            <p class="card-subtitle">
+              Unduh berkas resmi slip gaji format PDF yang diterbitkan oleh manajemen.
             </p>
           </div>
-          <button id="btn-refresh-payslips" class="btn btn-secondary">🔄 Segarkan</button>
+          <button id="btn-refresh-payslips" class="btn btn-secondary">
+            ${uiIcon('refresh', '', 16)} Segarkan
+          </button>
         </div>
         <div id="payslips-list-container">
           <p style="color: var(--text-muted); font-size: 0.9rem;">Memuat slip gaji...</p>
@@ -1520,13 +1635,13 @@ async function loadMonitoringData() {
           <td data-label="Cabang">${escapeHtml(r.branch_name || '-')}</td>
           <td data-label="Shift">${escapeHtml(r.shift_name || 'Non-Shift')}</td>
           <td data-label="Jam Masuk">${inTime}</td>
-          <td data-label="Tipe Hadir">${isKunjungan ? '🚗 Kunjungan Luar' : (r.check_in_time ? '🏢 Hadir Toko' : 'Belum Absen')}</td>
+          <td data-label="Tipe Hadir">${isKunjungan ? `<span style="display:inline-flex; align-items:center; gap:4px;">${uiIcon('car', '', 14)} Kunjungan Luar</span>` : (r.check_in_time ? `<span style="display:inline-flex; align-items:center; gap:4px;">${uiIcon('building', '', 14)} Hadir Toko</span>` : '<span style="color:var(--text-muted);">Belum Absen</span>')}</td>
           <td data-label="Uang Makan">${mealText}</td>
           <td data-label="Lokasi GPS">${locBadge}</td>
           <td class="${r.session_id ? 'cell-actions' : 'cell-hide-mobile'}" data-label="Aksi">
             ${r.session_id ? `
               <button class="btn btn-secondary btn-adjust btn-sm" data-session="${r.session_id}">
-                ✏️ Koreksi
+                ${uiIcon('edit', '', 14)} Koreksi
               </button>
             ` : '-'}
           </td>
@@ -1624,7 +1739,7 @@ async function loadMonthlyRecapData() {
           ${item.totalKunjunganLuar > 0 ? `<span class="badge badge-info">${item.totalKunjunganLuar} hari</span>` : '0 hari'}
         </td>
         <td data-label="Lembur (08-21)">
-          ${item.totalLembur > 0 ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:700;">⚡ ${item.totalLembur} shift</span>` : '0'}
+          ${item.totalLembur > 0 ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:700;">${uiIcon('zap', '', 12)} ${item.totalLembur} shift</span>` : '0'}
         </td>
         <td data-label="Terlambat">
           ${item.totalTerlambat > 0 ? `<span class="badge badge-danger">${item.totalTerlambat} kali</span>` : '<span style="color:var(--status-present);">0</span>'}
@@ -1636,7 +1751,9 @@ async function loadMonthlyRecapData() {
           <strong style="color: var(--primary-red);">Rp ${formatNumber(item.totalUangMakan)}</strong>
         </td>
         <td data-label="Aksi">
-          <button class="btn btn-secondary btn-sm" onclick="openStaffDailyRecapModalByIndex(${idx})">🔍 Rincian</button>
+          <button class="btn btn-secondary btn-sm" onclick="openStaffDailyRecapModalByIndex(${idx})">
+            ${uiIcon('search', '', 14)} Rincian
+          </button>
         </td>
       </tr>
     `;
@@ -1657,7 +1774,7 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
   ` : records.map(r => {
     const isLembur = r.isLembur;
     const shiftBadge = isLembur
-      ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:600;">⚡ ${escapeHtml(r.shift_name)}</span>`
+      ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:600;">${uiIcon('zap', '', 12)} ${escapeHtml(r.shift_name)}</span>`
       : `<span class="badge badge-secondary">${escapeHtml(r.shift_name || '-')}</span>`;
 
     const statusBadge = r.status === 'late'
@@ -1665,8 +1782,8 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
       : `<span class="badge badge-present">Tepat Waktu</span>`;
 
     const typeBadge = r.isKunjungan
-      ? `<span class="badge badge-info">🚗 Kunjungan</span>`
-      : `<span class="badge badge-present">🏢 Hadir Toko</span>`;
+      ? `<span class="badge badge-info">${uiIcon('car', '', 12)} Kunjungan</span>`
+      : `<span class="badge badge-present">${uiIcon('building', '', 12)} Hadir Toko</span>`;
 
     const checkIn = r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
     const checkOut = r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
@@ -1689,7 +1806,9 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
       <div class="modal-card" style="max-width: 840px; width: 95%; max-height: 90vh;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-red), #9E0000); color: #fff;">
           <div>
-            <h3 class="modal-title" style="color: #fff; font-size: 1.15rem; font-weight: 700; margin: 0;">🔍 Rincian Kehadiran: ${escapeHtml(item.employee_name)}</h3>
+            <h3 class="modal-title" style="color: #fff; font-size: 1.15rem; font-weight: 700; margin: 0; display:flex; align-items:center; gap:8px;">
+              ${uiIcon('search', '', 18)} Rincian Kehadiran: ${escapeHtml(item.employee_name)}
+            </h3>
             <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); margin-top: 4px;">Periode: ${period.startDate || ''} s.d. ${period.endDate || ''} • Cabang: ${escapeHtml(item.branch_name || 'Semua Cabang')}</div>
           </div>
           <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.4rem; cursor:pointer; line-height:1; padding:4px 8px;">✕</button>
@@ -1765,8 +1884,8 @@ async function loadStaffSlipsTable(tbodyId) {
   tbody.innerHTML = staffList.map(s => {
     const hasSlip = !!s.pdf_path;
     const slipStatusBadge = hasSlip
-      ? `<span class="badge badge-success badge-wrap">📄 ${escapeHtml(s.original_filename || 'Slip Gaji.pdf')} (${Math.round((s.file_size || 0)/1024)} KB)</span><div class="cell-note">Terbit: ${new Date(s.published_at).toLocaleDateString('id-ID')} • ${escapeHtml(s.period_label || '')}</div>`
-      : `<span class="badge badge-warning">⚠️ Belum Ada Slip PDF</span>`;
+      ? `<span class="badge badge-success badge-wrap">${uiIcon('file-text', '', 14)} ${escapeHtml(s.original_filename || 'Slip Gaji.pdf')} (${Math.round((s.file_size || 0)/1024)} KB)</span><div class="cell-note">Terbit: ${new Date(s.published_at).toLocaleDateString('id-ID')} • ${escapeHtml(s.period_label || '')}</div>`
+      : `<span class="badge badge-warning">${uiIcon('alert-circle', '', 12)} Belum Ada Slip PDF</span>`;
 
     return `
       <tr>
@@ -1782,13 +1901,17 @@ async function loadStaffSlipsTable(tbodyId) {
         <td class="cell-actions" data-label="Aksi">
           <div class="action-group">
             <button class="btn btn-primary btn-sm btn-upload-slip-for-staff" data-id="${s.employee_id}" data-name="${escapeHtml(s.employee_name)}">
-              📤 ${hasSlip ? 'Ganti PDF' : 'Upload PDF'}
+              ${uiIcon('upload', '', 14)} ${hasSlip ? 'Ganti PDF' : 'Upload PDF'}
             </button>
             ${hasSlip ? `
-              <a href="/api/v1/payroll/slips/${s.payslip_id}/download" target="_blank" class="btn btn-secondary btn-sm">👁️ Unduh</a>
+              <a href="/api/v1/payroll/slips/${s.payslip_id}/download" target="_blank" class="btn btn-secondary btn-sm">
+                ${uiIcon('download', '', 14)} Unduh
+              </a>
             ` : ''}
             ${s.whatsAppReminderLink ? `
-              <a href="${s.whatsAppReminderLink}" target="_blank" class="btn btn-sm btn-wa">📲 WA</a>
+              <a href="${s.whatsAppReminderLink}" target="_blank" class="btn btn-sm btn-wa">
+                ${uiIcon('smartphone', '', 14)} WA
+              </a>
             ` : ''}
           </div>
         </td>
@@ -1825,7 +1948,9 @@ async function loadPayrollData() {
 
   container.innerHTML = `
     <div style="margin-bottom: 20px;">
-      <h4 style="font-size: 1rem; margin-bottom: 10px;">Proses Payroll Periode 27–26</h4>
+      <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+        ${uiIcon('settings', '', 16)} Proses Payroll Periode 27–26
+      </h4>
       ${runs.length === 0 ? `
         <p style="color: var(--text-muted); font-size: 0.88rem;">Belum ada draft kalkulasi payroll. Anda bisa klik "Hitung Draft" atau langsung klik "Unggah Slip Gaji (PDF)".</p>
       ` : `
@@ -1851,9 +1976,13 @@ async function loadPayrollData() {
                   <td data-label="Status"><span class="badge ${run.status === 'published' ? 'badge-success' : 'badge-warning'}">${run.status.toUpperCase()}</span></td>
                   <td class="cell-actions" data-label="Aksi">
                     <div class="action-group">
-                      <button class="btn btn-secondary btn-sm btn-view-run" data-run="${run.id}">Rincian</button>
+                      <button class="btn btn-secondary btn-sm btn-view-run" data-run="${run.id}">
+                        ${uiIcon('search', '', 14)} Rincian
+                      </button>
                       ${state.user.isOwner && run.status !== 'published' ? `
-                        <button class="btn btn-primary btn-sm btn-finalize-run" data-run="${run.id}">👑 Finalisasi</button>
+                        <button class="btn btn-primary btn-sm btn-finalize-run" data-run="${run.id}">
+                          ${uiIcon('crown', '', 14)} Finalisasi
+                        </button>
                       ` : ''}
                     </div>
                   </td>
@@ -1904,7 +2033,7 @@ async function loadPayrollData() {
         body: JSON.stringify({ period_id: periods[0].id })
       });
       btnCalc.disabled = false;
-      btnCalc.textContent = '⚙️ Hitung Draft';
+      btnCalc.innerHTML = `${uiIcon('zap', '', 16)} Hitung Draft`;
 
       if (res.ok) {
         showToast('Draft payroll berhasil dihitung sesuai aturan Q05!', 'success');
@@ -1937,7 +2066,7 @@ async function loadMasterData() {
         <td data-label="Status"><span class="badge badge-success">Aktif</span></td>
         <td class="cell-actions" data-label="Aksi">
           <button class="btn btn-secondary btn-sm btn-reset-emp-pwd" data-id="${e.id}" title="Reset password jika karyawan lupa">
-            🔑 Reset Password
+            ${uiIcon('key', '', 14)} Reset Password
           </button>
         </td>
       </tr>
@@ -2033,8 +2162,10 @@ async function loadMyPayslips() {
     state.myPayslips = res.data.payslips;
     if (state.myPayslips.length === 0) {
       container.innerHTML = `
-        <div style="text-align: center; padding: 28px 16px; color: var(--text-muted);">
-          <div style="font-size: 2.8rem; margin-bottom: 8px;">📄</div>
+        <div style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+          <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: var(--bg-main); margin-bottom: 12px; color: var(--text-muted);">
+            ${uiIcon('file-text', '', 28)}
+          </div>
           <p style="font-weight: 700; color: var(--text-main); font-size: 1rem; margin-bottom: 4px;">
             Belum ada slip gaji terbit untuk akun Anda
           </p>
@@ -2049,11 +2180,11 @@ async function loadMyPayslips() {
         ${state.myPayslips.map(ps => {
           const hasPdf = !!ps.pdf_path;
           return `
-            <div style="background: #F8F9FA; border: 1px solid var(--border-color); border-radius: var(--border-radius); padding: 18px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px;">
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 18px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; box-shadow: var(--shadow-xs);">
               <div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                   <span class="badge ${hasPdf ? 'badge-success' : 'badge-warning'}">
-                    ${hasPdf ? '📄 Berkas PDF Tersedia' : '⚠️ Menunggu Berkas PDF Pengelola'}
+                    ${hasPdf ? `${uiIcon('file-text', '', 12)} Berkas PDF Tersedia` : `${uiIcon('alert-circle', '', 12)} Menunggu Berkas PDF Pengelola`}
                   </span>
                 </div>
                 <h4 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin: 0 0 4px 0;">
@@ -2066,7 +2197,7 @@ async function loadMyPayslips() {
               <div>
                 ${hasPdf ? `
                   <a href="/api/v1/payroll/slips/${ps.payslip_id}/download" target="_blank" class="btn btn-primary" style="font-size: 0.88rem; font-weight: 700; padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px;">
-                    📥 Unduh Slip Gaji (PDF)
+                    ${uiIcon('download', '', 16)} Unduh Slip Gaji (PDF)
                   </a>
                 ` : `
                   <span style="font-size: 0.82rem; color: var(--text-muted); font-style: italic;">
@@ -2095,8 +2226,10 @@ async function openUploadSlipPdfModal(periods = [], preselectedEmpId = null) {
     <div class="modal-overlay active">
       <div class="modal-card">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-red), #9E0000); color: #fff;">
-          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff;">📄 Unggah Slip Gaji PDF Staf (Q06)</h3>
-          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem;">✕</button>
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('file-text', '', 20)} Unggah Slip Gaji PDF Staf
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
         </div>
         <form id="form-upload-pdf">
           <div class="modal-body">
@@ -2121,17 +2254,21 @@ async function openUploadSlipPdfModal(periods = [], preselectedEmpId = null) {
               <label class="form-label">Catatan Tambahan (Opsional):</label>
               <input type="text" id="pdf-notes-input" class="form-control" placeholder="Contoh: Slip Gaji Resmi Sultan Arab">
             </div>
-            <div id="wa-reminder-box" style="display:none; background:#E8F5E9; border:1px solid #C8E6C9; padding:12px; border-radius:6px; margin-top:10px;">
-              <div style="font-weight:700; color:#2E7D32; font-size:0.85rem;">✅ Berhasil Diunggah! Kirim Notifikasi WhatsApp (Q011):</div>
-              <p style="font-size:0.78rem; color:#388E3C; margin:4px 0 8px 0;">Klik tombol di bawah ini untuk mengirimkan pesan WhatsApp ke karyawan bahwa slip gajinya telah terbit.</p>
+            <div id="wa-reminder-box" style="display:none; background:#E8F5E9; border:1px solid #C8E6C9; padding:12px 14px; border-radius:var(--radius-sm); margin-top:10px;">
+              <div style="font-weight:700; color:#2E7D32; font-size:0.85rem; display:flex; align-items:center; gap:6px;">
+                ${uiIcon('check-circle', '', 16)} Berhasil Diunggah! Kirim Notifikasi WhatsApp:
+              </div>
+              <p style="font-size:0.78rem; color:#388E3C; margin:4px 0 8px 0;">Klik tombol di bawah ini untuk mengirimkan notifikasi langsung ke WhatsApp staf.</p>
               <a id="wa-reminder-link" target="_blank" class="btn btn-primary" style="font-size:0.82rem; background:#25D366; border:none; display:inline-flex; align-items:center; gap:6px;">
-                📲 Buka WhatsApp Sekarang
+                ${uiIcon('smartphone', '', 16)} Buka WhatsApp Sekarang
               </a>
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal / Tutup</button>
-            <button type="submit" id="btn-submit-pdf" class="btn btn-primary">📤 Unggah &amp; Terbitkan</button>
+            <button type="submit" id="btn-submit-pdf" class="btn btn-primary">
+              ${uiIcon('upload', '', 16)} Unggah &amp; Terbitkan
+            </button>
           </div>
         </form>
       </div>
@@ -2179,7 +2316,7 @@ async function openUploadSlipPdfModal(periods = [], preselectedEmpId = null) {
     });
 
     submitBtn.disabled = false;
-    submitBtn.textContent = '📤 Unggah & Terbitkan';
+    submitBtn.innerHTML = `${uiIcon('upload', '', 16)} Unggah &amp; Terbitkan`;
 
     if (res.ok && res.data.success) {
       showToast('Slip PDF berhasil diunggah dan diterbitkan ke staf!', 'success');
@@ -2208,8 +2345,10 @@ function openAdjustmentModal(sessionId) {
     <div class="modal-overlay active">
       <div class="modal-card">
         <div class="modal-header">
-          <h3 style="font-size: 1.1rem; font-weight: 700;">Koreksi Absensi Karyawan</h3>
-          <button type="button" class="btn btn-secondary" onclick="closeModal()">✕</button>
+          <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('edit', '', 18)} Koreksi Absensi Karyawan
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#64748B; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
         </div>
         <form id="form-adjustment">
           <div class="modal-body">
@@ -2229,7 +2368,9 @@ function openAdjustmentModal(sessionId) {
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
-            <button type="submit" class="btn btn-primary">Simpan Koreksi</button>
+            <button type="submit" class="btn btn-primary">
+              ${uiIcon('check', '', 16)} Simpan Koreksi
+            </button>
           </div>
         </form>
       </div>
@@ -2260,8 +2401,10 @@ function openCommissionModal(periods) {
     <div class="modal-overlay active">
       <div class="modal-card">
         <div class="modal-header">
-          <h3 style="font-size: 1.1rem; font-weight: 700;">Input Komisi Sales Manual</h3>
-          <button type="button" class="btn btn-secondary" onclick="closeModal()">✕</button>
+          <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('plus', '', 18)} Input Komisi Sales Manual
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#64748B; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
         </div>
         <form id="form-commission">
           <div class="modal-body">
@@ -2288,7 +2431,9 @@ function openCommissionModal(periods) {
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
-            <button type="submit" class="btn btn-primary">Simpan Komisi</button>
+            <button type="submit" class="btn btn-primary">
+              ${uiIcon('check', '', 16)} Simpan Komisi
+            </button>
           </div>
         </form>
       </div>
@@ -2331,8 +2476,10 @@ function openAddEmployeeModal() {
     <div class="modal-overlay active">
       <div class="modal-card">
         <div class="modal-header">
-          <h3 style="font-size: 1.1rem; font-weight: 700;">Tambah Karyawan Baru</h3>
-          <button type="button" class="btn btn-secondary" onclick="closeModal()">✕</button>
+          <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('users', '', 18)} Tambah Karyawan Baru
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#64748B; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
         </div>
         <form id="form-add-emp">
           <div class="modal-body">
@@ -2357,7 +2504,9 @@ function openAddEmployeeModal() {
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
-            <button type="submit" class="btn btn-primary">Simpan Karyawan</button>
+            <button type="submit" class="btn btn-primary">
+              ${uiIcon('check', '', 16)} Simpan Karyawan
+            </button>
           </div>
         </form>
       </div>
@@ -2391,8 +2540,10 @@ async function openRunDetailModal(runId) {
     <div class="modal-overlay active">
       <div class="modal-card" style="max-width: 700px;">
         <div class="modal-header">
-          <h3 style="font-size: 1.1rem; font-weight: 700;">Rincian Kalkulasi Payroll</h3>
-          <button type="button" class="btn btn-secondary" onclick="closeModal()">✕</button>
+          <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('search', '', 18)} Rincian Kalkulasi Payroll
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#64748B; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
         </div>
         <div class="modal-body" id="run-detail-body">
           <p>Memuat rincian...</p>
@@ -2410,8 +2561,11 @@ async function openRunDetailModal(runId) {
     const run = res.data.run;
     const items = res.data.items || [];
     body.innerHTML = `
-      <div style="background:#E8F5E9; border:1px solid #C8E6C9; color:#2E7D32; padding:10px; border-radius:6px; font-size:0.85rem; margin-bottom:14px;">
-        ✅ <strong>Aturan Q05:</strong> Uang makan Rp10.000 hanya dihitung untuk kehadiran toko. Kunjungan luar tidak mendapatkan uang makan.
+      <div style="background: var(--status-success-bg, #F0FDF4); border: 1px solid #BBF7D0; color: #166534; padding: 12px 14px; border-radius: var(--radius-sm); font-size: 0.85rem; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 8px;">
+        ${uiIcon('check-circle', '', 16)}
+        <div>
+          <strong>Aturan Q05 Sultan Arab:</strong> Uang makan Rp10.000 hanya dihitung untuk kehadiran fisik toko. Kunjungan luar tidak mendapatkan uang makan.
+        </div>
       </div>
       <div style="margin-bottom: 12px; font-size: 0.9rem;">
         <strong>Periode:</strong> ${escapeHtml(run.period_label)} (v${run.version})<br>
@@ -2456,10 +2610,12 @@ function openPayslipDetailModal(slip) {
       <div class="modal-card" style="max-width: 520px;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-red), #9E0000); color: #fff;">
           <div>
-            <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff;">SLIP GAJI SULTAN ARAB</h3>
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+              ${uiIcon('file-text', '', 20)} SLIP GAJI SULTAN ARAB
+            </h3>
             <span style="font-size: 0.78rem; color: var(--accent-gold);">${escapeHtml(slip.period_label)}</span>
           </div>
-          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem;">✕</button>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
         </div>
         <div class="modal-body">
           <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 12px; font-size: 0.9rem;">
@@ -2491,18 +2647,20 @@ function openPayslipDetailModal(slip) {
             ` : ''}
           </div>
 
-          <div style="background: var(--primary-red-light); border-radius: var(--border-radius-sm); padding: 12px; display: flex; justify-content: space-between; align-items: center;">
-            <strong style="color: var(--primary-red); font-size: 1rem;">TOTAL DITERIMA (NET):</strong>
+          <div style="background: var(--primary-red-light); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+            <strong style="color: var(--primary-red); font-size: 0.95rem;">TOTAL DITERIMA (NET):</strong>
             <strong style="color: var(--primary-red); font-size: 1.3rem;">Rp ${formatNumber(slip.net_pay)}</strong>
           </div>
         </div>
         <div class="modal-footer">
           ${slip.pdf_path ? `
             <a href="/api/v1/payroll/slips/${slip.payslip_id}/download" target="_blank" class="btn btn-primary">
-              📥 Unduh PDF Resmi
+              ${uiIcon('download', '', 16)} Unduh PDF Resmi
             </a>
           ` : `
-            <button type="button" class="btn btn-secondary" onclick="window.print()">🖨️ Cetak</button>
+            <button type="button" class="btn btn-secondary" onclick="window.print()">
+              ${uiIcon('printer', '', 16)} Cetak
+            </button>
           `}
           <button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>
         </div>
@@ -2529,7 +2687,7 @@ function renderBranchRows() {
         <td class="cell-title" data-label="Nama Cabang"><strong>${escapeHtml(b.name)}</strong> <small class="cell-code">${escapeHtml(b.code)}</small></td>
         <td data-label="Radius">${b.radius_m || 150} m</td>
         <td data-label="Koordinat">
-          ${hasCoord ? `<a href="https://www.google.com/maps?q=${encodeURIComponent(b.latitude + ',' + b.longitude)}" target="_blank" rel="noopener">📍 ${coordText}</a>` : '-'}
+          ${hasCoord ? `<a href="https://www.google.com/maps?q=${encodeURIComponent(b.latitude + ',' + b.longitude)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:4px;">${uiIcon('map-pin', '', 13)} ${coordText}</a>` : '-'}
         </td>
         <td class="cell-full" data-label="Alamat">${escapeHtml(b.address || '-')}</td>
       </tr>
@@ -2560,8 +2718,10 @@ function openAddBranchModal() {
     <div class="modal-overlay active">
       <div class="modal-card">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-red), #9E0000);">
-          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff;">🏢 Tambah Cabang Baru</h3>
-          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem;">✕</button>
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('building', '', 18)} Tambah Cabang Baru
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
         </div>
         <form id="form-add-branch">
           <div class="modal-body">
@@ -2588,12 +2748,16 @@ function openAddBranchModal() {
               <input type="text" id="add-branch-coord" class="form-control" placeholder="-6.2122736, 107.0218103 atau tempel link Google Maps">
               <small id="add-branch-coord-hint" class="form-hint">Dipakai untuk validasi radius absen. Tautan pendek maps.app.goo.gl tidak memuat koordinat — buka dulu lalu salin koordinatnya.</small>
             </div>
-            <button type="button" id="btn-branch-use-my-location" class="btn btn-secondary btn-block">📍 Gunakan Lokasi Saya Saat Ini</button>
+            <button type="button" id="btn-branch-use-my-location" class="btn btn-secondary btn-block">
+              ${uiIcon('map-pin', '', 16)} Gunakan Lokasi Saya Saat Ini
+            </button>
             <p class="form-hint" style="margin-top: 10px;">Shift Pagi (08:00–17:00), Siang (12:00–21:00), &amp; Lembur (08:00–21:00) otomatis dibuat untuk cabang baru.</p>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
-            <button type="submit" id="btn-submit-branch" class="btn btn-primary">Simpan Cabang</button>
+            <button type="submit" id="btn-submit-branch" class="btn btn-primary">
+              ${uiIcon('check', '', 16)} Simpan Cabang
+            </button>
           </div>
         </form>
       </div>
@@ -2686,12 +2850,14 @@ function openChangePasswordModal() {
     <div class="modal-overlay active">
       <div class="modal-card">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-red), #9E0000);">
-          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff;">🔑 Ubah Password Akun</h3>
-          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem;">✕</button>
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('key', '', 18)} Ubah Password Akun
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
         </div>
         <form id="form-change-password">
           <div class="modal-body">
-            <div style="background: #F8F9FA; border-left: 3px solid var(--accent-gold-dark); padding: 10px 14px; border-radius: 4px; margin-bottom: 16px; font-size: 0.85rem;">
+            <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-left: 3px solid var(--accent-gold-dark); padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 0.85rem;">
               Akun: <strong>${escapeHtml(state.user.displayName || '')}</strong> (<code>${escapeHtml(state.user.loginIdentifier || '')}</code>)<br>
               <span style="color: var(--text-muted); font-size: 0.8rem;">Gunakan password baru yang aman minimal 6 karakter.</span>
             </div>
@@ -2699,27 +2865,29 @@ function openChangePasswordModal() {
               <label class="form-label" for="input-current-password">Password Saat Ini</label>
               <div style="position: relative;">
                 <input type="password" id="input-current-password" class="form-control" placeholder="Masukkan password lama" required autocomplete="current-password">
-                <button type="button" id="btn-peek-current" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1rem;" title="Lihat/Sembunyikan">👁️</button>
+                <button type="button" id="btn-peek-current" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center;" title="Lihat/Sembunyikan">${uiIcon('eye', '', 16)}</button>
               </div>
             </div>
             <div class="form-group">
               <label class="form-label" for="input-new-password">Password Baru</label>
               <div style="position: relative;">
                 <input type="password" id="input-new-password" class="form-control" placeholder="Minimal 6 karakter" required minlength="6" autocomplete="new-password">
-                <button type="button" id="btn-peek-new" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1rem;" title="Lihat/Sembunyikan">👁️</button>
+                <button type="button" id="btn-peek-new" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center;" title="Lihat/Sembunyikan">${uiIcon('eye', '', 16)}</button>
               </div>
             </div>
             <div class="form-group">
               <label class="form-label" for="input-confirm-password">Konfirmasi Password Baru</label>
               <div style="position: relative;">
                 <input type="password" id="input-confirm-password" class="form-control" placeholder="Ketik ulang password baru" required minlength="6" autocomplete="new-password">
-                <button type="button" id="btn-peek-confirm" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1rem;" title="Lihat/Sembunyikan">👁️</button>
+                <button type="button" id="btn-peek-confirm" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center;" title="Lihat/Sembunyikan">${uiIcon('eye', '', 16)}</button>
               </div>
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
-            <button type="submit" id="btn-submit-change-pwd" class="btn btn-primary">Simpan Password Baru</button>
+            <button type="submit" id="btn-submit-change-pwd" class="btn btn-primary">
+              ${uiIcon('check', '', 16)} Simpan Password Baru
+            </button>
           </div>
         </form>
       </div>
@@ -2769,7 +2937,7 @@ function openChangePasswordModal() {
     });
 
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Simpan Password Baru';
+    submitBtn.innerHTML = `${uiIcon('check', '', 16)} Simpan Password Baru`;
 
     if (res.ok && res.data.success) {
       showToast(res.data.message || 'Password berhasil diubah!', 'success');
@@ -2787,16 +2955,19 @@ function openResetEmployeePasswordModal(emp) {
     <div class="modal-overlay active">
       <div class="modal-card">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--accent-gold-dark), #8a6a12);">
-          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff;">🔑 Reset Password Karyawan</h3>
-          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem;">✕</button>
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('key', '', 18)} Reset Password Karyawan
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
         </div>
         <form id="form-reset-emp-password">
           <div class="modal-body">
-            <div style="background: #FFF9E6; border-left: 4px solid var(--accent-gold-dark); padding: 12px 14px; border-radius: 4px; margin-bottom: 16px; font-size: 0.88rem; color: #5c4400;">
+            <div style="background: #FFF9E6; border: 1px solid #FEF08A; border-left: 4px solid var(--accent-gold-dark); padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 0.88rem; color: #5c4400;">
               <strong>Target Akun:</strong> ${escapeHtml(emp.name)} (${escapeHtml(emp.login_identifier || emp.employee_code)})<br>
               <strong>Jabatan:</strong> ${escapeHtml(emp.job_title || 'Crew Toko')} • ${escapeHtml(emp.branch_name || 'Cabang')}<br>
-              <div style="margin-top: 6px; font-size: 0.8rem; color: #7a5d00;">
-                ⚠️ <em>Fungsi ini digunakan jika karyawan lupa password. Seluruh sesi aktif karyawan akan otomatis dihentikan dan karyawan harus login kembali menggunakan password baru ini.</em>
+              <div style="margin-top: 6px; font-size: 0.8rem; color: #7a5d00; display:flex; align-items:flex-start; gap:4px;">
+                ${uiIcon('alert-circle', '', 14)}
+                <span><em>Fungsi ini digunakan jika karyawan lupa password. Seluruh sesi aktif karyawan akan otomatis dihentikan dan karyawan harus login kembali menggunakan password baru ini.</em></span>
               </div>
             </div>
 
@@ -2811,7 +2982,9 @@ function openResetEmployeePasswordModal(emp) {
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
-            <button type="submit" id="btn-submit-reset-emp-pwd" class="btn btn-primary" style="background: var(--accent-gold-dark); border-color: var(--accent-gold-dark);">Konfirmasi Reset Password</button>
+            <button type="submit" id="btn-submit-reset-emp-pwd" class="btn btn-primary" style="background: var(--accent-gold-dark); border-color: var(--accent-gold-dark);">
+              ${uiIcon('check', '', 16)} Konfirmasi Reset Password
+            </button>
           </div>
         </form>
       </div>
@@ -2849,7 +3022,7 @@ function openResetEmployeePasswordModal(emp) {
     });
 
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Konfirmasi Reset Password';
+    submitBtn.innerHTML = `${uiIcon('check', '', 16)} Konfirmasi Reset Password`;
 
     if (res.ok && res.data.success) {
       showToast(res.data.message || 'Password karyawan berhasil direset!', 'success');
