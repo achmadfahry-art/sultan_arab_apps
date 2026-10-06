@@ -929,22 +929,26 @@ a:hover {
   font-size: 1.2rem;
 }
 
-/* Modal Overlay */
-.modal-overlay {
+/* Modal Overlay & Backdrop */
+.modal-overlay,
+.modal-backdrop {
   display: none;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(4px);
-  z-index: 1000;
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 99999;
   align-items: center;
   justify-content: center;
   padding: 20px;
 }
-.modal-overlay.active {
+.modal-overlay.active,
+.modal-backdrop.active,
+.modal-backdrop {
   display: flex;
 }
 .modal-card {
@@ -1158,7 +1162,8 @@ a:hover {
     grid-template-columns: 1fr;
     gap: 0;
   }
-  .modal-overlay {
+  .modal-overlay,
+  .modal-backdrop {
     padding: 0;
     align-items: flex-end;
   }

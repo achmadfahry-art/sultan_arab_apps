@@ -1685,16 +1685,16 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
   }).join('');
 
   modalContainer.innerHTML = `
-    <div class="modal-backdrop" onclick="if(event.target===this) closeModal()">
-      <div class="modal-card" style="max-width: 820px; width: 95%;">
-        <div class="modal-header">
+    <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
+      <div class="modal-card" style="max-width: 840px; width: 95%; max-height: 90vh;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-red), #9E0000); color: #fff;">
           <div>
-            <h3 class="modal-title">🔍 Rincian Kehadiran: ${escapeHtml(item.employee_name)}</h3>
-            <p class="form-hint" style="margin: 0; color: #fff;">Periode: ${period.startDate || ''} s.d. ${period.endDate || ''} • Cabang: ${escapeHtml(item.branch_name || 'Semua Cabang')}</p>
+            <h3 class="modal-title" style="color: #fff; font-size: 1.15rem; font-weight: 700; margin: 0;">🔍 Rincian Kehadiran: ${escapeHtml(item.employee_name)}</h3>
+            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); margin-top: 4px;">Periode: ${period.startDate || ''} s.d. ${period.endDate || ''} • Cabang: ${escapeHtml(item.branch_name || 'Semua Cabang')}</div>
           </div>
-          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem;">✕</button>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.4rem; cursor:pointer; line-height:1; padding:4px 8px;">✕</button>
         </div>
-        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <div class="modal-body" style="max-height: calc(90vh - 140px); overflow-y: auto;">
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; background: #f8fafc; padding: 12px; border-radius: 8px;">
             <div>
               <div style="font-size: 0.75rem; color: var(--text-muted);">Hadir Toko</div>
