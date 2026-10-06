@@ -20,6 +20,10 @@ const state = {
   myPayslips: [],
   uploadedSlips: [],
   activeManagementTab: 'monitoring',
+  recapMonth: new Date().getMonth() + 1,
+  recapYear: new Date().getFullYear(),
+  recapBranchId: '',
+  recapData: null,
   payslipViewMode: 'staff', // 'me' atau 'staff' (Q06)
   clockInterval: null,
   cameraStream: null,
@@ -403,7 +407,7 @@ function renderHome() {
         <div style="display: flex; gap: 12px; align-items: center;">
           <span style="font-size: 1.5rem;">⏰</span>
           <div>
-            <strong>Pilihan Shift:</strong> Staff/Admin (08:00 - 17:00) • Crew Pagi (08:00 - 17:00) • Crew Siang (12:00 - 21:00).
+            <strong>Pilihan Shift:</strong> Staff/Admin (08:00 - 17:00) • Crew Pagi (08:00 - 17:00) • Crew Siang (12:00 - 21:00) • Lembur (08:00 - 21:00).
             <div style="color: var(--text-muted); font-size: 0.8rem;">Pemilihan shift diserahkan kepada masing-masing personal saat absen masuk.</div>
           </div>
         </div>
@@ -590,6 +594,9 @@ function renderManagement() {
         <button class="nav-tab-btn ${state.activeManagementTab === 'monitoring' ? 'active' : ''}" data-tab="monitoring">
           📍 Monitoring
         </button>
+        <button class="nav-tab-btn ${state.activeManagementTab === 'recap' ? 'active' : ''}" data-tab="recap">
+          📊 Rekap Bulanan
+        </button>
         <button class="nav-tab-btn ${state.activeManagementTab === 'payroll' ? 'active' : ''}" data-tab="payroll">
           📄 Slip Gaji
         </button>
@@ -638,6 +645,8 @@ function renderManagementTabContent() {
           </div>
         </div>
       `;
+    case 'recap':
+      return renderManagementRecapTab();
     case 'payroll':
       return `
         <!-- Unggah Slip Gaji PDF Masing-Masing Anggota Staf (Q06) -->
@@ -789,6 +798,146 @@ function renderManagementTabContent() {
     default:
       return '';
   }
+}
+
+function renderManagementRecapTab() {
+  const currentMonth = state.recapMonth || (new Date().getMonth() + 1);
+  const currentYear = state.recapYear || new Date().getFullYear();
+  const branchOptions = (state.branches || []).map(b => 
+    `<option value="${b.id}" ${state.recapBranchId === b.id ? 'selected' : ''}>${escapeHtml(b.name)}</option>`
+  ).join('');
+
+  const months = [
+    { value: 1, name: 'Januari' },
+    { value: 2, name: 'Februari' },
+    { value: 3, name: 'Maret' },
+    { value: 4, name: 'April' },
+    { value: 5, name: 'Mei' },
+    { value: 6, name: 'Juni' },
+    { value: 7, name: 'Juli' },
+    { value: 8, name: 'Agustus' },
+    { value: 9, name: 'September' },
+    { value: 10, name: 'Oktober' },
+    { value: 11, name: 'November' },
+    { value: 12, name: 'Desember' }
+  ];
+
+  const monthOptions = months.map(m =>
+    `<option value="${m.value}" ${currentMonth === m.value ? 'selected' : ''}>${m.name}</option>`
+  ).join('');
+
+  return `
+    <div class="card" style="margin-bottom: 20px;">
+      <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+        <div>
+          <h3 class="card-title">📊 Rekapitulasi Kehadiran Bulanan Staf</h3>
+          <p class="card-subtitle">Perhitungan akumulasi kehadiran, lembur (08:00–21:00), keterlambatan, dan uang makan terhitung per bulan.</p>
+        </div>
+        <div class="card-actions" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary" onclick="window.print()" title="Cetak Tabel Rekapitulasi">🖨️ Cetak</button>
+          <button id="btn-refresh-recap" class="btn btn-secondary" title="Muat Ulang">🔄 Segarkan</button>
+        </div>
+      </div>
+
+      <!-- Filter Periode & Cabang -->
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 14px; margin-bottom: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: flex-end;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Bulan:</label>
+            <select id="recap-filter-month" class="form-control" style="padding: 8px 12px;">
+              ${monthOptions}
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Tahun:</label>
+            <select id="recap-filter-year" class="form-control" style="padding: 8px 12px;">
+              <option value="${currentYear - 1}" ${currentYear === currentYear - 1 ? 'selected' : ''}>${currentYear - 1}</option>
+              <option value="${currentYear}" ${currentYear === currentYear ? 'selected' : ''}>${currentYear}</option>
+              <option value="${currentYear + 1}" ${currentYear === currentYear + 1 ? 'selected' : ''}>${currentYear + 1}</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Cabang:</label>
+            <select id="recap-filter-branch" class="form-control" style="padding: 8px 12px;">
+              <option value="">Semua Cabang</option>
+              ${branchOptions}
+            </select>
+          </div>
+          <div>
+            <button id="btn-apply-recap-filter" class="btn btn-primary btn-block" style="padding: 9px 16px;">🔍 Tampilkan Rekap</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary KPI Bulanan -->
+      <div class="kpi-grid" style="margin-bottom: 18px;">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-blue">👥</div>
+          <div>
+            <div class="kpi-value" id="recap-kpi-employees">-</div>
+            <div class="kpi-label">Total Staf Aktif</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-green">🏢</div>
+          <div>
+            <div class="kpi-value" id="recap-kpi-hadir">-</div>
+            <div class="kpi-label">Hadir Fisik Toko</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-blue">🚗</div>
+          <div>
+            <div class="kpi-value" id="recap-kpi-kunjungan">-</div>
+            <div class="kpi-label">Kunjungan Luar</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-yellow">⚡</div>
+          <div>
+            <div class="kpi-value" id="recap-kpi-lembur">-</div>
+            <div class="kpi-label">Shift Lembur (08-21)</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-red">⏰</div>
+          <div>
+            <div class="kpi-value" id="recap-kpi-terlambat">-</div>
+            <div class="kpi-label">Terlambat</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-green">💰</div>
+          <div>
+            <div class="kpi-value" id="recap-kpi-uangmakan">-</div>
+            <div class="kpi-label">Total Uang Makan</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabel Rekap Per Karyawan -->
+      <div class="table-responsive">
+        <table class="table table-stack" id="table-monthly-recap">
+          <thead>
+            <tr>
+              <th>Staf</th>
+              <th>Cabang</th>
+              <th title="Kehadiran fisik di toko">Hadir Toko</th>
+              <th title="Kunjungan luar / dinas">Kunjungan</th>
+              <th title="Shift Lembur 08:00 - 21:00">Lembur (08-21)</th>
+              <th title="Jumlah keterlambatan">Terlambat</th>
+              <th title="Estimasi jam kerja">Jam Kerja</th>
+              <th title="Uang makan Rp 10.000 / hari hadir fisik">Uang Makan</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="monthly-recap-table-body">
+            <tr><td colspan="9" class="cell-empty">Memuat data rekapitulasi bulanan...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
 }
 
 // --- VIEW 5: RIWAYAT & SLIP GAJI ---
@@ -1320,6 +1469,9 @@ async function initManagementView() {
 
   if (state.activeManagementTab === 'monitoring') {
     await loadMonitoringData();
+  } else if (state.activeManagementTab === 'recap') {
+    setupRecapFilterListeners();
+    await loadMonthlyRecapData();
   } else if (state.activeManagementTab === 'payroll') {
     await loadPayrollData();
   } else if (state.activeManagementTab === 'master') {
@@ -1389,6 +1541,209 @@ async function loadMonitoringData() {
     });
   }
 }
+
+// --- Fungsi Rekapitulasi Bulanan Staf ---
+function setupRecapFilterListeners() {
+  const btnApply = document.getElementById('btn-apply-recap-filter');
+  if (btnApply) {
+    btnApply.addEventListener('click', async () => {
+      const monthSelect = document.getElementById('recap-filter-month');
+      const yearSelect = document.getElementById('recap-filter-year');
+      const branchSelect = document.getElementById('recap-filter-branch');
+      if (monthSelect) state.recapMonth = parseInt(monthSelect.value, 10);
+      if (yearSelect) state.recapYear = parseInt(yearSelect.value, 10);
+      if (branchSelect) state.recapBranchId = branchSelect.value;
+      await loadMonthlyRecapData();
+      showToast('Rekap bulanan diperbarui!', 'info');
+    });
+  }
+
+  const btnRefresh = document.getElementById('btn-refresh-recap');
+  if (btnRefresh) {
+    btnRefresh.addEventListener('click', async () => {
+      await loadMonthlyRecapData();
+      showToast('Data rekap disinkronkan!', 'info');
+    });
+  }
+}
+
+async function loadMonthlyRecapData() {
+  const month = state.recapMonth || (new Date().getMonth() + 1);
+  const year = state.recapYear || new Date().getFullYear();
+  const branchId = state.recapBranchId || '';
+
+  let query = `/api/v1/attendance/monthly-recap?year=${year}&month=${month}`;
+  if (branchId) query += `&branch_id=${encodeURIComponent(branchId)}`;
+
+  const res = await api(query);
+  if (!res.ok || !res.data) {
+    showToast(res.data?.error || 'Gagal memuat rekap bulanan', 'error');
+    return;
+  }
+
+  state.recapData = res.data;
+  const summary = res.data.summary || {};
+
+  const kpiEmp = document.getElementById('recap-kpi-employees');
+  const kpiHadir = document.getElementById('recap-kpi-hadir');
+  const kpiKunjungan = document.getElementById('recap-kpi-kunjungan');
+  const kpiLembur = document.getElementById('recap-kpi-lembur');
+  const kpiTerlambat = document.getElementById('recap-kpi-terlambat');
+  const kpiUangMakan = document.getElementById('recap-kpi-uangmakan');
+
+  if (kpiEmp) kpiEmp.textContent = summary.totalEmployees ?? 0;
+  if (kpiHadir) kpiHadir.textContent = summary.totalHadirFisik ?? 0;
+  if (kpiKunjungan) kpiKunjungan.textContent = summary.totalKunjunganLuar ?? 0;
+  if (kpiLembur) kpiLembur.textContent = summary.totalLembur ?? 0;
+  if (kpiTerlambat) kpiTerlambat.textContent = summary.totalTerlambat ?? 0;
+  if (kpiUangMakan) kpiUangMakan.textContent = `Rp ${formatNumber(summary.totalUangMakan || 0)}`;
+
+  const tbody = document.getElementById('monthly-recap-table-body');
+  if (!tbody) return;
+
+  const recapList = res.data.recap || [];
+  if (recapList.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="cell-empty">Tidak ada data staf untuk filter ini.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = recapList.map((item, idx) => {
+    return `
+      <tr>
+        <td class="cell-title" data-label="Staf">
+          <strong>${escapeHtml(item.employee_name)}</strong>
+          <small class="cell-code" style="display:block; color:var(--text-muted);">${escapeHtml(item.job_title || '-')}</small>
+        </td>
+        <td data-label="Cabang">
+          <span class="badge badge-secondary">${escapeHtml(item.branch_name || 'Semua Cabang')}</span>
+        </td>
+        <td data-label="Hadir Toko">
+          <strong>${item.totalHadirFisik}</strong> hari
+        </td>
+        <td data-label="Kunjungan">
+          ${item.totalKunjunganLuar > 0 ? `<span class="badge badge-info">${item.totalKunjunganLuar} hari</span>` : '0 hari'}
+        </td>
+        <td data-label="Lembur (08-21)">
+          ${item.totalLembur > 0 ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:700;">⚡ ${item.totalLembur} shift</span>` : '0'}
+        </td>
+        <td data-label="Terlambat">
+          ${item.totalTerlambat > 0 ? `<span class="badge badge-danger">${item.totalTerlambat} kali</span>` : '<span style="color:var(--status-present);">0</span>'}
+        </td>
+        <td data-label="Jam Kerja">
+          ${item.totalJamKerja} jam
+        </td>
+        <td data-label="Uang Makan">
+          <strong style="color: var(--primary-red);">Rp ${formatNumber(item.totalUangMakan)}</strong>
+        </td>
+        <td data-label="Aksi">
+          <button class="btn btn-secondary btn-sm" onclick="openStaffDailyRecapModalByIndex(${idx})">🔍 Rincian</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.openStaffDailyRecapModalByIndex = function(idx) {
+  if (!state.recapData || !state.recapData.recap || !state.recapData.recap[idx]) return;
+  const item = state.recapData.recap[idx];
+  const period = state.recapData.period || {};
+
+  const modalContainer = document.getElementById('modal-container');
+  if (!modalContainer) return;
+
+  const records = item.dailyRecords || [];
+  const recordsHtml = records.length === 0 ? `
+    <tr><td colspan="7" class="cell-empty">Tidak ada riwayat absensi pada bulan ini.</td></tr>
+  ` : records.map(r => {
+    const isLembur = r.isLembur;
+    const shiftBadge = isLembur
+      ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:600;">⚡ ${escapeHtml(r.shift_name)}</span>`
+      : `<span class="badge badge-secondary">${escapeHtml(r.shift_name || '-')}</span>`;
+
+    const statusBadge = r.status === 'late'
+      ? `<span class="badge badge-danger">Terlambat</span>`
+      : `<span class="badge badge-present">Tepat Waktu</span>`;
+
+    const typeBadge = r.isKunjungan
+      ? `<span class="badge badge-info">🚗 Kunjungan</span>`
+      : `<span class="badge badge-present">🏢 Hadir Toko</span>`;
+
+    const checkIn = r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+    const checkOut = r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+
+    return `
+      <tr>
+        <td><strong>${escapeHtml(r.work_date)}</strong></td>
+        <td>${shiftBadge}</td>
+        <td>${typeBadge}</td>
+        <td>${checkIn} - ${checkOut}</td>
+        <td>${statusBadge}</td>
+        <td>${(r.durasiMenit / 60).toFixed(1)} jam</td>
+        <td>${r.uangMakan > 0 ? `Rp ${formatNumber(r.uangMakan)}` : '-'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  modalContainer.innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this) closeModal()">
+      <div class="modal-card" style="max-width: 820px; width: 95%;">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">🔍 Rincian Kehadiran: ${escapeHtml(item.employee_name)}</h3>
+            <p class="form-hint" style="margin: 0; color: #fff;">Periode: ${period.startDate || ''} s.d. ${period.endDate || ''} • Cabang: ${escapeHtml(item.branch_name || 'Semua Cabang')}</p>
+          </div>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem;">✕</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; background: #f8fafc; padding: 12px; border-radius: 8px;">
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Hadir Toko</div>
+              <div style="font-size: 1.1rem; font-weight: 700;">${item.totalHadirFisik} hari</div>
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Kunjungan Luar</div>
+              <div style="font-size: 1.1rem; font-weight: 700;">${item.totalKunjunganLuar} hari</div>
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Shift Lembur</div>
+              <div style="font-size: 1.1rem; font-weight: 700; color: #b45309;">${item.totalLembur} shift</div>
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Terlambat</div>
+              <div style="font-size: 1.1rem; font-weight: 700; color: var(--status-late);">${item.totalTerlambat} kali</div>
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Uang Makan</div>
+              <div style="font-size: 1.1rem; font-weight: 700; color: var(--primary-red);">Rp ${formatNumber(item.totalUangMakan)}</div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table" style="font-size: 0.85rem;">
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Shift</th>
+                  <th>Tipe</th>
+                  <th>Jam Kerja</th>
+                  <th>Status</th>
+                  <th>Durasi</th>
+                  <th>Uang Makan</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${recordsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>
+        </div>
+      </div>
+    </div>
+  `;
+};
 
 // --- Fungsi Memuat Tabel Slip Gaji Per Staf (Q06) ---
 async function loadStaffSlipsTable(tbodyId) {
@@ -2234,7 +2589,7 @@ function openAddBranchModal() {
               <small id="add-branch-coord-hint" class="form-hint">Dipakai untuk validasi radius absen. Tautan pendek maps.app.goo.gl tidak memuat koordinat — buka dulu lalu salin koordinatnya.</small>
             </div>
             <button type="button" id="btn-branch-use-my-location" class="btn btn-secondary btn-block">📍 Gunakan Lokasi Saya Saat Ini</button>
-            <p class="form-hint" style="margin-top: 10px;">Shift Pagi (08:00–17:00) &amp; Siang (12:00–21:00) otomatis dibuat untuk cabang baru.</p>
+            <p class="form-hint" style="margin-top: 10px;">Shift Pagi (08:00–17:00), Siang (12:00–21:00), &amp; Lembur (08:00–21:00) otomatis dibuat untuk cabang baru.</p>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>

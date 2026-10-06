@@ -68,11 +68,12 @@ router.post('/', requireAuth, requireRoles(['owner', 'manager']), async (req, re
     );
     const newBranch = result.rows[0];
 
-    // Shift Crew Toko resmi (Q02) otomatis tersedia di cabang baru.
+    // Shift Crew Toko & Lembur resmi otomatis tersedia di cabang baru.
     await client.query(
       `INSERT INTO shifts (branch_id, name, start_time, end_time, crosses_midnight, is_test_data) VALUES
        ($1, 'Shift Pagi (Crew Toko)', '08:00:00', '17:00:00', false, false),
-       ($1, 'Shift Siang (Crew Toko)', '12:00:00', '21:00:00', false, false);`,
+       ($1, 'Shift Siang (Crew Toko)', '12:00:00', '21:00:00', false, false),
+       ($1, 'Shift Lembur', '08:00:00', '21:00:00', false, false);`,
       [newBranch.id]
     );
 

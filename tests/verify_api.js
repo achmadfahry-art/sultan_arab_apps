@@ -327,10 +327,11 @@ async function runApiTests() {
   const shiftRes = await request('GET', '/api/v1/schedules/shifts', null, mgrCookie);
   const newShifts = shiftRes.data.shifts.filter(s => s.branch_id === created.data.branch.id);
   const siang = newShifts.find(s => /siang/i.test(s.name));
-  if (newShifts.length !== 2 || !siang || siang.start_time.slice(0, 5) !== '12:00') {
+  const lembur = newShifts.find(s => /lembur/i.test(s.name));
+  if (newShifts.length !== 3 || !siang || siang.start_time.slice(0, 5) !== '12:00' || !lembur || lembur.start_time.slice(0, 5) !== '08:00' || lembur.end_time.slice(0, 5) !== '21:00') {
     throw new Error('Shift otomatis cabang baru tidak sesuai: ' + JSON.stringify(newShifts));
   }
-  console.log('   OK! Cabang dibuat + shift Pagi (08:00) & Siang (12:00) otomatis; validasi 400/403/409 berjalan.');
+  console.log('   OK! Cabang dibuat + shift Pagi (08:00), Siang (12:00), & Lembur (08:00-21:00) otomatis; validasi 400/403/409 berjalan.');
 
   // 16. Retensi foto (Q09)
   console.log('16. Menjalankan Skrip Retensi Foto 7 Hari (Q09)...');

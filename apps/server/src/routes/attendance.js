@@ -523,4 +523,185 @@ router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), asy
   }
 });
 
+// GET /api/v1/attendance/monthly-recap (Rekapitulasi Kehadiran Staf Per Bulan)
+router.get('/monthly-recap', requireAuth, requireRoles(['owner', 'manager', 'supervisor']), async (req, res) => {
+  const now = new Date();
+  const year = parseInt(req.query.year, 10) || now.getFullYear();
+  const month = parseInt(req.query.month, 10) || (now.getMonth() + 1);
+  const branch_id = req.query.branch_id || null;
+
+  const monthStr = String(month).padStart(2, '0');
+  const startDate = `${year}-${monthStr}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
+
+  try {
+    let empQuery = `
+      SELECT e.id as employee_id, e.employee_code, e.name as employee_name, e.job_title,
+             b.id as branch_id, b.name as branch_name
+      FROM employees e
+      LEFT JOIN employee_assignments ea ON e.id = ea.employee_id AND ea.is_primary = true
+      LEFT JOIN branches b ON ea.branch_id = b.id
+      WHERE e.active = true
+    `;
+    const empParams = [];
+    if (branch_id) {
+      empQuery += ` AND b.id = $1`;
+      empParams.push(branch_id);
+    } else if (!req.user.isOwner && req.user.accessibleBranchIds && req.user.accessibleBranchIds.length > 0) {
+      empQuery += ` AND b.id = ANY($1)`;
+      empParams.push(req.user.accessibleBranchIds);
+    }
+    empQuery += ` ORDER BY b.name ASC, e.name ASC`;
+
+    const employeesRes = await db.query(empQuery, empParams);
+    const employees = employeesRes.rows;
+
+    let attQuery = `
+      SELECT s.id as session_id, s.employee_id, s.work_date, s.status, s.attendance_type, s.is_meal_allowance_eligible,
+             sh.id as shift_id, sh.name as shift_name, sh.start_time as shift_start, sh.end_time as shift_end,
+             MIN(CASE WHEN ev.event_type = 'check_in' THEN ev.server_time END) as check_in_time,
+             MAX(CASE WHEN ev.event_type = 'check_out' THEN ev.server_time END) as check_out_time,
+             BOOL_AND(ev.is_within_radius) as is_location_valid
+      FROM attendance_sessions s
+      LEFT JOIN shifts sh ON s.shift_id = sh.id
+      LEFT JOIN attendance_events ev ON s.id = ev.session_id
+      WHERE s.work_date >= $1 AND s.work_date <= $2
+      GROUP BY s.id, sh.id
+      ORDER BY s.work_date ASC
+    `;
+    const attRes = await db.query(attQuery, [startDate, endDate]);
+    const allSessions = attRes.rows;
+
+    const sessionsByEmp = {};
+    for (const s of allSessions) {
+      if (!sessionsByEmp[s.employee_id]) {
+        sessionsByEmp[s.employee_id] = [];
+      }
+      sessionsByEmp[s.employee_id].push(s);
+    }
+
+    const recap = employees.map(emp => {
+      const empSessions = sessionsByEmp[emp.employee_id] || [];
+
+      let totalHadirFisik = 0;
+      let totalKunjunganLuar = 0;
+      let totalLembur = 0;
+      let totalShiftPagi = 0;
+      let totalShiftSiang = 0;
+      let totalTerlambat = 0;
+      let totalUangMakan = 0;
+      let totalMenitKerja = 0;
+
+      const dailyRecords = empSessions.map(s => {
+        const isHadir = (s.status === 'present' || s.status === 'late') && (s.attendance_type === 'hadir' || !s.attendance_type);
+        const isKunjungan = s.attendance_type === 'kunjungan_luar';
+        const isLembur = s.shift_name && /lembur/i.test(s.shift_name);
+        const isPagi = s.shift_name && /pagi/i.test(s.shift_name);
+        const isSiang = s.shift_name && /siang/i.test(s.shift_name);
+
+        if (isHadir) totalHadirFisik++;
+        if (isKunjungan) totalKunjunganLuar++;
+        if (isLembur) totalLembur++;
+        if (isPagi) totalShiftPagi++;
+        if (isSiang) totalShiftSiang++;
+        if (s.status === 'late') totalTerlambat++;
+        if (s.is_meal_allowance_eligible && isHadir) totalUangMakan += 10000;
+
+        let durasiMenit = 0;
+        if (s.check_in_time && s.check_out_time) {
+          const diffMs = new Date(s.check_out_time) - new Date(s.check_in_time);
+          durasiMenit = Math.max(0, Math.round(diffMs / 60000));
+        } else if (isLembur) {
+          durasiMenit = 13 * 60;
+        } else if (isPagi || isSiang) {
+          durasiMenit = 9 * 60;
+        }
+        totalMenitKerja += durasiMenit;
+
+        return {
+          session_id: s.session_id,
+          date: s.work_date,
+          status: s.status,
+          attendance_type: s.attendance_type || 'hadir',
+          shift_name: s.shift_name || '-',
+          is_lembur: Boolean(isLembur),
+          check_in_time: s.check_in_time,
+          check_out_time: s.check_out_time,
+          uang_makan: (s.is_meal_allowance_eligible && isHadir) ? 10000 : 0,
+          durasi_menit: durasiMenit
+        };
+      });
+
+      const item = {
+        employee_id: emp.employee_id,
+        employee_code: emp.employee_code,
+        employee_name: emp.employee_name,
+        job_title: emp.job_title || 'Staff',
+        branch_id: emp.branch_id,
+        branch_name: emp.branch_name || '-',
+        total_kehadiran: totalHadirFisik + totalKunjunganLuar,
+        total_hadir_fisik: totalHadirFisik,
+        total_kunjungan_luar: totalKunjunganLuar,
+        total_lembur: totalLembur,
+        total_shift_pagi: totalShiftPagi,
+        total_shift_siang: totalShiftSiang,
+        total_terlambat: totalTerlambat,
+        total_uang_makan: totalUangMakan,
+        total_jam_kerja: Math.round(totalMenitKerja / 60),
+        daily_records: dailyRecords,
+        // CamelCase aliases
+        totalHadirFisik: totalHadirFisik,
+        totalKunjunganLuar: totalKunjunganLuar,
+        totalLembur: totalLembur,
+        totalTerlambat: totalTerlambat,
+        totalUangMakan: totalUangMakan,
+        totalJamKerja: Math.round(totalMenitKerja / 60),
+        dailyRecords: dailyRecords
+      };
+      return item;
+    });
+
+    const monthNames = [
+      '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    const grandTotal = {
+      totalKaryawan: recap.length,
+      totalEmployees: recap.length,
+      grandHadir: recap.reduce((acc, r) => acc + r.total_hadir_fisik, 0),
+      totalHadirFisik: recap.reduce((acc, r) => acc + r.total_hadir_fisik, 0),
+      grandKunjungan: recap.reduce((acc, r) => acc + r.total_kunjungan_luar, 0),
+      totalKunjunganLuar: recap.reduce((acc, r) => acc + r.total_kunjungan_luar, 0),
+      grandLembur: recap.reduce((acc, r) => acc + r.total_lembur, 0),
+      totalLembur: recap.reduce((acc, r) => acc + r.total_lembur, 0),
+      grandTerlambat: recap.reduce((acc, r) => acc + r.total_terlambat, 0),
+      totalTerlambat: recap.reduce((acc, r) => acc + r.total_terlambat, 0),
+      grandUangMakan: recap.reduce((acc, r) => acc + r.total_uang_makan, 0),
+      totalUangMakan: recap.reduce((acc, r) => acc + r.total_uang_makan, 0)
+    };
+
+    return res.json({
+      success: true,
+      period: {
+        year,
+        month,
+        month_name: monthNames[month] || `Bulan ${month}`,
+        label: `${monthNames[month] || `Bulan ${month}`} ${year}`,
+        start_date: startDate,
+        startDate: startDate,
+        end_date: endDate,
+        endDate: endDate,
+        days_in_month: lastDay
+      },
+      summary: grandTotal,
+      recap
+    });
+  } catch (err) {
+    console.error('[Monthly Recap Error]', err);
+    return res.status(500).json({ success: false, error: 'Gagal memproses rekap bulanan staf: ' + err.message });
+  }
+});
+
 module.exports = router;
