@@ -34,3 +34,13 @@ Dokumen ini mencatat seluruh keputusan arsitektur, pilihan teknis, dan pemetaan 
 | **Q10** | Akses Tailscale & Ponsel | **DITETAPKAN & AKTIF** | Server Express berjalan pada host `0.0.0.0:3000` dan dapat diakses dari PC maupun HP yang terhubung ke Tailscale di alamat `http://100.84.77.41:3000`. |
 | **Q011** | Notifikasi WhatsApp | **DITETAPKAN & AKTIF** | Tersedia tautan pesan langsung WhatsApp (`api.whatsapp.com/send?phone=...`) untuk mengingatkan staf saat slip PDF diterbitkan, serta modul HTTP gateway untuk integrasi pihak ketiga. |
 
+---
+
+## 3. Penyempurnaan Operasional WhatsApp, Staf Baru & Tabel Rekap Bulanan (6 Oktober 2026)
+
+| No | Modul / Fitur | Status | Detail Implementasi & Perbaikan |
+|---|---|---|---|
+| 1 | **Kolom WhatsApp Tambah Karyawan** | **SELESAI & AKTIF** | Ditambahkan kolom `phone VARCHAR(50)` pada tabel `employees` via migrasi `006_add_employee_phone.sql`. Modal formulir "Tambah Karyawan Baru" kini memiliki input **Nomor WhatsApp / HP**. Sistem secara otomatis membuat akun login karyawan dan menyinkronkan profil WhatsApp sehingga staf baru langsung siap menerima notifikasi. |
+| 2 | **Tombol WhatsApp Slip Gaji Staf** | **SELESAI & AKTIF** | Endpoint `GET /api/v1/payroll/staff-slips` kini mengambil nomor telepon dengan fallback `COALESCE(e.phone, p.phone)`. Setiap staf yang memiliki nomor WhatsApp langsung memiliki tombol **📲 WA** dengan tautan chat WhatsApp resmi. Jika ada staf lama yang belum memiliki nomor telepon, sistem menampilkan tombol interaktif **📲 + No WA** dan tombol edit (✎) yang memungkinkan pengelola memasukkan nomor WhatsApp staf dalam 1 klik tanpa meninggalkan halaman. |
+| 3 | **Penyesuaian Ukuran Tabel Rekap Bulanan** | **SELESAI & AKTIF** | Tabel `#table-monthly-recap` dioptimalkan dengan padding kompak (`8px 10px`), ukuran font data yang proporsional (`0.82rem`), perataan tengah pada kolom numerik (Hadir, Kunjungan, Lembur, Terlambat, Jam Kerja), serta kolom **Aksi (Tombol Rincian)** yang diberi posisi `position: sticky; right: 0;` dengan bayangan halus. Tombol "Rincian" kini langsung terlihat jelas di layar pada semua resolusi tanpa harus scroll horizontal ke samping terlebih dahulu. |
+

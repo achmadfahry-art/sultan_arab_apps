@@ -16,7 +16,11 @@ try {
   const apiTest = execFileSync('node', [path.resolve(__dirname, 'verify_api.js')], {
     encoding: 'utf8'
   });
-  console.log(apiTest);
+  console.log('--- TAHAP 3: PENGUJIAN WHATSAPP & SLIP NOTIFIKASI ---');
+  const waTest = execFileSync('node', [path.resolve(__dirname, 'test_whatsapp_flow.js')], {
+    encoding: 'utf8'
+  });
+  console.log(waTest);
 
   console.log('\n>>> KESIMPULAN: SELURUH PENGUJIAN OTOMATIS LULUS 100% <<<');
 } catch (err) {

@@ -171,7 +171,7 @@ router.get('/staff-slips', requireAuth, requireRoles(['owner', 'manager']), asyn
     const result = await db.query(`
       SELECT e.id as employee_id, e.name as employee_name, e.employee_code, e.job_title,
              b.name as branch_name,
-             p.phone,
+             COALESCE(e.phone, p.phone) as phone,
              ps.id as payslip_id, ps.pdf_path, ps.original_filename, ps.file_size, ps.published_at, ps.notes as slip_notes,
              pp.label as period_label, pp.id as period_id
       FROM employees e
@@ -194,7 +194,9 @@ router.get('/staff-slips', requireAuth, requireRoles(['owner', 'manager']), asyn
       let waLink = null;
       if (row.phone) {
         const periodText = row.period_label || 'Bulan Ini';
-        const msg = `Assalamu’alaikum ${row.employee_name},\nSlip gaji Anda untuk periode *${periodText}* telah diterbitkan oleh manajemen Sultan Arab. Silakan login ke aplikasi SULTAN ARAB APP (http://100.84.77.41:3000) untuk mengunduh slip PDF Anda.\nTerima kasih.`;
+        const msg = row.payslip_id
+          ? `Assalamu’alaikum ${row.employee_name},\nSlip gaji Anda untuk periode *${periodText}* telah diterbitkan oleh manajemen Sultan Arab. Silakan login ke aplikasi SULTAN ARAB APP (http://100.84.77.41:3000) untuk mengunduh slip PDF Anda.\nTerima kasih.`
+          : `Assalamu’alaikum ${row.employee_name},\nNotifikasi dari manajemen Sultan Arab. Akun Anda telah aktif di sistem SULTAN ARAB APP (http://100.84.77.41:3000).\nTerima kasih.`;
         waLink = generateWhatsAppLink(row.phone, msg);
       }
       return {
@@ -253,10 +255,10 @@ router.post('/upload-slip', requireAuth, requireRoles(['owner', 'manager']), upl
 
     // Ambil info karyawan untuk notifikasi WhatsApp (Q011)
     const empRes = await db.query(
-      `SELECT e.name, p.phone, pp.label as period_label 
+      `SELECT e.name, COALESCE(e.phone, p.phone) as phone, pp.label as period_label 
        FROM employees e 
-       JOIN users u ON e.user_id = u.id 
-       JOIN profiles p ON u.id = p.id
+       LEFT JOIN users u ON e.user_id = u.id 
+       LEFT JOIN profiles p ON u.id = p.id
        JOIN payroll_periods pp ON pp.id = $2
        WHERE e.id = $1`,
       [employee_id, period_id]

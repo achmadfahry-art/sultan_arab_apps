@@ -1024,15 +1024,15 @@ function renderManagementRecapTab() {
         <table class="table table-stack" id="table-monthly-recap">
           <thead>
             <tr>
-              <th>Staf</th>
-              <th>Cabang</th>
-              <th title="Kehadiran fisik di toko">Hadir Toko</th>
+              <th style="min-width: 130px;">Staf</th>
+              <th style="min-width: 95px;">Cabang</th>
+              <th title="Kehadiran fisik di toko">Hadir</th>
               <th title="Kunjungan luar / dinas">Kunjungan</th>
-              <th title="Shift Lembur 08:00 - 21:00">Lembur (08-21)</th>
+              <th title="Shift Lembur 08:00 - 21:00">Lembur</th>
               <th title="Jumlah keterlambatan">Terlambat</th>
               <th title="Estimasi jam kerja">Jam Kerja</th>
               <th title="Uang makan Rp 10.000 / hari hadir fisik">Uang Makan</th>
-              <th>Aksi</th>
+              <th style="text-align: right;">Aksi</th>
             </tr>
           </thead>
           <tbody id="monthly-recap-table-body">
@@ -1730,29 +1730,29 @@ async function loadMonthlyRecapData() {
           <small class="cell-code" style="display:block; color:var(--text-muted);">${escapeHtml(item.job_title || '-')}</small>
         </td>
         <td data-label="Cabang">
-          <span class="badge badge-secondary">${escapeHtml(item.branch_name || 'Semua Cabang')}</span>
+          <span class="badge badge-secondary" style="font-size: 0.74rem;">${escapeHtml(item.branch_name || 'Semua Cabang')}</span>
         </td>
-        <td data-label="Hadir Toko">
-          <strong>${item.totalHadirFisik}</strong> hari
+        <td data-label="Hadir">
+          <strong>${item.totalHadirFisik}</strong>
         </td>
         <td data-label="Kunjungan">
-          ${item.totalKunjunganLuar > 0 ? `<span class="badge badge-info">${item.totalKunjunganLuar} hari</span>` : '0 hari'}
+          ${item.totalKunjunganLuar > 0 ? `<span class="badge badge-info">${item.totalKunjunganLuar}</span>` : '<span style="color:var(--text-muted);">0</span>'}
         </td>
-        <td data-label="Lembur (08-21)">
-          ${item.totalLembur > 0 ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:700;">${uiIcon('zap', '', 12)} ${item.totalLembur} shift</span>` : '0'}
+        <td data-label="Lembur">
+          ${item.totalLembur > 0 ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:700;">${uiIcon('zap', '', 11)} ${item.totalLembur}</span>` : '<span style="color:var(--text-muted);">0</span>'}
         </td>
         <td data-label="Terlambat">
-          ${item.totalTerlambat > 0 ? `<span class="badge badge-danger">${item.totalTerlambat} kali</span>` : '<span style="color:var(--status-present);">0</span>'}
+          ${item.totalTerlambat > 0 ? `<span class="badge badge-danger">${item.totalTerlambat}</span>` : '<span style="color:var(--status-present);">0</span>'}
         </td>
         <td data-label="Jam Kerja">
-          ${item.totalJamKerja} jam
+          ${item.totalJamKerja} j
         </td>
-        <td data-label="Uang Makan">
+        <td data-label="Uang Makan" style="text-align: right;">
           <strong style="color: var(--primary-red);">Rp ${formatNumber(item.totalUangMakan)}</strong>
         </td>
-        <td data-label="Aksi">
-          <button class="btn btn-secondary btn-sm" onclick="openStaffDailyRecapModalByIndex(${idx})">
-            ${uiIcon('search', '', 14)} Rincian
+        <td data-label="Aksi" style="text-align: right;">
+          <button class="btn btn-secondary btn-sm btn-recap-detail" onclick="openStaffDailyRecapModalByIndex(${idx})">
+            ${uiIcon('search', '', 13)} Rincian
           </button>
         </td>
       </tr>
@@ -1887,11 +1887,21 @@ async function loadStaffSlipsTable(tbodyId) {
       ? `<span class="badge badge-success badge-wrap">${uiIcon('file-text', '', 14)} ${escapeHtml(s.original_filename || 'Slip Gaji.pdf')} (${Math.round((s.file_size || 0)/1024)} KB)</span><div class="cell-note">Terbit: ${new Date(s.published_at).toLocaleDateString('id-ID')} • ${escapeHtml(s.period_label || '')}</div>`
       : `<span class="badge badge-warning">${uiIcon('alert-circle', '', 12)} Belum Ada Slip PDF</span>`;
 
+    const phoneDisplay = s.phone
+      ? `<div class="cell-note" style="display:inline-flex; align-items:center; gap:4px;">
+           <span>WA: ${escapeHtml(s.phone)}</span>
+           <button type="button" class="btn-edit-staff-phone" data-id="${s.employee_id}" data-name="${escapeHtml(s.employee_name)}" data-phone="${escapeHtml(s.phone)}" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem; padding:0 2px;" title="Ubah nomor WhatsApp">✎</button>
+         </div>`
+      : `<div class="cell-note" style="display:inline-flex; align-items:center; gap:4px;">
+           <span style="color:var(--status-late); font-weight:600;">No WA belum ada</span>
+           <button type="button" class="btn-set-staff-phone" data-id="${s.employee_id}" data-name="${escapeHtml(s.employee_name)}" data-phone="" style="background:none; border:none; color:var(--primary-red); cursor:pointer; font-size:0.75rem; padding:0 2px; font-weight:700;" title="Input nomor WhatsApp">+ No WA</button>
+         </div>`;
+
     return `
       <tr>
         <td class="cell-title" data-label="Anggota Staf">
           <strong>${escapeHtml(s.employee_name)}</strong> <small class="cell-code">${escapeHtml(s.employee_code)}</small>
-          <div class="cell-note">${escapeHtml(s.phone || '-')}</div>
+          ${phoneDisplay}
         </td>
         <td class="cell-full" data-label="Cabang / Jabatan">
           <div>${escapeHtml(s.branch_name || 'Head Quarter')}</div>
@@ -1909,10 +1919,14 @@ async function loadStaffSlipsTable(tbodyId) {
               </a>
             ` : ''}
             ${s.whatsAppReminderLink ? `
-              <a href="${s.whatsAppReminderLink}" target="_blank" class="btn btn-sm btn-wa">
+              <a href="${s.whatsAppReminderLink}" target="_blank" class="btn btn-sm btn-wa" title="Kirim Notifikasi via WhatsApp (${escapeHtml(s.phone)})">
                 ${uiIcon('smartphone', '', 14)} WA
               </a>
-            ` : ''}
+            ` : `
+              <button type="button" class="btn btn-sm btn-wa-outline btn-set-staff-phone" data-id="${s.employee_id}" data-name="${escapeHtml(s.employee_name)}" title="Set nomor WhatsApp agar bisa kirim notifikasi">
+                ${uiIcon('smartphone', '', 14)} + No WA
+              </button>
+            `}
           </div>
         </td>
       </tr>
@@ -1922,6 +1936,12 @@ async function loadStaffSlipsTable(tbodyId) {
   tbody.querySelectorAll('.btn-upload-slip-for-staff').forEach(btn => {
     btn.addEventListener('click', () => {
       openUploadSlipPdfModal([], btn.dataset.id);
+    });
+  });
+
+  tbody.querySelectorAll('.btn-edit-staff-phone, .btn-set-staff-phone').forEach(btn => {
+    btn.addEventListener('click', () => {
+      openUpdateEmployeePhoneModal(btn.dataset.id, btn.dataset.name, btn.dataset.phone || '');
     });
   });
 }
@@ -2060,7 +2080,13 @@ async function loadMasterData() {
       ? `<tr><td colspan="5" class="cell-empty">Belum ada karyawan.</td></tr>`
       : empRes.data.employees.map(e => `
       <tr>
-        <td class="cell-title" data-label="Nama"><strong>${escapeHtml(e.name)}</strong> <small class="cell-code">${escapeHtml(e.employee_code)}</small></td>
+        <td class="cell-title" data-label="Nama">
+          <strong>${escapeHtml(e.name)}</strong> <small class="cell-code">${escapeHtml(e.employee_code)}</small>
+          <div class="cell-note" style="display:inline-flex; align-items:center; gap:4px;">
+            <span>WA: ${escapeHtml(e.phone || 'Belum diisi')}</span>
+            <button type="button" class="btn-edit-phone-master" data-id="${e.id}" data-name="${escapeHtml(e.name)}" data-phone="${escapeHtml(e.phone || '')}" style="background:none; border:none; color:var(--primary-red); cursor:pointer; font-size:0.75rem; padding:0 2px;" title="Ubah nomor WhatsApp">✎</button>
+          </div>
+        </td>
         <td data-label="Jabatan">${escapeHtml(e.job_title || 'Crew Toko')}</td>
         <td data-label="Cabang">${escapeHtml(e.branch_name || 'Head Quarter')}</td>
         <td data-label="Status"><span class="badge badge-success">Aktif</span></td>
@@ -2076,6 +2102,12 @@ async function loadMasterData() {
       btn.addEventListener('click', () => {
         const emp = empRes.data.employees.find(x => x.id === btn.dataset.id);
         if (emp) openResetEmployeePasswordModal(emp);
+      });
+    });
+
+    document.querySelectorAll('.btn-edit-phone-master').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openUpdateEmployeePhoneModal(btn.dataset.id, btn.dataset.name, btn.dataset.phone || '');
       });
     });
   }
@@ -2470,10 +2502,65 @@ function openCommissionModal(periods) {
   });
 }
 
+function openUpdateEmployeePhoneModal(empId, empName, currentPhone) {
+  const modalContainer = document.getElementById('modal-container');
+  modalContainer.innerHTML = `
+    <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
+      <div class="modal-card" style="max-width: 440px;">
+        <div class="modal-header">
+          <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('smartphone', '', 18)} Atur Nomor WhatsApp
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#64748B; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+        <form id="form-update-emp-phone">
+          <div class="modal-body">
+            <p style="font-size: 0.88rem; color: var(--text-body); margin-bottom: 14px;">
+              Karyawan: <strong>${escapeHtml(empName)}</strong>
+            </p>
+            <div class="form-group">
+              <label class="form-label">Nomor WhatsApp / HP:</label>
+              <input type="tel" id="update-emp-phone-input" class="form-control" placeholder="Contoh: 081234567890" value="${escapeHtml(currentPhone || '')}" required autofocus>
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Nomor ini digunakan untuk mengirimkan notifikasi slip gaji otomatis via WhatsApp.</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+            <button type="submit" class="btn btn-primary">
+              ${uiIcon('check', '', 16)} Simpan & Aktifkan WA
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('form-update-emp-phone').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const phoneVal = document.getElementById('update-emp-phone-input').value.trim();
+    const res = await api(`/api/v1/employees/${empId}/phone`, {
+      method: 'PATCH',
+      body: JSON.stringify({ phone: phoneVal })
+    });
+    if (res.ok) {
+      showToast('Nomor WhatsApp berhasil disimpan!', 'success');
+      closeModal();
+      if (document.getElementById('payroll-staff-slips-tbody')) {
+        loadStaffSlipsTable('payroll-staff-slips-tbody');
+      }
+      if (document.getElementById('master-employee-body')) {
+        loadMasterData();
+      }
+    } else {
+      showToast(res.data.error || 'Gagal menyimpan nomor WhatsApp.', 'error');
+    }
+  });
+}
+
 function openAddEmployeeModal() {
   const modalContainer = document.getElementById('modal-container');
   modalContainer.innerHTML = `
-    <div class="modal-overlay active">
+    <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
       <div class="modal-card">
         <div class="modal-header">
           <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
@@ -2490,6 +2577,11 @@ function openAddEmployeeModal() {
             <div class="form-group">
               <label class="form-label">Nama Lengkap:</label>
               <input type="text" id="add-emp-name" class="form-control" placeholder="Nama karyawan" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nomor WhatsApp / HP:</label>
+              <input type="tel" id="add-emp-phone" class="form-control" placeholder="Contoh: 081234567890 atau 6281234567890">
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Untuk pengiriman notifikasi slip gaji & pesan resmi via WhatsApp.</small>
             </div>
             <div class="form-group">
               <label class="form-label">Jabatan:</label>
@@ -2517,19 +2609,23 @@ function openAddEmployeeModal() {
     e.preventDefault();
     const code = document.getElementById('add-emp-code').value;
     const name = document.getElementById('add-emp-name').value;
+    const phone = document.getElementById('add-emp-phone').value;
     const job = document.getElementById('add-emp-job').value;
     const branchId = document.getElementById('add-emp-branch').value;
 
     const res = await api('/api/v1/employees', {
       method: 'POST',
-      body: JSON.stringify({ employee_code: code, name, job_title: job, branch_id: branchId, is_test_data: false })
+      body: JSON.stringify({ employee_code: code, name, phone: phone.trim(), job_title: job, branch_id: branchId, is_test_data: false })
     });
     if (res.ok) {
       showToast('Karyawan berhasil ditambahkan!', 'success');
       closeModal();
       loadMasterData();
+      if (document.getElementById('payroll-staff-slips-tbody')) {
+        loadStaffSlipsTable('payroll-staff-slips-tbody');
+      }
     } else {
-      showToast(res.data.error || 'Gagal menambah.', 'error');
+      showToast(res.data.error || 'Gagal menambah karyawan.', 'error');
     }
   });
 }
