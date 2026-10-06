@@ -606,6 +606,34 @@ function renderAttendance() {
   `;
 }
 
+function renderDynamicDayOffRules(employees = []) {
+  if (!employees || employees.length === 0) {
+    return `<span style="color: var(--text-muted);">Memuat ketentuan libur staf terkini...</span>`;
+  }
+  const groups = {};
+  for (const emp of employees) {
+    let grp = 'Staff';
+    const job = (emp.job_title || '').toLowerCase();
+    const branch = emp.branch_name || 'Head Quarter';
+    if (job.includes('staff') || job.includes('staf') || job.includes('manager')) {
+      grp = 'Staff Kantor';
+    } else if (job.includes('admin')) {
+      grp = 'Admin';
+    } else if (job.includes('crew') || job.includes('toko')) {
+      grp = `Crew Toko (${branch})`;
+    } else if (emp.job_title) {
+      grp = `${emp.job_title} (${branch})`;
+    }
+
+    if (!groups[grp]) groups[grp] = [];
+    groups[grp].push(`${emp.name}: Libur ${emp.day_off || 'Ahad'}`);
+  }
+
+  return Object.entries(groups).map(([grpName, items]) => {
+    return `<div>• <strong style="color: var(--text-main);">${escapeHtml(grpName)}:</strong> <span style="color: var(--text-muted);">${escapeHtml(items.join(', '))}</span></div>`;
+  }).join('');
+}
+
 // --- VIEW 4: DASHBOARD OWNER & MANAGER ---
 function renderManagement() {
   return `
@@ -840,10 +868,9 @@ function renderManagementTabContent() {
             <div style="font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
               ${uiIcon('shield', '', 14)} Ketentuan Libur Tetap Sultan Arab:
             </div>
-            <span style="color: var(--text-muted);">• Staff Kantor (Fahry, Fauzi, Miftah): Libur Ahad</span><br>
-            <span style="color: var(--text-muted);">• Admin (Eka): Libur Selasa</span><br>
-            <span style="color: var(--text-muted);">• Crew Toko Bekasi (Adit: Senin, Mufti: Kamis, Kamal: Rabu)</span><br>
-            <span style="color: var(--text-muted);">• Crew Toko Cikarang (Milkan: Kamis, Refan: Selasa)</span>
+            <div id="dynamic-day-off-rules-list">
+              ${renderDynamicDayOffRules(state.employees || [])}
+            </div>
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
             <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 16px;">
@@ -1004,10 +1031,10 @@ function renderManagementRecapTab() {
           </div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-red">${uiIcon('clock', '', 20)}</div>
+          <div class="kpi-icon kpi-icon-blue">${uiIcon('calendar', '', 20)}</div>
           <div>
-            <div class="kpi-value" id="recap-kpi-terlambat">-</div>
-            <div class="kpi-label">Terlambat</div>
+            <div class="kpi-value" id="recap-kpi-libur">-</div>
+            <div class="kpi-label">Total Hari Libur</div>
           </div>
         </div>
         <div class="kpi-card">
@@ -1029,7 +1056,7 @@ function renderManagementRecapTab() {
               <th title="Kehadiran fisik di toko">Hadir</th>
               <th title="Kunjungan luar / dinas">Kunjungan</th>
               <th title="Shift Lembur 08:00 - 21:00">Lembur</th>
-              <th title="Jumlah keterlambatan">Terlambat</th>
+              <th title="Jumlah hari libur rutin & terjadwal bulan ini">Libur</th>
               <th title="Estimasi jam kerja">Jam Kerja</th>
               <th title="Uang makan Rp 10.000 / hari hadir fisik">Uang Makan</th>
               <th style="text-align: right;">Aksi</th>
@@ -1703,14 +1730,14 @@ async function loadMonthlyRecapData() {
   const kpiHadir = document.getElementById('recap-kpi-hadir');
   const kpiKunjungan = document.getElementById('recap-kpi-kunjungan');
   const kpiLembur = document.getElementById('recap-kpi-lembur');
-  const kpiTerlambat = document.getElementById('recap-kpi-terlambat');
+  const kpiLibur = document.getElementById('recap-kpi-libur');
   const kpiUangMakan = document.getElementById('recap-kpi-uangmakan');
 
   if (kpiEmp) kpiEmp.textContent = summary.totalEmployees ?? 0;
   if (kpiHadir) kpiHadir.textContent = summary.totalHadirFisik ?? 0;
   if (kpiKunjungan) kpiKunjungan.textContent = summary.totalKunjunganLuar ?? 0;
   if (kpiLembur) kpiLembur.textContent = summary.totalLembur ?? 0;
-  if (kpiTerlambat) kpiTerlambat.textContent = summary.totalTerlambat ?? 0;
+  if (kpiLibur) kpiLibur.textContent = `${summary.totalLibur ?? 0} hari`;
   if (kpiUangMakan) kpiUangMakan.textContent = `Rp ${formatNumber(summary.totalUangMakan || 0)}`;
 
   const tbody = document.getElementById('monthly-recap-table-body');
@@ -1741,8 +1768,8 @@ async function loadMonthlyRecapData() {
         <td data-label="Lembur">
           ${item.totalLembur > 0 ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:700;">${uiIcon('zap', '', 11)} ${item.totalLembur}</span>` : '<span style="color:var(--text-muted);">0</span>'}
         </td>
-        <td data-label="Terlambat">
-          ${item.totalTerlambat > 0 ? `<span class="badge badge-danger">${item.totalTerlambat}</span>` : '<span style="color:var(--status-present);">0</span>'}
+        <td data-label="Libur">
+          <span class="badge badge-secondary" style="background:#f1f5f9; color:#334155; font-weight:700;">${item.totalLibur ?? 0} hr</span>
         </td>
         <td data-label="Jam Kerja">
           ${item.totalJamKerja} j
@@ -1809,7 +1836,7 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
             <h3 class="modal-title" style="color: #fff; font-size: 1.15rem; font-weight: 700; margin: 0; display:flex; align-items:center; gap:8px;">
               ${uiIcon('search', '', 18)} Rincian Kehadiran: ${escapeHtml(item.employee_name)}
             </h3>
-            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); margin-top: 4px;">Periode: ${period.startDate || ''} s.d. ${period.endDate || ''} • Cabang: ${escapeHtml(item.branch_name || 'Semua Cabang')}</div>
+            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); margin-top: 4px;">Periode: ${period.startDate || ''} s.d. ${period.endDate || ''} • Cabang: ${escapeHtml(item.branch_name || 'Semua Cabang')} • Libur Rutin: <strong style="color: #fef08a;">${escapeHtml(item.day_off || '-')}</strong></div>
           </div>
           <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.4rem; cursor:pointer; line-height:1; padding:4px 8px;">✕</button>
         </div>
@@ -1828,8 +1855,8 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
               <div style="font-size: 1.1rem; font-weight: 700; color: #b45309;">${item.totalLembur} shift</div>
             </div>
             <div>
-              <div style="font-size: 0.75rem; color: var(--text-muted);">Terlambat</div>
-              <div style="font-size: 1.1rem; font-weight: 700; color: var(--status-late);">${item.totalTerlambat} kali</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Hari Libur</div>
+              <div style="font-size: 1.1rem; font-weight: 700; color: #4338ca;">${item.totalLibur ?? 0} hari</div>
             </div>
             <div>
               <div style="font-size: 0.75rem; color: var(--text-muted);">Uang Makan</div>
@@ -2076,15 +2103,24 @@ async function loadMasterData() {
   if (!tbody) return;
 
   if (empRes.ok && empRes.data.employees) {
+    state.employees = empRes.data.employees;
+    const dynContainer = document.getElementById('dynamic-day-off-rules-list');
+    if (dynContainer) {
+      dynContainer.innerHTML = renderDynamicDayOffRules(empRes.data.employees);
+    }
+
     tbody.innerHTML = empRes.data.employees.length === 0
       ? `<tr><td colspan="5" class="cell-empty">Belum ada karyawan.</td></tr>`
       : empRes.data.employees.map(e => `
       <tr>
         <td class="cell-title" data-label="Nama">
           <strong>${escapeHtml(e.name)}</strong> <small class="cell-code">${escapeHtml(e.employee_code)}</small>
-          <div class="cell-note" style="display:inline-flex; align-items:center; gap:4px;">
+          <div class="cell-note" style="display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px;">
             <span>WA: ${escapeHtml(e.phone || 'Belum diisi')}</span>
             <button type="button" class="btn-edit-phone-master" data-id="${e.id}" data-name="${escapeHtml(e.name)}" data-phone="${escapeHtml(e.phone || '')}" style="background:none; border:none; color:var(--primary-red); cursor:pointer; font-size:0.75rem; padding:0 2px;" title="Ubah nomor WhatsApp">✎</button>
+            <span style="color:var(--border-color, #cbd5e1);">•</span>
+            <span style="font-weight:600; color:#4f46e5;">Libur: ${escapeHtml(e.day_off || 'Ahad')}</span>
+            <button type="button" class="btn-edit-dayoff-master" data-id="${e.id}" data-name="${escapeHtml(e.name)}" data-dayoff="${escapeHtml(e.day_off || 'Ahad')}" style="background:none; border:none; color:#4f46e5; cursor:pointer; font-size:0.75rem; padding:0 2px;" title="Ubah Hari Libur Tetap">✎</button>
           </div>
         </td>
         <td data-label="Jabatan">${escapeHtml(e.job_title || 'Crew Toko')}</td>
@@ -2110,6 +2146,12 @@ async function loadMasterData() {
         openUpdateEmployeePhoneModal(btn.dataset.id, btn.dataset.name, btn.dataset.phone || '');
       });
     });
+
+    document.querySelectorAll('.btn-edit-dayoff-master').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openUpdateEmployeeDayOffModal(btn.dataset.id, btn.dataset.name, btn.dataset.dayoff || 'Ahad');
+      });
+    });
   }
 
   const btnAdd = document.getElementById('btn-add-employee-modal');
@@ -2124,6 +2166,12 @@ async function loadScheduleForms() {
   const shiftRes = await api('/api/v1/schedules/shifts');
   const emps = (empRes.ok && empRes.data.employees) || [];
   const shifts = (shiftRes.ok && shiftRes.data.shifts) || [];
+  state.employees = emps;
+
+  const dynContainer = document.getElementById('dynamic-day-off-rules-list');
+  if (dynContainer) {
+    dynContainer.innerHTML = renderDynamicDayOffRules(emps);
+  }
 
   const empSelect1 = document.getElementById('schedule-emp-select');
   const empSelect2 = document.getElementById('dayoff-emp-select');
@@ -2557,6 +2605,72 @@ function openUpdateEmployeePhoneModal(empId, empName, currentPhone) {
   });
 }
 
+function openUpdateEmployeeDayOffModal(empId, empName, currentDayOff) {
+  const modalContainer = document.getElementById('modal-container');
+  const days = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  modalContainer.innerHTML = `
+    <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('calendar', '', 18)} Ubah Hari Libur Karyawan
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#64748B; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+        <form id="form-update-emp-dayoff">
+          <div class="modal-body">
+            <p style="font-size: 0.88rem; color: var(--text-body); margin-bottom: 14px;">
+              Karyawan: <strong>${escapeHtml(empName)}</strong>
+            </p>
+            <div class="form-group">
+              <label class="form-label">Hari Libur Tetap Mingguan:</label>
+              <select id="update-emp-dayoff-select" class="form-control" required>
+                ${days.map(d => `<option value="${d}" ${d.toLowerCase() === (currentDayOff || '').toLowerCase() ? 'selected' : ''}>${d}${d === 'Ahad' ? ' (Minggu)' : ''}</option>`).join('')}
+              </select>
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Perubahan akan langsung memperbarui database, ketentuan libur tim, dan penghitungan rekap bulanan.</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+            <button type="submit" class="btn btn-primary">
+              ${uiIcon('check', '', 16)} Simpan Jadwal Libur
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('form-update-emp-dayoff').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const dayOffVal = document.getElementById('update-emp-dayoff-select').value;
+    const res = await api(`/api/v1/employees/${empId}/day-off`, {
+      method: 'PATCH',
+      body: JSON.stringify({ day_off: dayOffVal })
+    });
+    if (res.ok) {
+      showToast('Jadwal libur karyawan berhasil diperbarui!', 'success');
+      closeModal();
+      if (document.getElementById('master-employee-body')) {
+        loadMasterData();
+      }
+      const dynContainer = document.getElementById('dynamic-day-off-rules-list');
+      if (dynContainer) {
+        const empRes = await api('/api/v1/employees');
+        if (empRes.ok && empRes.data.employees) {
+          state.employees = empRes.data.employees;
+          dynContainer.innerHTML = renderDynamicDayOffRules(empRes.data.employees);
+        }
+      }
+      if (document.getElementById('table-monthly-recap')) {
+        loadMonthlyRecap();
+      }
+    } else {
+      showToast(res.data.error || 'Gagal mengubah jadwal libur.', 'error');
+    }
+  });
+}
+
 function openAddEmployeeModal() {
   const modalContainer = document.getElementById('modal-container');
   modalContainer.innerHTML = `
@@ -2593,6 +2707,19 @@ function openAddEmployeeModal() {
                 ${state.branches.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('')}
               </select>
             </div>
+            <div class="form-group">
+              <label class="form-label">Jadwal Libur Rutin:</label>
+              <select id="add-emp-dayoff" class="form-control" required>
+                <option value="Ahad">Ahad (Minggu)</option>
+                <option value="Senin">Senin</option>
+                <option value="Selasa">Selasa</option>
+                <option value="Rabu">Rabu</option>
+                <option value="Kamis">Kamis</option>
+                <option value="Jumat">Jumat</option>
+                <option value="Sabtu">Sabtu</option>
+              </select>
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Jadwal libur mingguan tetap yang otomatis tersimpan ke database & memperbarui ketentuan libur tim.</small>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
@@ -2612,10 +2739,11 @@ function openAddEmployeeModal() {
     const phone = document.getElementById('add-emp-phone').value;
     const job = document.getElementById('add-emp-job').value;
     const branchId = document.getElementById('add-emp-branch').value;
+    const dayOff = document.getElementById('add-emp-dayoff').value;
 
     const res = await api('/api/v1/employees', {
       method: 'POST',
-      body: JSON.stringify({ employee_code: code, name, phone: phone.trim(), job_title: job, branch_id: branchId, is_test_data: false })
+      body: JSON.stringify({ employee_code: code, name, phone: phone.trim(), job_title: job, branch_id: branchId, day_off: dayOff, is_test_data: false })
     });
     if (res.ok) {
       showToast('Karyawan berhasil ditambahkan!', 'success');

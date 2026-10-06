@@ -44,3 +44,14 @@ Dokumen ini mencatat seluruh keputusan arsitektur, pilihan teknis, dan pemetaan 
 | 2 | **Tombol WhatsApp Slip Gaji Staf** | **SELESAI & AKTIF** | Endpoint `GET /api/v1/payroll/staff-slips` kini mengambil nomor telepon dengan fallback `COALESCE(e.phone, p.phone)`. Setiap staf yang memiliki nomor WhatsApp langsung memiliki tombol **📲 WA** dengan tautan chat WhatsApp resmi. Jika ada staf lama yang belum memiliki nomor telepon, sistem menampilkan tombol interaktif **📲 + No WA** dan tombol edit (✎) yang memungkinkan pengelola memasukkan nomor WhatsApp staf dalam 1 klik tanpa meninggalkan halaman. |
 | 3 | **Penyesuaian Ukuran Tabel Rekap Bulanan** | **SELESAI & AKTIF** | Tabel `#table-monthly-recap` dioptimalkan dengan padding kompak (`8px 10px`), ukuran font data yang proporsional (`0.82rem`), perataan tengah pada kolom numerik (Hadir, Kunjungan, Lembur, Terlambat, Jam Kerja), serta kolom **Aksi (Tombol Rincian)** yang diberi posisi `position: sticky; right: 0;` dengan bayangan halus. Tombol "Rincian" kini langsung terlihat jelas di layar pada semua resolusi tanpa harus scroll horizontal ke samping terlebih dahulu. |
 
+---
+
+## 4. Fitur Jadwal Libur Terkoneksi Database & Pembaruan Tabel Rekap Bulanan (6 Oktober 2026)
+
+| No | Modul / Fitur | Status | Detail Implementasi & Perbaikan |
+|---|---|---|---|
+| 1 | **Kolom Jadwal Libur saat Tambah Karyawan** | **SELESAI & AKTIF** | Ditambahkan kolom `day_off VARCHAR(50) DEFAULT 'Ahad'` pada tabel `employees` via migrasi `007_add_employee_day_off.sql`. Modal "Tambah Karyawan Baru" menyertakan pilihan dropdown **Jadwal Libur Rutin** (Ahad s.d. Sabtu) yang tersimpan langsung ke PostgreSQL saat pendaftaran karyawan baru. |
+| 2 | **Penggantian Kolom Terlambat Jadi Kolom Libur** | **SELESAI & AKTIF** | Pada tabel Rekapitulasi Kehadiran Bulanan (`#table-monthly-recap`) serta kartu ringkasan KPI, kolom "Terlambat" telah dihilangkan dan diganti menjadi kolom **"Libur"** (`totalLibur`). Sistem menghitung otomatis jumlah hari libur rutin mingguan setiap staf dalam bulan bersangkutan digabung dengan izin libur manual dari tabel `days_off`. Modal rincian staf juga menampilkan ringkasan **Hari Libur** dan badge **Libur Rutin**. |
+| 3 | **Ketentuan Libur Tetap Dinamis & Terkini** | **SELESAI & AKTIF** | Ketentuan libur tetap pada tab Jadwal Shift kini di-render secara dinamis dari database (`renderDynamicDayOffRules(employees)`). Begitu karyawan baru ditambahkan atau jadwal libur diedit, ketentuan libur tim langsung otomatis terupdate secara real-time tanpa perlu hardcode manual. |
+| 4 | **Sinkronisasi Edit Hari Libur di Database** | **SELESAI & AKTIF** | Disediakan endpoint `PATCH /api/v1/employees/:id/day-off` serta modal interaktif ubah jadwal libur (✎) pada tabel Master Karyawan. Setiap perubahan hari libur langsung tersimpan di PostgreSQL dan secara otomatis mempengaruhi ketentuan libur tim serta kalkulasi rekapitulasi kehadiran bulanan. |
+

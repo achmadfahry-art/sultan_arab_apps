@@ -11,6 +11,7 @@ router.get('/', requireAuth, async (req, res) => {
     const result = await db.query(`
       SELECT e.id, e.user_id, e.employee_code, e.name, e.job_title, e.hire_date, e.active, e.is_test_data,
              COALESCE(e.phone, p.phone) as phone,
+             COALESCE(e.day_off, 'Ahad') as day_off,
              ea.branch_id, b.name as branch_name, b.code as branch_code,
              u.login_identifier,
              ARRAY_AGG(r.code) as roles
@@ -22,7 +23,7 @@ router.get('/', requireAuth, async (req, res) => {
       LEFT JOIN employee_assignments ea ON e.id = ea.employee_id AND ea.is_primary = true
       LEFT JOIN branches b ON ea.branch_id = b.id
       WHERE e.active = true
-      GROUP BY e.id, ea.branch_id, b.name, b.code, u.login_identifier, p.phone
+      GROUP BY e.id, ea.branch_id, b.name, b.code, u.login_identifier, p.phone, e.day_off
       ORDER BY e.name ASC;
     `);
 
@@ -38,7 +39,7 @@ router.get('/', requireAuth, async (req, res) => {
 
 // POST /api/v1/employees (Owner & Manager only)
 router.post('/', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
-  const { employee_code, name, job_title, hire_date, branch_id, is_test_data, phone } = req.body;
+  const { employee_code, name, job_title, hire_date, branch_id, is_test_data, phone, day_off } = req.body;
   if (!employee_code || !name) {
     return res.status(400).json({ success: false, error: 'Kode karyawan dan nama wajib diisi.' });
   }
@@ -48,6 +49,7 @@ router.post('/', requireAuth, requireRoles(['owner', 'manager']), async (req, re
     await client.query('BEGIN');
 
     const cleanPhone = phone ? phone.trim() : null;
+    const cleanDayOff = day_off ? day_off.trim() : 'Ahad';
 
     // 1. Buat akun user dan profile otomatis agar staf baru bisa login & direset password
     let newUserId = null;
@@ -92,10 +94,10 @@ router.post('/', requireAuth, requireRoles(['owner', 'manager']), async (req, re
 
     // 2. Insert ke employees
     const empRes = await client.query(
-      `INSERT INTO employees (user_id, employee_code, name, job_title, hire_date, is_test_data, phone)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO employees (user_id, employee_code, name, job_title, hire_date, is_test_data, phone, day_off)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *;`,
-      [newUserId, employee_code.trim(), name.trim(), job_title || 'Crew Toko', hire_date || new Date(), is_test_data === true, cleanPhone]
+      [newUserId, employee_code.trim(), name.trim(), job_title || 'Crew Toko', hire_date || new Date(), is_test_data === true, cleanPhone, cleanDayOff]
     );
     const newEmp = empRes.rows[0];
 
@@ -115,7 +117,7 @@ router.post('/', requireAuth, requireRoles(['owner', 'manager']), async (req, re
       action: 'CREATE_EMPLOYEE',
       entityType: 'employees',
       entityId: newEmp.id,
-      changes: { employee_code, name, branch_id, phone: cleanPhone, username },
+      changes: { employee_code, name, branch_id, phone: cleanPhone, day_off: cleanDayOff, username },
       ipAddress: req.ip
     });
 
@@ -167,6 +169,40 @@ router.patch('/:id/phone', requireAuth, requireRoles(['owner', 'manager']), asyn
   } catch (err) {
     console.error('[Update Phone Error]', err);
     return res.status(500).json({ success: false, error: 'Gagal memperbarui nomor WhatsApp: ' + err.message });
+  }
+});
+
+// PATCH /api/v1/employees/:id/day-off (Owner & Manager)
+router.patch('/:id/day-off', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
+  const { day_off } = req.body;
+  if (!day_off || !day_off.trim()) {
+    return res.status(400).json({ success: false, error: 'Jadwal hari libur wajib dipilih.' });
+  }
+  const cleanDayOff = day_off.trim();
+
+  try {
+    const empRes = await db.query(
+      `UPDATE employees SET day_off = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *;`,
+      [cleanDayOff, req.params.id]
+    );
+    if (empRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Karyawan tidak ditemukan.' });
+    }
+    const emp = empRes.rows[0];
+
+    await logAudit({
+      actorId: req.user.id,
+      action: 'UPDATE_EMPLOYEE_DAY_OFF',
+      entityType: 'employees',
+      entityId: emp.id,
+      changes: { day_off: cleanDayOff },
+      ipAddress: req.ip
+    });
+
+    return res.json({ success: true, message: 'Jadwal libur berhasil diperbarui.', employee: emp });
+  } catch (err) {
+    console.error('[Update Day Off Error]', err);
+    return res.status(500).json({ success: false, error: 'Gagal memperbarui jadwal libur: ' + err.message });
   }
 });
 

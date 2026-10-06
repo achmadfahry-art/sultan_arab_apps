@@ -22,6 +22,12 @@ try {
   });
   console.log(waTest);
 
+  console.log('--- TAHAP 4: PENGUJIAN JADWAL LIBUR & REKAPITULASI DATABASE ---');
+  const dayOffTest = execFileSync('node', [path.resolve(__dirname, 'test_day_off_feature.js')], {
+    encoding: 'utf8'
+  });
+  console.log(dayOffTest);
+
   console.log('\n>>> KESIMPULAN: SELURUH PENGUJIAN OTOMATIS LULUS 100% <<<');
 } catch (err) {
   console.error('[Pengujian Gagal]', err.message);

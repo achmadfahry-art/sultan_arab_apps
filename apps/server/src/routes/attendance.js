@@ -526,8 +526,21 @@ router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), asy
 // GET /api/v1/attendance/monthly-recap (Rekapitulasi Kehadiran Staf Per Bulan)
 router.get('/monthly-recap', requireAuth, requireRoles(['owner', 'manager', 'supervisor']), async (req, res) => {
   const now = new Date();
-  const year = parseInt(req.query.year, 10) || now.getFullYear();
-  const month = parseInt(req.query.month, 10) || (now.getMonth() + 1);
+  let year = parseInt(req.query.year, 10);
+  let month = parseInt(req.query.month, 10);
+
+  if (typeof req.query.month === 'string' && req.query.month.includes('-')) {
+    const parts = req.query.month.split('-');
+    year = parseInt(parts[0], 10);
+    month = parseInt(parts[1], 10);
+  } else if (typeof req.query.period === 'string' && req.query.period.includes('-')) {
+    const parts = req.query.period.split('-');
+    year = parseInt(parts[0], 10);
+    month = parseInt(parts[1], 10);
+  }
+
+  if (isNaN(year)) year = now.getFullYear();
+  if (isNaN(month) || month < 1 || month > 12) month = now.getMonth() + 1;
   const branch_id = req.query.branch_id || null;
 
   const monthStr = String(month).padStart(2, '0');
@@ -538,6 +551,7 @@ router.get('/monthly-recap', requireAuth, requireRoles(['owner', 'manager', 'sup
   try {
     let empQuery = `
       SELECT e.id as employee_id, e.employee_code, e.name as employee_name, e.job_title,
+             COALESCE(e.day_off, 'Ahad') as day_off,
              b.id as branch_id, b.name as branch_name
       FROM employees e
       LEFT JOIN employee_assignments ea ON e.id = ea.employee_id AND ea.is_primary = true
@@ -572,6 +586,30 @@ router.get('/monthly-recap', requireAuth, requireRoles(['owner', 'manager', 'sup
     `;
     const attRes = await db.query(attQuery, [startDate, endDate]);
     const allSessions = attRes.rows;
+
+    // Ambil data libur manual dari tabel days_off untuk periode ini
+    const daysOffRes = await db.query(
+      `SELECT employee_id, off_date FROM days_off WHERE off_date >= $1 AND off_date <= $2`,
+      [startDate, endDate]
+    );
+    const specificDaysOffByEmp = {};
+    for (const d of daysOffRes.rows) {
+      const dStr = typeof d.off_date === 'string' ? d.off_date : d.off_date.toISOString().split('T')[0];
+      if (!specificDaysOffByEmp[d.employee_id]) {
+        specificDaysOffByEmp[d.employee_id] = new Set();
+      }
+      specificDaysOffByEmp[d.employee_id].add(dStr);
+    }
+
+    const dayMap = {
+      'ahad': 0, 'minggu': 0,
+      'senin': 1,
+      'selasa': 2,
+      'rabu': 3,
+      'kamis': 4,
+      'jumat': 5, "jum'at": 5,
+      'sabtu': 6
+    };
 
     const sessionsByEmp = {};
     for (const s of allSessions) {
@@ -633,11 +671,29 @@ router.get('/monthly-recap', requireAuth, requireRoles(['owner', 'manager', 'sup
         };
       });
 
+      // Hitung total hari libur bulan ini berdasarkan jadwal libur rutin + days_off manual
+      const targetDayOfWeek = emp.day_off ? dayMap[emp.day_off.toLowerCase().trim()] : 0;
+      const empSpecificDaysOff = specificDaysOffByEmp[emp.employee_id] || new Set();
+
+      const dayOffDates = new Set();
+      for (let dayNum = 1; dayNum <= lastDay; dayNum++) {
+        const dObj = new Date(year, month - 1, dayNum);
+        const dayStr = `${year}-${monthStr}-${String(dayNum).padStart(2, '0')}`;
+        if (targetDayOfWeek !== undefined && dObj.getDay() === targetDayOfWeek) {
+          dayOffDates.add(dayStr);
+        }
+        if (empSpecificDaysOff.has(dayStr)) {
+          dayOffDates.add(dayStr);
+        }
+      }
+      const totalLibur = dayOffDates.size;
+
       const item = {
         employee_id: emp.employee_id,
         employee_code: emp.employee_code,
         employee_name: emp.employee_name,
         job_title: emp.job_title || 'Staff',
+        day_off: emp.day_off || 'Ahad',
         branch_id: emp.branch_id,
         branch_name: emp.branch_name || '-',
         total_kehadiran: totalHadirFisik + totalKunjunganLuar,
@@ -647,6 +703,7 @@ router.get('/monthly-recap', requireAuth, requireRoles(['owner', 'manager', 'sup
         total_shift_pagi: totalShiftPagi,
         total_shift_siang: totalShiftSiang,
         total_terlambat: totalTerlambat,
+        total_libur: totalLibur,
         total_uang_makan: totalUangMakan,
         total_jam_kerja: Math.round(totalMenitKerja / 60),
         daily_records: dailyRecords,
@@ -655,6 +712,7 @@ router.get('/monthly-recap', requireAuth, requireRoles(['owner', 'manager', 'sup
         totalKunjunganLuar: totalKunjunganLuar,
         totalLembur: totalLembur,
         totalTerlambat: totalTerlambat,
+        totalLibur: totalLibur,
         totalUangMakan: totalUangMakan,
         totalJamKerja: Math.round(totalMenitKerja / 60),
         dailyRecords: dailyRecords
@@ -678,6 +736,8 @@ router.get('/monthly-recap', requireAuth, requireRoles(['owner', 'manager', 'sup
       totalLembur: recap.reduce((acc, r) => acc + r.total_lembur, 0),
       grandTerlambat: recap.reduce((acc, r) => acc + r.total_terlambat, 0),
       totalTerlambat: recap.reduce((acc, r) => acc + r.total_terlambat, 0),
+      grandLibur: recap.reduce((acc, r) => acc + r.totalLibur, 0),
+      totalLibur: recap.reduce((acc, r) => acc + r.totalLibur, 0),
       grandUangMakan: recap.reduce((acc, r) => acc + r.total_uang_makan, 0),
       totalUangMakan: recap.reduce((acc, r) => acc + r.total_uang_makan, 0)
     };
