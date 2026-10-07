@@ -268,7 +268,7 @@ function renderSidebar() {
           <a href="#home">${uiIcon('home', '', 18)} <span>Beranda Karyawan</span></a>
         </li>
         <li class="sidebar-item ${state.route === '#attendance' ? 'active' : ''}">
-          <a href="#attendance">${uiIcon('camera', '', 18)} <span>Absen Masuk</span></a>
+          <a href="#attendance">${uiIcon('camera', '', 18)} <span>Absen</span></a>
         </li>
         <li class="sidebar-item ${state.route === '#history' ? 'active' : ''}">
           <a href="#history">${uiIcon('calendar', '', 18)} <span>Riwayat Absensi</span></a>
@@ -456,13 +456,9 @@ function renderHome() {
 
     <!-- Menu Cepat Navigasi -->
     <div class="quick-grid">
-      <div class="quick-card" onclick="window.location.hash='#attendance?mode=in'">
+      <div class="quick-card" onclick="window.location.hash='#attendance'">
         ${uiIcon('camera', '', 26)}
-        <div class="quick-label">Absen Masuk</div>
-      </div>
-      <div class="quick-card" onclick="window.location.hash='#attendance?mode=out'">
-        ${uiIcon('log-out', '', 26)}
-        <div class="quick-label">Absen Pulang</div>
+        <div class="quick-label">Absen</div>
       </div>
       <div class="quick-card" onclick="window.location.hash='#history'">
         ${uiIcon('calendar', '', 26)}
@@ -533,7 +529,7 @@ function renderAttendance() {
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h2 id="attendance-title-text" style="font-size: 1.3rem; font-weight: 800; color: var(--primary-red); margin: 0;">
-          ${isModeOut ? 'Absen Pulang Karyawan' : 'Absen Masuk Karyawan'}
+          ${isModeOut ? 'Absen Pulang Karyawan' : 'Absen Karyawan'}
         </h2>
         <a href="#home" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Kembali</a>
       </div>
@@ -1382,7 +1378,7 @@ function initAttendanceView() {
       if (tabOut) { tabOut.className = 'btn btn-secondary'; }
       if (sectionInOnly) sectionInOnly.style.display = 'block';
       if (bannerOut) bannerOut.style.display = 'none';
-      if (titleText) titleText.textContent = 'Absen Masuk Karyawan';
+      if (titleText) titleText.textContent = 'Absen Karyawan';
       if (btnSubmit) btnSubmit.innerHTML = `${uiIcon('check', '', 18)} KIRIM ABSEN MASUK SEKARANG`;
       window.history.replaceState(null, '', '#attendance?mode=in');
     }
