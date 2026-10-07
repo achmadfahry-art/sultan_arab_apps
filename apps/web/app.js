@@ -365,19 +365,59 @@ function renderMainContent() {
 function renderHome() {
   const todayEvents = (state.todaySession && state.todaySession.events) || [];
   const checkInEvent = todayEvents.find(e => e.event_type === 'check_in');
+  const checkOutEvent = todayEvents.find(e => e.event_type === 'check_out');
   const isKunjunganLuar = state.todaySession && state.todaySession.attendance_type === 'kunjungan_luar';
 
   let statusBadge = `<span class="badge badge-warning">${uiIcon('alert-circle', '', 13)} Belum Absen Masuk Hari Ini</span>`;
-  let buttonActionText = 'ABSEN MASUK SEKARANG';
+  let heroButtonsHtml = '';
 
   if (checkInEvent) {
     const inTime = new Date(checkInEvent.server_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    if (isKunjunganLuar) {
-      statusBadge = `<span class="badge badge-info">${uiIcon('car', '', 13)} Kunjungan Luar (${inTime}) • Tanpa Uang Makan</span>`;
+    const outTime = checkOutEvent ? new Date(checkOutEvent.server_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null;
+
+    if (checkOutEvent) {
+      statusBadge = `<span class="badge badge-success">${uiIcon('check-circle', '', 13)} Hadir (${inTime}) • Pulang (${outTime})</span>`;
+      heroButtonsHtml = `
+        <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+          <a href="#attendance?mode=out" class="btn-absen-hero" style="background: linear-gradient(135deg, #059669, #10B981);">
+            ${uiIcon('check-circle', '', 20)}
+            <span>SUDAH ABSEN PULANG (${outTime}) — ABSEN PULANG LAGI?</span>
+          </a>
+          <div style="text-align:center;">
+            <a href="#attendance?mode=in" style="font-size:0.82rem; color:rgba(255,255,255,0.9); text-decoration:underline;">Absen Masuk Kembali / Koreksi</a>
+          </div>
+        </div>
+      `;
     } else {
-      statusBadge = `<span class="badge badge-success">${uiIcon('check-circle', '', 13)} Sudah Hadir (${inTime}) • Uang Makan Rp10.000</span>`;
+      if (isKunjunganLuar) {
+        statusBadge = `<span class="badge badge-info">${uiIcon('car', '', 13)} Kunjungan Luar (${inTime}) • Belum Pulang</span>`;
+      } else {
+        statusBadge = `<span class="badge badge-success">${uiIcon('check-circle', '', 13)} Sudah Hadir (${inTime}) • Belum Pulang</span>`;
+      }
+      heroButtonsHtml = `
+        <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+          <a href="#attendance?mode=out" class="btn-absen-hero" style="background: linear-gradient(135deg, #1E3A8A, #2563EB); box-shadow: 0 4px 14px rgba(37,99,235,0.4);">
+            ${uiIcon('log-out', '', 20)}
+            <span>ABSEN PULANG SEKARANG (OPSIONAL)</span>
+          </a>
+          <div style="text-align:center;">
+            <a href="#attendance?mode=in" style="font-size:0.82rem; color:rgba(255,255,255,0.9); text-decoration:underline;">Absen Masuk Lagi / Koreksi</a>
+          </div>
+        </div>
+      `;
     }
-    buttonActionText = 'ABSEN LAGI / KOREKSI';
+  } else {
+    heroButtonsHtml = `
+      <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+        <a href="#attendance?mode=in" class="btn-absen-hero">
+          ${uiIcon('camera', '', 20)}
+          <span>ABSEN MASUK SEKARANG</span>
+        </a>
+        <div style="text-align:center;">
+          <a href="#attendance?mode=out" style="font-size:0.82rem; color:rgba(255,255,255,0.9); text-decoration:underline;">Langsung Absen Pulang</a>
+        </div>
+      </div>
+    `;
   }
 
   const branchName = state.user.assignedBranchName || (state.branches[0] ? state.branches[0].name : 'Head Quarter Bekasi');
@@ -411,17 +451,18 @@ function renderHome() {
 
     <!-- Tombol Utama Absensi -->
     <div class="action-box-main">
-      <a href="#attendance" class="btn-absen-hero">
-        ${uiIcon('camera', '', 20)}
-        <span>${buttonActionText}</span>
-      </a>
+      ${heroButtonsHtml}
     </div>
 
     <!-- Menu Cepat Navigasi -->
     <div class="quick-grid">
-      <div class="quick-card" onclick="window.location.hash='#attendance'">
+      <div class="quick-card" onclick="window.location.hash='#attendance?mode=in'">
         ${uiIcon('camera', '', 26)}
         <div class="quick-label">Absen Masuk</div>
+      </div>
+      <div class="quick-card" onclick="window.location.hash='#attendance?mode=out'">
+        ${uiIcon('log-out', '', 26)}
+        <div class="quick-label">Absen Pulang</div>
       </div>
       <div class="quick-card" onclick="window.location.hash='#history'">
         ${uiIcon('calendar', '', 26)}
@@ -474,57 +515,80 @@ function renderHome() {
 
 // --- VIEW 3: PROSES ABSENSI (CAMERA & GPS & SHIFT SELECTOR) ---
 function renderAttendance() {
+  const isModeOut = window.location.hash.includes('mode=out');
+  state.attendanceMode = isModeOut ? 'out' : 'in';
   const targetBranch = state.branches.find(b => b.id === state.user.assignedBranchId) || state.branches[0] || {};
 
   return `
     <div class="attendance-process-card">
+      <!-- Navigasi Tab Mode: Absen Masuk vs Absen Pulang -->
+      <div style="display: flex; gap: 8px; margin-bottom: 16px; background: #F1F5F9; padding: 4px; border-radius: var(--radius-md);">
+        <button type="button" id="tab-mode-in" class="btn ${isModeOut ? 'btn-secondary' : 'btn-primary'}" style="flex: 1; padding: 10px; font-weight: 700; border: none; font-size: 0.85rem;">
+          ${uiIcon('camera', '', 16)} 1. Absen Masuk
+        </button>
+        <button type="button" id="tab-mode-out" class="btn ${isModeOut ? 'btn-primary' : 'btn-secondary'}" style="flex: 1; padding: 10px; font-weight: 700; border: none; font-size: 0.85rem;">
+          ${uiIcon('check-circle', '', 16)} 2. Absen Pulang
+        </button>
+      </div>
+
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h2 style="font-size: 1.3rem; font-weight: 800; color: var(--primary-red);">
-          Absen Masuk Karyawan
+        <h2 id="attendance-title-text" style="font-size: 1.3rem; font-weight: 800; color: var(--primary-red); margin: 0;">
+          ${isModeOut ? 'Absen Pulang Karyawan' : 'Absen Masuk Karyawan'}
         </h2>
         <a href="#home" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Kembali</a>
       </div>
 
-      <!-- Tipe Absensi: Hadir Toko vs Kunjungan Luar (Q05) -->
-      <div style="background: var(--bg-main); border: 1px solid var(--border-color); padding: 14px; border-radius: var(--radius-md); margin-bottom: 18px;">
-        <label class="form-label" style="font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Pilih Jenis Kehadiran Hari Ini (Q05):</label>
-        <div style="display: flex; gap: 10px;">
-          <button type="button" id="btn-type-hadir" class="btn btn-primary" style="flex: 1; padding: 10px 12px; font-size: 0.85rem; flex-direction: column; gap: 2px;">
-            <div style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
-              ${uiIcon('building', '', 16)} Hadir di Toko / Kantor
-            </div>
-            <small style="font-weight: 500; font-size: 0.74rem; opacity: 0.9;">(Dapat Uang Makan Rp10.000)</small>
-          </button>
-          <button type="button" id="btn-type-kunjungan" class="btn btn-secondary" style="flex: 1; padding: 10px 12px; font-size: 0.85rem; flex-direction: column; gap: 2px;">
-            <div style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
-              ${uiIcon('car', '', 16)} Kunjungan Luar
-            </div>
-            <small style="font-weight: 500; font-size: 0.74rem; color: var(--text-muted);">(Tanpa Uang Makan)</small>
-          </button>
+      <!-- Banner Info Absen Pulang (Hanya Kamera & GPS) -->
+      <div id="banner-absen-pulang" style="display: ${isModeOut ? 'flex' : 'none'}; background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; padding: 12px 14px; border-radius: var(--radius-sm); font-size: 0.83rem; margin-bottom: 16px; align-items: flex-start; gap: 8px;">
+        ${uiIcon('shield', '', 18)}
+        <div>
+          <strong>Ketentuan Absen Pulang:</strong> Hanya kamera dan GPS yang aktif. Shift kerja dan jenis kehadiran otomatis mengikuti sesi kerja Anda hari ini.
         </div>
       </div>
 
-      <!-- Pemilihan Shift Sendiri (Q02) -->
-      <div class="form-group">
-        <label class="form-label" for="attendance-shift-select">Pilih Shift Kerja Anda (Toleransi 15 Menit):</label>
-        <select id="attendance-shift-select" class="form-control">
-          ${renderShiftOptions(targetBranch.id)}
-        </select>
+      <!-- Form Khusus Absen Masuk (Shift, Tipe Hadir, Cabang) - Sembunyi saat Mode Absen Pulang -->
+      <div id="section-absen-masuk-only" style="display: ${isModeOut ? 'none' : 'block'};">
+        <!-- Tipe Absensi: Hadir Toko vs Kunjungan Luar (Q05) -->
+        <div style="background: var(--bg-main); border: 1px solid var(--border-color); padding: 14px; border-radius: var(--radius-md); margin-bottom: 18px;">
+          <label class="form-label" style="font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Pilih Jenis Kehadiran Hari Ini (Q05):</label>
+          <div style="display: flex; gap: 10px;">
+            <button type="button" id="btn-type-hadir" class="btn btn-primary" style="flex: 1; padding: 10px 12px; font-size: 0.85rem; flex-direction: column; gap: 2px;">
+              <div style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
+                ${uiIcon('building', '', 16)} Hadir di Toko / Kantor
+              </div>
+              <small style="font-weight: 500; font-size: 0.74rem; opacity: 0.9;">(Dapat Uang Makan Rp10.000)</small>
+            </button>
+            <button type="button" id="btn-type-kunjungan" class="btn btn-secondary" style="flex: 1; padding: 10px 12px; font-size: 0.85rem; flex-direction: column; gap: 2px;">
+              <div style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
+                ${uiIcon('car', '', 16)} Kunjungan Luar
+              </div>
+              <small style="font-weight: 500; font-size: 0.74rem; color: var(--text-muted);">(Tanpa Uang Makan)</small>
+            </button>
+          </div>
+        </div>
+
+        <!-- Pemilihan Shift Sendiri (Q02) -->
+        <div class="form-group">
+          <label class="form-label" for="attendance-shift-select">Pilih Shift Kerja Anda (Toleransi 15 Menit):</label>
+          <select id="attendance-shift-select" class="form-control">
+            ${renderShiftOptions(targetBranch.id)}
+          </select>
+        </div>
+
+        <!-- Pemilihan Cabang -->
+        <div class="form-group" id="group-branch-select">
+          <label class="form-label" for="attendance-branch-select">Cabang Penugasan:</label>
+          <select id="attendance-branch-select" class="form-control">
+            ${state.branches.map(b => `
+              <option value="${b.id}" ${b.id === targetBranch.id ? 'selected' : ''}>
+                ${escapeHtml(b.name)} (Radius: ${b.radius_m || 150}m)
+              </option>
+            `).join('')}
+          </select>
+        </div>
       </div>
 
-      <!-- Pemilihan Cabang -->
-      <div class="form-group" id="group-branch-select">
-        <label class="form-label" for="attendance-branch-select">Cabang Penugasan:</label>
-        <select id="attendance-branch-select" class="form-control">
-          ${state.branches.map(b => `
-            <option value="${b.id}" ${b.id === targetBranch.id ? 'selected' : ''}>
-              ${escapeHtml(b.name)} (Radius: ${b.radius_m || 150}m)
-            </option>
-          `).join('')}
-        </select>
-      </div>
-
-      <!-- Kamera Preview & Capture (Q03: Foto Wajah atau Lokasi Toko) -->
+      <!-- Kamera Preview & Capture (Aktif untuk Absen Masuk & Absen Pulang) -->
       <div class="camera-container" id="camera-box">
         <video id="camera-video" class="camera-video" autoplay playsinline muted></video>
         <img id="camera-photo-preview" class="camera-photo-preview" alt="Pratinjau Foto Bukti">
@@ -581,7 +645,7 @@ function renderAttendance() {
         💡 <strong>Tips Kamera HP:</strong> Preview kamera langsung hanya tersedia melalui alamat <strong>HTTPS</strong>. Gunakan tombol kamera di atas untuk memotret langsung.
       </div>
 
-      <!-- GPS Status Box -->
+      <!-- GPS Status Box (Aktif untuk Absen Masuk & Absen Pulang) -->
       <div class="location-status-box" id="gps-status-box">
         <div class="location-icon" style="color: var(--primary-red);">${uiIcon('map-pin', '', 22)}</div>
         <div style="flex: 1;">
@@ -600,7 +664,7 @@ function renderAttendance() {
       </div>
 
       <button type="button" id="btn-submit-attendance" class="btn btn-primary btn-block btn-large">
-        ${uiIcon('check', '', 18)} KIRIM ABSEN MASUK SEKARANG
+        ${isModeOut ? `${uiIcon('check', '', 18)} KIRIM ABSEN PULANG SEKARANG` : `${uiIcon('check', '', 18)} KIRIM ABSEN MASUK SEKARANG`}
       </button>
     </div>
   `;
@@ -727,6 +791,7 @@ function renderManagementTabContent() {
                   <th>Cabang</th>
                   <th>Shift</th>
                   <th>Jam Masuk</th>
+                  <th>Jam Pulang</th>
                   <th>Tipe Hadir</th>
                   <th>Uang Makan</th>
                   <th>Lokasi GPS</th>
@@ -734,7 +799,7 @@ function renderManagementTabContent() {
                 </tr>
               </thead>
               <tbody id="monitoring-table-body">
-                <tr><td colspan="8" class="cell-empty">Memuat monitoring...</td></tr>
+                <tr><td colspan="9" class="cell-empty">Memuat monitoring...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1101,7 +1166,7 @@ function renderHistory() {
                   <strong style="display:flex; align-items:center; gap:5px;">
                     ${isKunjungan ? `${uiIcon('car', '', 15)} Kunjungan Luar` : `${uiIcon('building', '', 15)} Hadir Toko`}
                   </strong>
-                  <span class="history-time">${formatTime(h.check_in_time)}</span>
+                  <span class="history-time">Masuk: ${formatTime(h.check_in_time)}${h.check_out_time ? ` • Pulang: ${formatTime(h.check_out_time)}` : ''}</span>
                 </div>
                 <div class="history-sub">${escapeHtml(h.branch_name || '-')}</div>
                 <div class="history-badges">
@@ -1123,6 +1188,7 @@ function renderHistory() {
               <th>Cabang</th>
               <th>Tipe</th>
               <th>Jam Masuk</th>
+              <th>Jam Pulang</th>
               <th>Uang Makan</th>
               <th>Status</th>
             </tr>
@@ -1141,6 +1207,7 @@ function renderHistory() {
                     </span>
                   </td>
                   <td>${formatTime(h.check_in_time)}</td>
+                  <td>${h.check_out_time ? `<span class="badge badge-success" style="font-weight:600;">${formatTime(h.check_out_time)}</span>` : `<span style="color:var(--text-muted);">-</span>`}</td>
                   <td>${mealBadge}</td>
                   <td><span class="badge ${statusBadgeClass(h.status)}">${statusLabel(h.status)}</span></td>
                 </tr>
@@ -1293,6 +1360,36 @@ function initAttendanceView() {
 
   state.capturedPhotoBase64 = null;
   state.attendanceType = 'hadir';
+
+  const tabIn = document.getElementById('tab-mode-in');
+  const tabOut = document.getElementById('tab-mode-out');
+  const sectionInOnly = document.getElementById('section-absen-masuk-only');
+  const bannerOut = document.getElementById('banner-absen-pulang');
+  const titleText = document.getElementById('attendance-title-text');
+
+  const setAttendanceMode = (mode) => {
+    state.attendanceMode = mode;
+    if (mode === 'out') {
+      if (tabIn) { tabIn.className = 'btn btn-secondary'; }
+      if (tabOut) { tabOut.className = 'btn btn-primary'; }
+      if (sectionInOnly) sectionInOnly.style.display = 'none';
+      if (bannerOut) bannerOut.style.display = 'flex';
+      if (titleText) titleText.textContent = 'Absen Pulang Karyawan';
+      if (btnSubmit) btnSubmit.innerHTML = `${uiIcon('check', '', 18)} KIRIM ABSEN PULANG SEKARANG`;
+      window.history.replaceState(null, '', '#attendance?mode=out');
+    } else {
+      if (tabIn) { tabIn.className = 'btn btn-primary'; }
+      if (tabOut) { tabOut.className = 'btn btn-secondary'; }
+      if (sectionInOnly) sectionInOnly.style.display = 'block';
+      if (bannerOut) bannerOut.style.display = 'none';
+      if (titleText) titleText.textContent = 'Absen Masuk Karyawan';
+      if (btnSubmit) btnSubmit.innerHTML = `${uiIcon('check', '', 18)} KIRIM ABSEN MASUK SEKARANG`;
+      window.history.replaceState(null, '', '#attendance?mode=in');
+    }
+  };
+
+  if (tabIn) tabIn.addEventListener('click', () => setAttendanceMode('in'));
+  if (tabOut) tabOut.addEventListener('click', () => setAttendanceMode('out'));
 
   // Toggle Type Kehadiran (Q05)
   if (btnTypeHadir && btnTypeKunjungan) {
@@ -1545,17 +1642,18 @@ function initAttendanceView() {
   // Submit
   if (btnSubmit) {
     btnSubmit.addEventListener('click', async () => {
-      const branchId = branchSelect ? branchSelect.value : null;
-      const shiftId = shiftSelect ? shiftSelect.value : null;
-      const idempotencyKey = `ATT-${state.user.id}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const isOut = state.attendanceMode === 'out';
+      const branchId = isOut ? null : (branchSelect ? branchSelect.value : null);
+      const shiftId = isOut ? null : (shiftSelect ? shiftSelect.value : null);
+      const idempotencyKey = `${isOut ? 'OUT' : 'IN'}-${state.user.id}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
       btnSubmit.disabled = true;
-      btnSubmit.textContent = 'MENGIRIM ABSEN KE SERVER...';
+      btnSubmit.textContent = isOut ? 'MENGIRIM ABSEN PULANG...' : 'MENGIRIM ABSEN KE SERVER...';
 
       const payload = {
         branch_id: branchId,
         shift_id: shiftId,
-        attendance_type: state.attendanceType, // 'hadir' atau 'kunjungan_luar'
+        attendance_type: isOut ? null : state.attendanceType, // 'hadir' atau 'kunjungan_luar'
         latitude: state.currentGps.lat,
         longitude: state.currentGps.lon,
         accuracy_m: state.currentGps.accuracy,
@@ -1564,16 +1662,19 @@ function initAttendanceView() {
         idempotency_key: idempotencyKey
       };
 
-      const res = await api('/api/v1/attendance/check-in', {
+      const endpoint = isOut ? '/api/v1/attendance/check-out' : '/api/v1/attendance/check-in';
+      const res = await api(endpoint, {
         method: 'POST',
         body: JSON.stringify(payload)
       });
 
       btnSubmit.disabled = false;
-      btnSubmit.textContent = 'KIRIM ABSEN MASUK SEKARANG';
+      btnSubmit.innerHTML = isOut
+        ? `${uiIcon('check', '', 18)} KIRIM ABSEN PULANG SEKARANG`
+        : `${uiIcon('check', '', 18)} KIRIM ABSEN MASUK SEKARANG`;
 
       if (res.ok && res.data.success) {
-        showToast(res.data.message || 'Absen berhasil dicatat!', 'success');
+        showToast(res.data.message || (isOut ? 'Absen pulang berhasil dicatat!' : 'Absen berhasil dicatat!'), 'success');
         await loadInitialData();
         state.route = '#home';
         window.location.hash = '#home';
@@ -1639,12 +1740,13 @@ async function loadMonitoringData() {
     if (!tbody) return;
 
     if (res.data.records.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" class="cell-empty">Belum ada data kehadiran hari ini.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" class="cell-empty">Belum ada data kehadiran hari ini.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = res.data.records.map(r => {
       const inTime = r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+      const outTime = r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
       const isKunjungan = r.attendance_type === 'kunjungan_luar';
       const mealText = isKunjungan
         ? `<span class="badge badge-warning">Rp0 (Kunjungan)</span>`
@@ -1656,21 +1758,33 @@ async function loadMonitoringData() {
             ? `<span class="badge badge-success">Sesuai Area</span>`
             : (r.check_in_time ? `<span class="badge badge-danger">Luar Radius</span>` : `-`));
 
+      const outBadge = r.check_out_time
+        ? `<span class="badge badge-success" style="font-weight:700;">${outTime}</span>`
+        : (r.check_in_time ? `<span class="badge badge-warning">Belum Pulang</span>` : `-`);
+
       return `
         <tr>
           <td class="cell-title" data-label="Nama"><strong>${escapeHtml(r.employee_name)}</strong> <small class="cell-code">${escapeHtml(r.employee_code)}</small></td>
           <td data-label="Cabang">${escapeHtml(r.branch_name || '-')}</td>
-          <td data-label="Shift">${escapeHtml(r.shift_name || 'Non-Shift')}</td>
+          <td data-label="Shift"><span class="badge badge-info" style="font-weight:600;">${escapeHtml(r.shift_name || 'Non-Shift')}</span></td>
           <td data-label="Jam Masuk">${inTime}</td>
+          <td data-label="Jam Pulang">${outBadge}</td>
           <td data-label="Tipe Hadir">${isKunjungan ? `<span style="display:inline-flex; align-items:center; gap:4px;">${uiIcon('car', '', 14)} Kunjungan Luar</span>` : (r.check_in_time ? `<span style="display:inline-flex; align-items:center; gap:4px;">${uiIcon('building', '', 14)} Hadir Toko</span>` : '<span style="color:var(--text-muted);">Belum Absen</span>')}</td>
           <td data-label="Uang Makan">${mealText}</td>
           <td data-label="Lokasi GPS">${locBadge}</td>
-          <td class="${r.session_id ? 'cell-actions' : 'cell-hide-mobile'}" data-label="Aksi">
-            ${r.session_id ? `
-              <button class="btn btn-secondary btn-adjust btn-sm" data-session="${r.session_id}">
-                ${uiIcon('edit', '', 14)} Koreksi
-              </button>
-            ` : '-'}
+          <td class="cell-actions" data-label="Aksi">
+            <button class="btn btn-secondary btn-adjust btn-sm"
+              data-session="${r.session_id || ''}"
+              data-emp-id="${r.employee_id}"
+              data-emp-name="${escapeHtml(r.employee_name)}"
+              data-emp-code="${escapeHtml(r.employee_code)}"
+              data-branch-id="${r.branch_id || ''}"
+              data-shift-id="${r.shift_id || ''}"
+              data-status="${r.session_status || 'present'}"
+              data-date="${r.work_date || res.data.date || ''}"
+              title="Koreksi jadwal shift & absensi staf">
+              ${uiIcon('edit', '', 14)} Koreksi
+            </button>
           </td>
         </tr>
       `;
@@ -1678,7 +1792,16 @@ async function loadMonitoringData() {
 
     document.querySelectorAll('.btn-adjust').forEach(btn => {
       btn.addEventListener('click', () => {
-        openAdjustmentModal(btn.dataset.session);
+        openAdjustmentModal({
+          sessionId: btn.dataset.session || null,
+          empId: btn.dataset.empId,
+          empName: btn.dataset.empName,
+          empCode: btn.dataset.empCode,
+          branchId: btn.dataset.branchId,
+          shiftId: btn.dataset.shiftId,
+          status: btn.dataset.status,
+          date: btn.dataset.date
+        });
       });
     });
   }
@@ -2419,37 +2542,71 @@ async function openUploadSlipPdfModal(periods = [], preselectedEmpId = null) {
   });
 }
 
-function openAdjustmentModal(sessionId) {
+function openAdjustmentModal(param) {
   const modalContainer = document.getElementById('modal-container');
+  const info = typeof param === 'object' && param !== null
+    ? param
+    : { sessionId: param, empName: 'Karyawan', shiftId: '', status: 'present' };
+
+  const targetBranchId = info.branchId || null;
+  const currentShiftId = info.shiftId || '';
+
+  // Render shift options (deduplikasi & filter cabang yang relevan)
+  const seenShifts = new Set();
+  const shiftOptions = (state.shifts || []).filter(s => {
+    const isNonShift = /^non-shift/i.test(s.name);
+    if (!isNonShift && targetBranchId && s.branch_id && s.branch_id !== targetBranchId) return false;
+    const key = `${s.name}|${s.start_time}|${s.end_time}`;
+    if (seenShifts.has(key)) return false;
+    seenShifts.add(key);
+    return true;
+  }).map(s => `
+    <option value="${s.id}" ${s.id === currentShiftId ? 'selected' : ''}>
+      ${escapeHtml(s.name)} (${s.start_time.slice(0, 5)} - ${s.end_time.slice(0, 5)})
+    </option>
+  `).join('');
+
   modalContainer.innerHTML = `
-    <div class="modal-overlay active">
+    <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
       <div class="modal-card">
         <div class="modal-header">
-          <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-            ${uiIcon('edit', '', 18)} Koreksi Absensi Karyawan
-          </h3>
+          <div>
+            <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0;">
+              ${uiIcon('edit', '', 18)} Koreksi Jadwal Shift & Absensi
+            </h3>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
+              Staf: <strong>${escapeHtml(info.empName || 'Karyawan')}</strong> ${info.empCode ? `(${escapeHtml(info.empCode)})` : ''}
+            </div>
+          </div>
           <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#64748B; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
         </div>
         <form id="form-adjustment">
           <div class="modal-body">
             <div class="form-group">
-              <label class="form-label">Status Baru:</label>
+              <label class="form-label" for="adj-shift">Koreksi Jadwal Shift Kerja:</label>
+              <select id="adj-shift" class="form-control" required>
+                ${shiftOptions || '<option value="">Pilih shift...</option>'}
+              </select>
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Perubahan jadwal shift akan langsung tersimpan ke database & memutakhirkan rekap monitoring.</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="adj-status">Status Kehadiran:</label>
               <select id="adj-status" class="form-control">
-                <option value="present">Hadir (Present)</option>
-                <option value="late">Terlambat (Late)</option>
-                <option value="incomplete">Tidak Lengkap</option>
-                <option value="off">Libur (Off)</option>
+                <option value="present" ${info.status === 'present' ? 'selected' : ''}>Hadir (Present)</option>
+                <option value="late" ${info.status === 'late' ? 'selected' : ''}>Terlambat (Late)</option>
+                <option value="incomplete" ${info.status === 'incomplete' ? 'selected' : ''}>Tidak Lengkap</option>
+                <option value="off" ${info.status === 'off' ? 'selected' : ''}>Libur (Off)</option>
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">Alasan Koreksi (Audit Log):</label>
-              <textarea id="adj-reason" class="form-control" rows="3" placeholder="Contoh: Karyawan kendala sinyal saat kirim bukti foto..." required></textarea>
+              <label class="form-label" for="adj-reason">Alasan Koreksi (Wajib untuk Audit Log):</label>
+              <textarea id="adj-reason" class="form-control" rows="3" placeholder="Contoh: Salah pilih shift pagi seharusnya shift siang, atau instruksi lembur mendadak..." required></textarea>
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
             <button type="submit" class="btn btn-primary">
-              ${uiIcon('check', '', 16)} Simpan Koreksi
+              ${uiIcon('check', '', 16)} Simpan Koreksi Shift & Absensi
             </button>
           </div>
         </form>
@@ -2459,18 +2616,30 @@ function openAdjustmentModal(sessionId) {
 
   document.getElementById('form-adjustment').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const reason = document.getElementById('adj-reason').value;
+    const reason = document.getElementById('adj-reason').value.trim();
     const status = document.getElementById('adj-status').value;
+    const shiftId = document.getElementById('adj-shift').value;
+
+    const payload = {
+      session_id: info.sessionId || null,
+      employee_id: info.empId || null,
+      work_date: info.date || null,
+      branch_id: info.branchId || null,
+      new_shift_id: shiftId || null,
+      new_status: status,
+      reason
+    };
+
     const res = await api('/api/v1/attendance/adjustments', {
       method: 'POST',
-      body: JSON.stringify({ session_id: sessionId, reason, new_status: status })
+      body: JSON.stringify(payload)
     });
     if (res.ok) {
-      showToast('Koreksi absensi berhasil disimpan!', 'success');
+      showToast('Koreksi jadwal shift & absensi berhasil disimpan!', 'success');
       closeModal();
       loadMonitoringData();
     } else {
-      showToast(res.data.error || 'Gagal koreksi.', 'error');
+      showToast(res.data.error || 'Gagal menyimpan koreksi.', 'error');
     }
   });
 }

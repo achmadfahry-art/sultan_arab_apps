@@ -28,6 +28,12 @@ try {
   });
   console.log(dayOffTest);
 
+  console.log('--- TAHAP 5: PENGUJIAN KOREKSI SHIFT MONITORING & ABSEN PULANG (KAMERA & GPS) ---');
+  const shiftCorrectionCheckoutTest = execFileSync('node', [path.resolve(__dirname, 'test_shift_correction_and_checkout.js')], {
+    encoding: 'utf8'
+  });
+  console.log(shiftCorrectionCheckoutTest);
+
   console.log('\n>>> KESIMPULAN: SELURUH PENGUJIAN OTOMATIS LULUS 100% <<<');
 } catch (err) {
   console.error('[Pengujian Gagal]', err.message);

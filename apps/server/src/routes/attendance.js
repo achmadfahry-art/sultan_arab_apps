@@ -275,12 +275,31 @@ router.post('/check-out', requireAuth, async (req, res) => {
   }
 
   const workDate = new Date().toISOString().split('T')[0];
-  const targetBranchId = branch_id || req.user.assignedBranchId;
 
   const sessionRes = await db.query(
-    `SELECT id, status FROM attendance_sessions WHERE employee_id = $1 AND work_date = $2`,
+    `SELECT id, branch_id, status FROM attendance_sessions WHERE employee_id = $1 AND work_date = $2`,
     [employeeId, workDate]
   );
+
+  let targetBranchId = branch_id;
+  if (!targetBranchId && sessionRes.rows.length > 0 && sessionRes.rows[0].branch_id) {
+    targetBranchId = sessionRes.rows[0].branch_id;
+  }
+  if (!targetBranchId && req.user.assignedBranchId) {
+    targetBranchId = req.user.assignedBranchId;
+  }
+  if (!targetBranchId) {
+    const assignRes = await db.query(
+      `SELECT branch_id FROM employee_assignments WHERE employee_id = $1 AND is_primary = true LIMIT 1`,
+      [employeeId]
+    );
+    if (assignRes.rows.length > 0) {
+      targetBranchId = assignRes.rows[0].branch_id;
+    } else {
+      const firstBranch = await db.query(`SELECT id FROM branches ORDER BY name ASC LIMIT 1`);
+      if (firstBranch.rows.length > 0) targetBranchId = firstBranch.rows[0].id;
+    }
+  }
 
   let sessionId;
   if (sessionRes.rows.length === 0) {
@@ -419,8 +438,11 @@ router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'superv
     let query = `
       SELECT s.id as session_id, s.work_date, s.status as session_status, s.attendance_type, s.is_meal_allowance_eligible,
              e.id as employee_id, e.employee_code, e.name as employee_name, e.job_title,
-             b.id as branch_id, b.name as branch_name,
-             sh.name as shift_name,
+             COALESCE(s.branch_id, b.id) as branch_id, b.name as branch_name,
+             COALESCE(s.shift_id, ws.shift_id) as shift_id,
+             COALESCE(sh.name, wsh.name, 'Non-Shift') as shift_name,
+             COALESCE(sh.start_time, wsh.start_time) as shift_start,
+             COALESCE(sh.end_time, wsh.end_time) as shift_end,
              MIN(CASE WHEN ev.event_type = 'check_in' THEN ev.server_time END) as check_in_time,
              MAX(CASE WHEN ev.event_type = 'check_out' THEN ev.server_time END) as check_out_time,
              BOOL_AND(ev.is_within_radius) as is_location_valid
@@ -429,6 +451,8 @@ router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'superv
       LEFT JOIN branches b ON ea.branch_id = b.id
       LEFT JOIN attendance_sessions s ON e.id = s.employee_id AND s.work_date = $1
       LEFT JOIN shifts sh ON s.shift_id = sh.id
+      LEFT JOIN work_schedules ws ON e.id = ws.employee_id AND ws.work_date = $1
+      LEFT JOIN shifts wsh ON ws.shift_id = wsh.id
       LEFT JOIN attendance_events ev ON s.id = ev.session_id
       WHERE e.active = true
     `;
@@ -443,7 +467,7 @@ router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'superv
     }
 
     query += `
-      GROUP BY s.id, e.id, b.id, sh.name
+      GROUP BY s.id, e.id, b.id, s.branch_id, s.shift_id, ws.shift_id, sh.name, wsh.name, sh.start_time, wsh.start_time, sh.end_time, wsh.end_time
       ORDER BY b.name ASC, e.name ASC;
     `;
 
@@ -451,6 +475,7 @@ router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'superv
 
     const totalKaryawan = result.rows.length;
     const hadir = result.rows.filter(r => r.check_in_time !== null).length;
+    const pulang = result.rows.filter(r => r.check_out_time !== null).length;
     const kunjunganLuar = result.rows.filter(r => r.attendance_type === 'kunjungan_luar').length;
     const belumAbsen = totalKaryawan - hadir;
 
@@ -460,6 +485,7 @@ router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'superv
       summary: {
         totalKaryawan,
         hadir,
+        pulang,
         kunjunganLuar,
         belumAbsen
       },
@@ -473,51 +499,129 @@ router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'superv
 
 // POST /api/v1/attendance/adjustments (Owner & Manager only sesuai Q07)
 router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
-  const { session_id, reason, new_status } = req.body;
-  if (!session_id || !reason) {
-    return res.status(400).json({ success: false, error: 'Session ID dan alasan koreksi wajib diisi.' });
+  const { session_id, employee_id, work_date, branch_id, new_shift_id, new_status, reason } = req.body;
+  if (!reason) {
+    return res.status(400).json({ success: false, error: 'Alasan koreksi wajib diisi untuk catatan audit.' });
+  }
+  if (!session_id && (!employee_id || !work_date)) {
+    return res.status(400).json({ success: false, error: 'Session ID atau Karyawan dan Tanggal wajib disertakan.' });
   }
 
   const client = await db.getClient();
   try {
     await client.query('BEGIN');
 
-    const sessionRes = await client.query(`SELECT * FROM attendance_sessions WHERE id = $1`, [session_id]);
-    if (sessionRes.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ success: false, error: 'Sesi absensi tidak ditemukan.' });
+    let activeSessionId = session_id;
+    let beforeData = {};
+    let empId = employee_id;
+    let targetDate = work_date || new Date().toISOString().split('T')[0];
+    let targetBranchId = branch_id;
+    let afterData = {};
+
+    if (activeSessionId) {
+      const sessionRes = await client.query(`SELECT * FROM attendance_sessions WHERE id = $1`, [activeSessionId]);
+      if (sessionRes.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ success: false, error: 'Sesi absensi tidak ditemukan.' });
+      }
+      beforeData = sessionRes.rows[0];
+      empId = beforeData.employee_id;
+      targetDate = beforeData.work_date;
+      targetBranchId = beforeData.branch_id;
+
+      let updateFields = [];
+      let updateParams = [];
+      let pIdx = 1;
+
+      if (new_status) {
+        updateFields.push(`status = $${pIdx++}`);
+        updateParams.push(new_status);
+      }
+      if (new_shift_id) {
+        updateFields.push(`shift_id = $${pIdx++}`);
+        updateParams.push(new_shift_id);
+      }
+      updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+      updateParams.push(activeSessionId);
+
+      const updateQuery = `UPDATE attendance_sessions SET ${updateFields.join(', ')} WHERE id = $${pIdx} RETURNING *`;
+      const updatedRes = await client.query(updateQuery, updateParams);
+      afterData = { ...updatedRes.rows[0], adjusted_by: req.user.id };
+    } else {
+      // Cek apakah sudah ada sesi untuk employee_id dan work_date
+      const existing = await client.query(
+        `SELECT * FROM attendance_sessions WHERE employee_id = $1 AND work_date = $2`,
+        [empId, targetDate]
+      );
+      if (existing.rows.length > 0) {
+        activeSessionId = existing.rows[0].id;
+        beforeData = existing.rows[0];
+        const updatedRes = await client.query(
+          `UPDATE attendance_sessions 
+           SET shift_id = COALESCE($1, shift_id), 
+               status = COALESCE($2, status), 
+               updated_at = CURRENT_TIMESTAMP 
+           WHERE id = $3 RETURNING *`,
+          [new_shift_id || null, new_status || null, activeSessionId]
+        );
+        afterData = { ...updatedRes.rows[0], adjusted_by: req.user.id };
+      } else {
+        if (!targetBranchId) {
+          const empAssign = await client.query(
+            `SELECT branch_id FROM employee_assignments WHERE employee_id = $1 AND is_primary = true LIMIT 1`,
+            [empId]
+          );
+          targetBranchId = empAssign.rows.length > 0 ? empAssign.rows[0].branch_id : null;
+          if (!targetBranchId) {
+            const firstBranch = await client.query(`SELECT id FROM branches LIMIT 1`);
+            targetBranchId = firstBranch.rows[0]?.id;
+          }
+        }
+        const insertRes = await client.query(
+          `INSERT INTO attendance_sessions (employee_id, branch_id, work_date, shift_id, status)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING *;`,
+          [empId, targetBranchId, targetDate, new_shift_id || null, new_status || 'present']
+        );
+        activeSessionId = insertRes.rows[0].id;
+        beforeData = { shift_id: null, status: null };
+        afterData = { ...insertRes.rows[0], adjusted_by: req.user.id };
+      }
     }
-    const beforeData = sessionRes.rows[0];
 
-    await client.query(
-      `UPDATE attendance_sessions SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
-      [new_status || 'present', session_id]
-    );
+    // Selalu sinkronkan ke work_schedules agar jadwal shift tercatat konsisten
+    if (new_shift_id && empId && targetDate) {
+      await client.query(`
+        INSERT INTO work_schedules (employee_id, branch_id, work_date, shift_id)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (employee_id, work_date)
+        DO UPDATE SET shift_id = EXCLUDED.shift_id, branch_id = COALESCE(EXCLUDED.branch_id, work_schedules.branch_id);
+      `, [empId, targetBranchId, targetDate, new_shift_id]);
+    }
 
-    const afterData = { ...beforeData, status: new_status || 'present', adjusted_by: req.user.id };
-
+    // Catat ke attendance_adjustments
     await client.query(
       `INSERT INTO attendance_adjustments (session_id, reason, before_data, after_data, actor_id)
        VALUES ($1, $2, $3, $4, $5)`,
-      [session_id, reason, JSON.stringify(beforeData), JSON.stringify(afterData), req.user.id]
+      [activeSessionId, reason, JSON.stringify(beforeData), JSON.stringify(afterData), req.user.id]
     );
 
     await client.query('COMMIT');
 
     await logAudit({
       actorId: req.user.id,
-      action: 'ADJUST_ATTENDANCE',
+      action: 'ADJUST_ATTENDANCE_SHIFT',
       entityType: 'attendance_sessions',
-      entityId: session_id,
-      changes: { before: beforeData, after: afterData, reason },
+      entityId: activeSessionId,
+      changes: { before: beforeData, after: afterData, reason, new_shift_id, new_status },
       ipAddress: req.ip
     });
 
-    return res.json({ success: true, message: 'Koreksi absensi berhasil dicatat beserta jejak audit.' });
+    return res.json({ success: true, message: 'Koreksi jadwal shift & absensi berhasil disimpan ke database beserta jejak audit.' });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('[Adjustment Error]', err);
-    return res.status(500).json({ success: false, error: 'Gagal melakukan koreksi absensi.' });
+    return res.status(500).json({ success: false, error: 'Gagal melakukan koreksi jadwal shift / absensi.' });
   } finally {
     client.release();
   }

@@ -1251,6 +1251,25 @@ select.form-control {
   background-color: #F8FAFC;
 }
 
+/* --- Monitoring Table Optimization --- */
+#table-monitoring {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#table-monitoring th,
+#table-monitoring td {
+  padding: 10px 12px;
+  font-size: 0.83rem;
+}
+
+#table-monitoring th:nth-child(4),
+#table-monitoring td:nth-child(4),
+#table-monitoring th:nth-child(5),
+#table-monitoring td:nth-child(5) {
+  text-align: center;
+}
+
 .btn-recap-detail {
   padding: 4px 10px;
   font-size: 0.78rem;
