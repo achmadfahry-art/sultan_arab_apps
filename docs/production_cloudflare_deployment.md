@@ -20,7 +20,7 @@ Dokumen ini mencatat seluruh informasi arsitektur jaringan, server produksi loka
 
 Aplikasi dan basis data berjalan secara mandiri pada perangkat fisik lokal di cabang:
 
-* **Nama Komputer (Hostname)**: `LAPTOP-0D0R5FD2`
+* **Nama Komputer (Hostname)**: `sultanarab-server` (identitas fisik: `LAPTOP-0D0R5FD2`)
 * **Sistem Operasi**: Windows 11 / Windows 10 (x64)
 * **Alamat Jaringan Privat (Tailscale)**: `100.86.176.62`
 * **Akses SSH Remote**:
