@@ -66,10 +66,13 @@ Sistem ini dirancang tanpa ketergantungan pihak ketiga yang mengikat (database m
 - Proteksi idempotency token mencegah pencatatan presensi ganda akibat penekanan tombol berulang.
 - Skrip retensi otomatis `scripts/cleanup-old-photos.js` membersihkan berkas foto lawas yang melewati 7 hari untuk menghemat ruang penyimpanan.
 
-### 🌐 9. Akses Jaringan Lokal & Tailscale (Q10)
-- Aplikasi diikat ke `0.0.0.0:3000` dan dapat diakses dari mana saja melalui Tailscale:
-  - ⭐ **HTTPS Resmi (Rekomendasi Kamera Live):** 
-  - **HTTP IP Langsung:** `http://100.84.77.41:3000`
+### 🌐 9. Akses Jaringan & Domain Produksi (Q10)
+- **Domain Resmi Publik (HTTPS Aktif)**: **[https://absen.sultanarab.store](https://absen.sultanarab.store)**
+  - Menggunakan Cloudflare Tunnel (bebas kendala IP dinamis/CGNAT, SSL gratis, aman untuk kamera & GPS).
+- **Akses Jaringan Privat (Tailscale)**:
+  - `http://100.86.176.62:3000` (atau `http://100.84.77.41:3000`)
+- **Dokumentasi Lengkap Setup Produksi & SOP Update**:
+  - Lihat [docs/production_cloudflare_deployment.md](docs/production_cloudflare_deployment.md) untuk detail kredensial server, Cloudflare tunnel token, dan panduan menambah aplikasi baru.
 
 ---
 
