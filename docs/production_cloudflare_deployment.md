@@ -39,6 +39,10 @@ Aplikasi dan basis data berjalan secara mandiri pada perangkat fisik lokal di ca
   * Script eksekusi: `C:\sultan_arab_apps\start_server.bat`
   * Log server: `C:\sultan_arab_apps\server.log`
   * Port internal: `http://localhost:3000`
+* **Keamanan Daya & Perilaku Fisik (Power Policy)**:
+  * **Tombol Power Fisik**: `Do Nothing` (Nilai `0` — jika terpencet tidak sengaja, server **tidak akan mati/sleep**).
+  * **Tutup Layar (Lid Close)**: `Do Nothing` (Nilai `0` — layar aman ditutup tanpa membuat server mati).
+  * **Sleep / Standby Timeout**: `Never Sleep` (Nilai `0 detik` — server tidak pernah masuk mode tidur).
 
 ---
 
