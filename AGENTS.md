@@ -17,3 +17,8 @@
 - Menjalankan migrasi database: `npm run db:migrate`
 - Menjalankan backend server: `npm start` (Port 3000)
 - Menjalankan seluruh pengujian otomatis: `npm test`
+
+## 3. Orkestrasi Multi-Agen & MCP
+- Konfigurasi subagent (`sultan-architect`, `sultan-dba`, `sultan-devops`, `sultan-qa`, `sultan-security`), hooks keselamatan (safety gate), dan server MCP (`postgres-sultan-arab`) dikelola terpusat di direktori:
+  👉 `../agent_orkestrasi/`
+
