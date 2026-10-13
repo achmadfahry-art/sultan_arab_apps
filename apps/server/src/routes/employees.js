@@ -206,4 +206,149 @@ router.patch('/:id/day-off', requireAuth, requireRoles(['owner', 'manager']), as
   }
 });
 
+// PATCH /api/v1/employees/:id/name (Owner & Manager)
+router.patch('/:id/name', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
+  const { name, job_title } = req.body;
+  if (!name || !name.trim()) {
+    return res.status(400).json({ success: false, error: 'Nama karyawan wajib diisi.' });
+  }
+  const cleanName = name.trim();
+  const cleanJob = job_title && job_title.trim() ? job_title.trim() : null;
+
+  try {
+    const empLookup = await db.query('SELECT * FROM employees WHERE id = $1', [req.params.id]);
+    if (empLookup.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Karyawan tidak ditemukan.' });
+    }
+    const emp = empLookup.rows[0];
+
+    const empRes = await db.query(
+      `UPDATE employees 
+       SET name = $1, 
+           job_title = COALESCE($2, job_title), 
+           updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $3 
+       RETURNING *;`,
+      [cleanName, cleanJob, req.params.id]
+    );
+    const updatedEmp = empRes.rows[0];
+
+    if (updatedEmp.user_id) {
+      await db.query(
+        `UPDATE profiles SET display_name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2;`,
+        [cleanName, updatedEmp.user_id]
+      );
+    }
+
+    await logAudit({
+      actorId: req.user.id,
+      action: 'UPDATE_EMPLOYEE_NAME',
+      entityType: 'employees',
+      entityId: updatedEmp.id,
+      changes: { oldName: emp.name, newName: cleanName, job_title: updatedEmp.job_title },
+      ipAddress: req.ip
+    });
+
+    return res.json({ success: true, message: 'Nama karyawan berhasil diperbarui.', employee: updatedEmp });
+  } catch (err) {
+    console.error('[Update Name Error]', err);
+    return res.status(500).json({ success: false, error: 'Gagal memperbarui nama karyawan: ' + err.message });
+  }
+});
+
+// DELETE /api/v1/employees/:id (Owner & Manager)
+router.delete('/:id', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const empRes = await db.query(`
+      SELECT e.*, ARRAY_AGG(r.code) as roles
+      FROM employees e
+      LEFT JOIN users u ON e.user_id = u.id
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
+      LEFT JOIN roles r ON ur.role_id = r.id
+      WHERE e.id = $1
+      GROUP BY e.id;
+    `, [id]);
+
+    if (empRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Karyawan tidak ditemukan.' });
+    }
+
+    const emp = empRes.rows[0];
+
+    // Keamanan 1: Tidak boleh menghapus akun diri sendiri
+    if (emp.user_id && emp.user_id === req.user.id) {
+      return res.status(400).json({ success: false, error: 'Anda tidak dapat menghapus akun Anda sendiri.' });
+    }
+
+    // Keamanan 2: Akun Owner tidak dapat dihapus oleh siapa pun
+    if (emp.roles && emp.roles.includes('owner')) {
+      return res.status(403).json({ success: false, error: 'Akun Owner tidak dapat dihapus.' });
+    }
+
+    // Keamanan 3: Manager tidak dapat menghapus sesama Manager atau Owner
+    if (!req.user.isOwner && emp.roles && (emp.roles.includes('manager') || emp.roles.includes('owner'))) {
+      return res.status(403).json({ success: false, error: 'Hanya Owner yang berhak menghapus akun Manager.' });
+    }
+
+    // Cek apakah karyawan memiliki riwayat kehadiran atau payroll
+    const attCountRes = await db.query('SELECT count(*)::int as count FROM attendance_sessions WHERE employee_id = $1;', [id]);
+    const payCountRes = await db.query('SELECT count(*)::int as count FROM payroll_items WHERE employee_id = $1;', [id]);
+    const attCount = attCountRes.rows[0]?.count || 0;
+    const payCount = payCountRes.rows[0]?.count || 0;
+    const hasHistory = (attCount > 0 || payCount > 0);
+
+    const client = await db.getClient();
+    try {
+      await client.query('BEGIN');
+
+      if (hasHistory) {
+        // Soft delete: Nonaktifkan karyawan & akun user agar rekam jejak keuangan dan presensi masa lampau tetap utuh
+        await client.query('UPDATE employees SET active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1;', [id]);
+        if (emp.user_id) {
+          await client.query('UPDATE users SET active = false WHERE id = $1;', [emp.user_id]);
+        }
+        // Bersihkan jadwal yang belum berjalan (masa depan)
+        await client.query('DELETE FROM work_schedules WHERE employee_id = $1 AND work_date >= CURRENT_DATE;', [id]);
+        await client.query('DELETE FROM employee_assignments WHERE employee_id = $1;', [id]);
+      } else {
+        // Belum pernah ada riwayat presensi/payroll: Hapus permanen (seluruh relasi assignments, schedules, days_off cascade otomatis)
+        await client.query('DELETE FROM employees WHERE id = $1;', [id]);
+        if (emp.user_id) {
+          await client.query('DELETE FROM users WHERE id = $1;', [emp.user_id]);
+        }
+      }
+
+      await client.query('COMMIT');
+    } catch (dbErr) {
+      await client.query('ROLLBACK');
+      throw dbErr;
+    } finally {
+      client.release();
+    }
+
+    await logAudit({
+      actorId: req.user.id,
+      action: 'DELETE_EMPLOYEE',
+      entityType: 'employees',
+      entityId: emp.id,
+      changes: {
+        name: emp.name,
+        employee_code: emp.employee_code,
+        method: hasHistory ? 'soft_delete (deactivated)' : 'hard_delete'
+      },
+      ipAddress: req.ip
+    });
+
+    return res.json({
+      success: true,
+      message: `Karyawan ${emp.name} berhasil dihapus dari daftar.`
+    });
+  } catch (err) {
+    console.error('[Delete Employee Error]', err);
+    return res.status(500).json({ success: false, error: 'Gagal menghapus karyawan: ' + err.message });
+  }
+});
+
 module.exports = router;

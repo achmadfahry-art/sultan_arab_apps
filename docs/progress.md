@@ -79,3 +79,9 @@ Hasil eksekusi:
    - Mendukung pemicu kamera bawaan HP (`capture="user"` dan `capture="environment"`) yang 100% berfungsi di seluruh ponsel Android & iOS bahkan melalui protokol HTTP IP biasa tanpa batasan keamanan browser.
    - Mendukung live streaming video dengan tombol **Balik Kamera (Depan / Belakang)** dan tombol potret langsung pada HTTPS Tailscale (`https://fahry-work.tail0f1c60.ts.net`).
    - Kompresi gambar otomatis di sisi peramban ke resolusi optimal (maks. 1280x960) untuk proses unggah presensi yang instan.
+4. **Fitur Edit Nama Karyawan**:
+   - Tersedia tombol pensil (✎) di sebelah nama staf dan tombol **`Edit Nama`** di kolom Aksi tabel karyawan.
+   - Endpoint `PATCH /api/v1/employees/:id/name` menyinkronkan nama staf ke database, profil pengguna, dan tampilan rekapitulasi secara instan.
+5. **Fitur Kurang Karyawan (Hapus / Deaktivasi Staf)**:
+   - Tombol **`Kurang Karyawan`** di kolom Aksi dilengkapi modal konfirmasi berlatar merah Sultan.
+   - Endpoint `DELETE /api/v1/employees/:id` dengan proteksi ganda: mempertahankan integritas audit riwayat absensi/gaji masa lampau lewat deaktivasi terproteksi (*soft delete*), atau penghapusan permanen (*hard delete*) untuk data uji/kesalahan ketik baru, disertai pengamanan akun Owner dan larangan self-delete.

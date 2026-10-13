@@ -70,7 +70,8 @@ function uiIcon(name, extraClass = '', size = 18) {
     crown: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>`,
     phone: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
     external: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>`,
-    settings: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`
+    settings: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
+    trash: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`
   };
   return icons[name] || '';
 }
@@ -2233,7 +2234,11 @@ async function loadMasterData() {
       : empRes.data.employees.map(e => `
       <tr>
         <td class="cell-title" data-label="Nama">
-          <strong>${escapeHtml(e.name)}</strong> <small class="cell-code">${escapeHtml(e.employee_code)}</small>
+          <div style="display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <strong>${escapeHtml(e.name)}</strong>
+            <button type="button" class="btn-edit-name-master" data-id="${e.id}" style="background:none; border:none; color:var(--primary-red); cursor:pointer; font-size:0.85rem; padding:0 2px;" title="Edit Nama Karyawan">✎</button>
+            <small class="cell-code">${escapeHtml(e.employee_code)}</small>
+          </div>
           <div class="cell-note" style="display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px;">
             <span>WA: ${escapeHtml(e.phone || 'Belum diisi')}</span>
             <button type="button" class="btn-edit-phone-master" data-id="${e.id}" data-name="${escapeHtml(e.name)}" data-phone="${escapeHtml(e.phone || '')}" style="background:none; border:none; color:var(--primary-red); cursor:pointer; font-size:0.75rem; padding:0 2px;" title="Ubah nomor WhatsApp">✎</button>
@@ -2246,12 +2251,34 @@ async function loadMasterData() {
         <td data-label="Cabang">${escapeHtml(e.branch_name || 'Head Quarter')}</td>
         <td data-label="Status"><span class="badge badge-success">Aktif</span></td>
         <td class="cell-actions" data-label="Aksi">
-          <button class="btn btn-secondary btn-sm btn-reset-emp-pwd" data-id="${e.id}" title="Reset password jika karyawan lupa">
-            ${uiIcon('key', '', 14)} Reset Password
-          </button>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+            <button class="btn btn-secondary btn-sm btn-edit-name-action" data-id="${e.id}" title="Edit nama karyawan">
+              ${uiIcon('edit', '', 14)} Edit Nama
+            </button>
+            <button class="btn btn-secondary btn-sm btn-reset-emp-pwd" data-id="${e.id}" title="Reset password jika karyawan lupa">
+              ${uiIcon('key', '', 14)} Reset Password
+            </button>
+            <button class="btn btn-danger btn-sm btn-delete-emp" data-id="${e.id}" title="Kurangi / Hapus karyawan ini dari daftar">
+              ${uiIcon('trash', '', 14)} Kurang Karyawan
+            </button>
+          </div>
         </td>
       </tr>
     `).join('');
+
+    document.querySelectorAll('.btn-edit-name-master, .btn-edit-name-action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const emp = empRes.data.employees.find(x => x.id === btn.dataset.id);
+        if (emp) openUpdateEmployeeNameModal(emp);
+      });
+    });
+
+    document.querySelectorAll('.btn-delete-emp').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const emp = empRes.data.employees.find(x => x.id === btn.dataset.id);
+        if (emp) openDeleteEmployeeModal(emp);
+      });
+    });
 
     document.querySelectorAll('.btn-reset-emp-pwd').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -2832,6 +2859,147 @@ function openUpdateEmployeeDayOffModal(empId, empName, currentDayOff) {
       }
     } else {
       showToast(res.data.error || 'Gagal mengubah jadwal libur.', 'error');
+    }
+  });
+}
+
+function openUpdateEmployeeNameModal(emp) {
+  const modalContainer = document.getElementById('modal-container');
+  modalContainer.innerHTML = `
+    <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('edit', '', 18)} Edit Nama Karyawan
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#64748B; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+        <form id="form-update-emp-name">
+          <div class="modal-body">
+            <div style="background: var(--bg-hover, #F8FAFC); border: 1px solid var(--border-color, #E2E8F0); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 0.85rem; color: var(--text-muted);">
+              <strong>Kode:</strong> <span class="cell-code">${escapeHtml(emp.employee_code)}</span> • <strong>Cabang:</strong> ${escapeHtml(emp.branch_name || 'Head Quarter')}
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="update-emp-name-input">Nama Lengkap Karyawan:</label>
+              <input type="text" id="update-emp-name-input" class="form-control" value="${escapeHtml(emp.name)}" required placeholder="Masukkan nama baru">
+              <small class="form-hint">Nama akan langsung disinkronkan ke profil, daftar presensi, rekap gaji, dan slip gaji.</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="update-emp-job-input">Jabatan / Posisi:</label>
+              <input type="text" id="update-emp-job-input" class="form-control" value="${escapeHtml(emp.job_title || 'Crew Toko')}" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+            <button type="submit" id="btn-submit-update-name" class="btn btn-primary">
+              ${uiIcon('check', '', 16)} Simpan Perubahan Nama
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('form-update-emp-name').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const newName = document.getElementById('update-emp-name-input').value.trim();
+    const newJob = document.getElementById('update-emp-job-input').value.trim();
+    if (!newName) {
+      showToast('Nama karyawan tidak boleh kosong.', 'error');
+      return;
+    }
+
+    const btnSubmit = document.getElementById('btn-submit-update-name');
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Menyimpan...';
+
+    const res = await api(`/api/v1/employees/${emp.id}/name`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name: newName, job_title: newJob })
+    });
+
+    btnSubmit.disabled = false;
+    btnSubmit.innerHTML = `${uiIcon('check', '', 16)} Simpan Perubahan Nama`;
+
+    if (res.ok) {
+      showToast('Nama karyawan berhasil diperbarui!', 'success');
+      closeModal();
+      loadMasterData();
+      if (document.getElementById('payroll-staff-slips-tbody')) {
+        loadStaffSlipsTable('payroll-staff-slips-tbody');
+      }
+      if (document.getElementById('table-monthly-recap')) {
+        loadMonthlyRecap();
+      }
+    } else {
+      showToast(res.data.error || 'Gagal mengubah nama karyawan.', 'error');
+    }
+  });
+}
+
+function openDeleteEmployeeModal(emp) {
+  const modalContainer = document.getElementById('modal-container');
+  modalContainer.innerHTML = `
+    <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
+      <div class="modal-card">
+        <div class="modal-header" style="background: linear-gradient(135deg, #B91C1C, #991B1B);">
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('trash', '', 18)} Kurang / Hapus Karyawan
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="background: #FEF2F2; border: 1px solid #FECACA; border-left: 4px solid #DC2626; padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 0.88rem; color: #991B1B;">
+            <strong>Konfirmasi Pengurangan Karyawan:</strong>
+            <p style="margin: 6px 0 0 0;">Apakah Anda yakin ingin mengurangi / menghapus karyawan berikut dari sistem?</p>
+          </div>
+
+          <div style="background: var(--bg-hover, #F8FAFC); border: 1px solid var(--border-color, #E2E8F0); padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 0.9rem;">
+            <div style="margin-bottom: 6px;"><strong>Nama:</strong> ${escapeHtml(emp.name)}</div>
+            <div style="margin-bottom: 6px;"><strong>Kode Karyawan:</strong> <span class="cell-code">${escapeHtml(emp.employee_code)}</span></div>
+            <div style="margin-bottom: 6px;"><strong>Jabatan:</strong> ${escapeHtml(emp.job_title || 'Crew Toko')}</div>
+            <div><strong>Cabang:</strong> ${escapeHtml(emp.branch_name || 'Head Quarter')}</div>
+          </div>
+
+          <div style="font-size: 0.82rem; color: var(--text-muted); display:flex; align-items:flex-start; gap:6px;">
+            ${uiIcon('alert-circle', '', 16)}
+            <span><em>Karyawan yang dihapus tidak akan lagi muncul di jadwal shift, monitoring absensi, maupun rekapitulasi gaji. Akun login karyawan juga akan dinonaktifkan secara otomatis.</em></span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+          <button type="button" id="btn-confirm-delete-emp" class="btn btn-danger">
+            ${uiIcon('trash', '', 16)} Ya, Kurang Karyawan
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btn-confirm-delete-emp').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-confirm-delete-emp');
+    btn.disabled = true;
+    btn.textContent = 'Menghapus...';
+
+    const res = await api(`/api/v1/employees/${emp.id}`, {
+      method: 'DELETE'
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = `${uiIcon('trash', '', 16)} Ya, Kurang Karyawan`;
+
+    if (res.ok) {
+      showToast(res.data.message || 'Karyawan berhasil dihapus!', 'success');
+      closeModal();
+      loadMasterData();
+      if (document.getElementById('payroll-staff-slips-tbody')) {
+        loadStaffSlipsTable('payroll-staff-slips-tbody');
+      }
+      if (document.getElementById('table-monthly-recap')) {
+        loadMonthlyRecap();
+      }
+    } else {
+      showToast(res.data.error || 'Gagal menghapus karyawan.', 'error');
     }
   });
 }

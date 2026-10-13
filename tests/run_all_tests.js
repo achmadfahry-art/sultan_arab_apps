@@ -34,6 +34,12 @@ try {
   });
   console.log(shiftCorrectionCheckoutTest);
 
+  console.log('--- TAHAP 6: PENGUJIAN FITUR EDIT NAMA & KURANG KARYAWAN ---');
+  const editDeleteTest = execFileSync('node', [path.resolve(__dirname, 'test_edit_and_delete_employee.js')], {
+    encoding: 'utf8'
+  });
+  console.log(editDeleteTest);
+
   console.log('\n>>> KESIMPULAN: SELURUH PENGUJIAN OTOMATIS LULUS 100% <<<');
 } catch (err) {
   console.error('[Pengujian Gagal]', err.message);
