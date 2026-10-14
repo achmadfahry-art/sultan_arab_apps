@@ -1,6 +1,5 @@
 const http = require('http');
 const crypto = require('crypto');
-const app = require('../apps/server/src/index');
 const db = require('../apps/server/src/db');
 
 function request(port, options, data) {

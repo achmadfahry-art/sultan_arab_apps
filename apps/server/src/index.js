@@ -64,15 +64,17 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`=======================================================`);
-  console.log(` SULTAN ARAB APP — Server Berjalan Aktif`);
-  console.log(` Port: ${PORT}`);
-  console.log(` Akses Lokal PC: http://localhost:${PORT}`);
-  console.log(` Akses Tailscale HP: http://100.84.77.41:${PORT}`);
-  console.log(` Mode: ${process.env.NODE_ENV || 'development'}`);
-  console.log(` Database: Standalone PostgreSQL`);
-  console.log(`=======================================================`);
-});
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`=======================================================`);
+    console.log(` SULTAN ARAB APP — Server Berjalan Aktif`);
+    console.log(` Port: ${PORT}`);
+    console.log(` Akses Lokal PC: http://localhost:${PORT}`);
+    console.log(` Akses Tailscale HP: http://100.84.77.41:${PORT}`);
+    console.log(` Mode: ${process.env.NODE_ENV || 'development'}`);
+    console.log(` Database: Standalone PostgreSQL`);
+    console.log(`=======================================================`);
+  });
+}
 
 module.exports = app;
