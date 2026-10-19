@@ -35,8 +35,11 @@ Aplikasi dan basis data berjalan secara mandiri pada perangkat fisik lokal di ca
   * Nama Database: `sultan_arab_app`
   * User DB: `postgres`
 * **Service Aplikasi Otomatis**:
-  * Dikelola oleh **Windows Scheduled Task**: `SultanArabApp`
-  * Script eksekusi: `C:\sultan_arab_apps\start_server.bat`
+  * Dikelola sebagai **Windows Service** resmi melalui **NSSM**: `SultanArabApp`
+  * Startup Type: `Automatic` (Berjalan otomatis saat boot, sebelum login user, tanpa batas waktu timeout)
+  * Dependensi: `postgresql-x64-18` (otomatis menunggu PostgreSQL aktif terlebih dahulu)
+  * Auto Recovery: Otomatis restart jika terjadi crash/error (delay 5 detik)
+  * Self-Healing Watchdog: Task Scheduler `SultanArabApp_Watchdog` memantau port 3000 setiap 5 menit
   * Log server: `C:\sultan_arab_apps\server.log`
   * Port internal: `http://localhost:3000`
 * **Keamanan Daya & Perilaku Fisik (Power Policy)**:
@@ -107,8 +110,9 @@ Jika ada pembaruan kode (revisi frontend, penambahan fitur API, atau migrasi dat
    npm run db:migrate
 
    # 4. Restart aplikasi agar kode baru aktif:
-   Stop-Process -Name node -Force -ErrorAction SilentlyContinue
-   Start-ScheduledTask -TaskName SultanArabApp
+   Restart-Service -Name SultanArabApp
+   # Atau jika menggunakan net/nssm:
+   # nssm restart SultanArabApp
    ```
 
 ### B. Prosedur Backup Berkala

@@ -32,5 +32,7 @@ $RECYCLE.BIN/
 .idea/
 *.suo
 *.ntvs*
-*.njsproj
 *.sln
+
+# Binaries
+*.exe
