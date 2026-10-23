@@ -40,7 +40,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     appName: 'SULTAN ARAB APP',
-    version: '1.1.0',
+    version: '1.1.1',
     timestamp: new Date().toISOString()
   });
 });
@@ -58,18 +58,22 @@ app.use('/storage', express.static(STORAGE_DIR));
 // Serve Frontend Static Files
 const WEB_DIR = path.resolve(__dirname, '../../web');
 app.use(express.static(WEB_DIR, {
-  etag: true,
-  lastModified: true,
+  etag: false,
+  lastModified: false,
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
-      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
     }
   }
 }));
 
 // SPA Fallback to index.html for client-side routing
 app.get('*', (req, res) => {
-  res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(WEB_DIR, 'index.html'));
 });
 
