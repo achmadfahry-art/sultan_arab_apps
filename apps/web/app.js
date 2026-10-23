@@ -2750,6 +2750,11 @@ async function loadMasterData() {
                 <small class="cell-code">${escapeHtml(e.employee_code)}</small>
               </div>
               <div class="cell-note" style="display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px;">
+                <span style="background: #EFF6FF; color: #1E40AF; padding: 2px 7px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; border: 1px solid #BFDBFE;" title="Username Akun Absen">
+                  👤 ${escapeHtml(e.login_identifier || '-')}
+                </span>
+                <button type="button" class="btn-edit-username-master" data-id="${e.id}" style="background:none; border:none; color:#1E40AF; cursor:pointer; font-size:0.75rem; padding:0 2px; font-weight:600;" title="Ganti Username Akun Absen">✎ Ganti</button>
+                <span style="color:var(--border-color, #cbd5e1);">•</span>
                 <span>WA: ${escapeHtml(e.phone || 'Belum diisi')}</span>
                 <button type="button" class="btn-edit-phone-master" data-id="${e.id}" data-name="${escapeHtml(e.name)}" data-phone="${escapeHtml(e.phone || '')}" style="background:none; border:none; color:var(--primary-red); cursor:pointer; font-size:0.75rem; padding:0 2px;" title="Ubah nomor WhatsApp">✎</button>
                 <span style="color:var(--border-color, #cbd5e1);">•</span>
@@ -2769,6 +2774,9 @@ async function loadMasterData() {
             </button>
             <button class="btn btn-secondary btn-sm btn-edit-name-action" data-id="${e.id}" title="Edit nama karyawan">
               ${uiIcon('edit', '', 14)} Edit Nama
+            </button>
+            <button class="btn btn-secondary btn-sm btn-edit-username-action" data-id="${e.id}" title="Ganti username login karyawan">
+              ${uiIcon('user', '', 14)} Ganti Username
             </button>
             <button class="btn btn-secondary btn-sm btn-reset-emp-pwd" data-id="${e.id}" title="Reset password jika karyawan lupa">
               ${uiIcon('key', '', 14)} Reset Password
@@ -2806,6 +2814,13 @@ async function loadMasterData() {
       btn.addEventListener('click', () => {
         const emp = empRes.data.employees.find(x => x.id === btn.dataset.id);
         if (emp) openResetEmployeePasswordModal(emp);
+      });
+    });
+
+    document.querySelectorAll('.btn-edit-username-master, .btn-edit-username-action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const emp = empRes.data.employees.find(x => x.id === btn.dataset.id);
+        if (emp) openUpdateEmployeeUsernameModal(emp);
       });
     });
 
@@ -4344,6 +4359,79 @@ function openResetEmployeePasswordModal(emp) {
       showToast(res.data.error || 'Gagal mereset password.', 'error');
     }
   });
+}
+
+// Modal Ganti Username Karyawan oleh Pengelola (Manager & Owner)
+function openUpdateEmployeeUsernameModal(emp) {
+  setModalHtml(`
+    <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
+      <div class="modal-card" style="max-width: 480px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, #1E40AF, #2563EB); color: #fff;">
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('user', '', 18)} Ganti Username Karyawan
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+        <form id="form-edit-emp-username">
+          <div class="modal-body">
+            <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #1E40AF; padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 0.88rem; color: #1E3A8A;">
+              <strong>Nama Staf:</strong> ${escapeHtml(emp.name)} (${escapeHtml(emp.employee_code)})<br>
+              <strong>Jabatan:</strong> ${escapeHtml(emp.job_title || 'Crew Toko')} • ${escapeHtml(emp.branch_name || 'Cabang')}<br>
+              <strong>Username Saat Ini:</strong> <code style="font-size: 0.95rem; font-weight: 700; color: #1E40AF;">${escapeHtml(emp.login_identifier || '-')}</code><br>
+              <div style="margin-top: 6px; font-size: 0.8rem; color: #1E40AF; display:flex; align-items:flex-start; gap:4px;">
+                ${uiIcon('shield', '', 14)}
+                <span><em>Karyawan akan menggunakan username baru ini untuk masuk ke aplikasi absensi.</em></span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="input-edit-username">Username Baru:</label>
+              <input type="text" id="input-edit-username" class="form-control" value="${escapeHtml(emp.login_identifier || '')}" required minlength="3" placeholder="Contoh: zakie_hamzah" autofocus>
+              <small class="form-hint">Minimal 3 karakter, gunakan huruf kecil, angka, atau underscore (_).</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+            <button type="submit" id="btn-submit-edit-username" class="btn btn-primary" style="background: #1E40AF; border-color: #1E40AF;">
+              ${uiIcon('check', '', 16)} Simpan Username Baru
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `);
+
+  const form = document.getElementById('form-edit-emp-username');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newUsername = document.getElementById('input-edit-username').value.trim();
+      if (!newUsername || newUsername.length < 3) {
+        showToast('Username minimal 3 karakter.', 'error');
+        return;
+      }
+
+      const submitBtn = document.getElementById('btn-submit-edit-username');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Menyimpan...';
+
+      const res = await api(`/api/v1/employees/${emp.id}/username`, {
+        method: 'PATCH',
+        body: JSON.stringify({ username: newUsername })
+      });
+
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `${uiIcon('check', '', 16)} Simpan Username Baru`;
+
+      if (res.ok && res.data.success) {
+        showToast(res.data.message || 'Username berhasil diperbarui!', 'success');
+        closeModal();
+        loadMasterData();
+      } else {
+        showToast((res.data && res.data.error) || 'Gagal mengubah username.', 'error');
+      }
+    });
+  }
 }
 
 // Modal Profil User & Penggantian Foto Pribadi Mandiri

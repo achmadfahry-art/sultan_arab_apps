@@ -247,6 +247,62 @@ router.patch('/:id/day-off', requireAuth, requireRoles(['owner', 'manager']), as
   }
 });
 
+// PATCH /api/v1/employees/:id/username (Owner & Manager)
+router.patch('/:id/username', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
+  const { username } = req.body;
+  if (!username || !username.trim()) {
+    return res.status(400).json({ success: false, error: 'Username baru tidak boleh kosong.' });
+  }
+
+  const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+  if (cleanUsername.length < 3) {
+    return res.status(400).json({ success: false, error: 'Username minimal 3 karakter (huruf kecil, angka, atau underscore).' });
+  }
+
+  try {
+    const empLookup = await db.query('SELECT * FROM employees WHERE id = $1', [req.params.id]);
+    if (empLookup.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Karyawan tidak ditemukan.' });
+    }
+    const emp = empLookup.rows[0];
+    if (!emp.user_id) {
+      return res.status(400).json({ success: false, error: 'Karyawan ini belum memiliki akun user yang terhubung.' });
+    }
+
+    // Cek apakah username sudah digunakan akun lain
+    const dupCheck = await db.query(
+      'SELECT id FROM users WHERE LOWER(login_identifier) = LOWER($1) AND id != $2',
+      [cleanUsername, emp.user_id]
+    );
+    if (dupCheck.rows.length > 0) {
+      return res.status(400).json({ success: false, error: `Username '${cleanUsername}' sudah digunakan oleh akun lain. Silakan pilih username berbeda.` });
+    }
+
+    await db.query(
+      'UPDATE users SET login_identifier = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2;',
+      [cleanUsername, emp.user_id]
+    );
+
+    await logAudit({
+      actorId: req.user.id,
+      action: 'UPDATE_EMPLOYEE_USERNAME',
+      entityType: 'employees',
+      entityId: emp.id,
+      changes: { newUsername: cleanUsername },
+      ipAddress: req.ip
+    });
+
+    return res.json({
+      success: true,
+      message: `Username untuk ${emp.name} berhasil diubah menjadi '${cleanUsername}'.`,
+      username: cleanUsername
+    });
+  } catch (err) {
+    console.error('[Update Employee Username Error]', err);
+    return res.status(500).json({ success: false, error: 'Gagal mengubah username karyawan: ' + err.message });
+  }
+});
+
 // PATCH /api/v1/employees/:id/name (Owner & Manager)
 router.patch('/:id/name', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
   const { name, job_title } = req.body;
