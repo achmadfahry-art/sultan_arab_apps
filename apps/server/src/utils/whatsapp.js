@@ -1,5 +1,5 @@
 /**
- * SULTAN ARAB APP — Modul Integrasi WhatsApp (Q011)
+ * SULTAN ARAB APP — Modul Integrasi Notifikasi WhatsApp
  * Menyediakan pengiriman langsung via URL WhatsApp Click-to-Chat
  * serta opsi integrasi gateway otomatis (misal: Fonnte / Wablas / Generic API).
  */

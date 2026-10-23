@@ -1,10 +1,10 @@
 /**
  * SULTAN ARAB APP — Frontend Application (Single Page Application)
  * Mendukung tampilan Ponsel dan PC secara responsif.
- * Diperbarui dengan keputusan bisnis Q01 - Q11:
+ * Modul Operasional: Absensi, Multi-Cabang, Manajemen Jadwal, Payroll & Slip Gaji.
  * - Cabang: HQ Bekasi & Cabang Cikarang
  * - Shift: Staff & Admin (Non-Shift 08-17), Crew Toko (Pagi 08-17, Siang 12:00-21), Toleransi 15 Menit
- * - Aturan Absen: Wajib hanya masuk, pulang tidak wajib
+ * - Aturan Absen: Wajib absen masuk, absen pulang bersifat opsional
  * - Uang Makan: Rp10.000 saat hadir toko; tombol Kunjungan Luar tidak dapat uang makan
  * - Manager PDF Payslip Upload per anggota staf
  * - Integrasi WhatsApp reminder
@@ -24,13 +24,14 @@ const state = {
   recapYear: new Date().getFullYear(),
   recapBranchId: '',
   recapData: null,
-  payslipViewMode: 'staff', // 'me' atau 'staff' (Q06)
+  payslipViewMode: 'staff', // 'me' atau 'staff'
   clockInterval: null,
   cameraStream: null,
   capturedPhotoBase64: null,
-  attendanceType: 'hadir', // 'hadir' atau 'kunjungan_luar' (Q05)
+  attendanceType: 'hadir', // 'hadir' atau 'kunjungan_luar'
   selectedShiftId: null,
-  currentGps: { lat: null, lon: null, accuracy: null, distance: null, isWithinRadius: false }
+  currentGps: { lat: null, lon: null, accuracy: null, distance: null, isWithinRadius: false },
+  sidebarCollapsed: localStorage.getItem('sultan_sidebar_collapsed') === 'true'
 };
 
 // --- System SVG Icons (Enterprise Lucide / Heroicons Standard) ---
@@ -71,9 +72,51 @@ function uiIcon(name, extraClass = '', size = 18) {
     phone: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
     external: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>`,
     settings: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
-    trash: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`
+    trash: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`,
+    'chevron-left': `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`,
+    'chevron-right': `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`,
+    menu: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>`,
+    image: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`,
+    user: `<svg class="ui-icon ${extraClass}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
   };
   return icons[name] || '';
+}
+
+// Helper to optimize and read image as JPEG data URL
+function compressAndReadImage(file, maxWidth = 600, maxHeight = 600, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith('image/')) {
+      return reject(new Error('File harus berupa gambar (JPG, PNG, atau WEBP).'));
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error('Gagal memproses file gambar.'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Gagal membaca file gambar.'));
+    reader.readAsDataURL(file);
+  });
 }
 
 // --- HTTP Client Helper ---
@@ -184,6 +227,8 @@ function render() {
   const root = document.getElementById('app-root');
   if (!root) return;
 
+  document.body.classList.toggle('sidebar-collapsed', state.sidebarCollapsed);
+
   if (!state.user || state.route === '#login') {
     root.innerHTML = renderLogin();
     attachLoginEvents();
@@ -256,41 +301,59 @@ function isManagerOrOwner(user) {
 function renderSidebar() {
   const isMgrOrOwner = isManagerOrOwner(state.user);
   return `
-    <aside class="app-sidebar">
+    <aside class="app-sidebar ${state.sidebarCollapsed ? 'collapsed' : ''}">
       <div class="sidebar-brand">
         <img src="/assets/logo_sultan_arab.jpg" alt="Logo" class="sidebar-logo">
         <div class="sidebar-brand-text">
           <h2>SULTAN ARAB</h2>
           <span>Absensi &amp; Payroll</span>
         </div>
+        <button type="button" id="btn-toggle-sidebar" class="sidebar-toggle-btn desktop-only" title="Kecilkan Side Panel (Minimize)">
+          ${uiIcon('chevron-left', '', 16)}
+        </button>
       </div>
       <ul class="sidebar-menu">
         <li class="sidebar-item ${state.route === '#home' ? 'active' : ''}">
-          <a href="#home">${uiIcon('home', '', 18)} <span>Beranda Karyawan</span></a>
+          <a href="#home" title="Beranda Karyawan">${uiIcon('home', '', 18)} <span>Beranda Karyawan</span></a>
         </li>
         <li class="sidebar-item ${state.route === '#attendance' ? 'active' : ''}">
-          <a href="#attendance">${uiIcon('camera', '', 18)} <span>Absen</span></a>
+          <a href="#attendance" title="Absen">${uiIcon('camera', '', 18)} <span>Absen</span></a>
         </li>
         <li class="sidebar-item ${state.route === '#history' ? 'active' : ''}">
-          <a href="#history">${uiIcon('calendar', '', 18)} <span>Riwayat Absensi</span></a>
+          <a href="#history" title="Riwayat Absensi">${uiIcon('calendar', '', 18)} <span>Riwayat Absensi</span></a>
         </li>
         <li class="sidebar-item ${state.route === '#payslips' ? 'active' : ''}">
-          <a href="#payslips">${uiIcon('file-text', '', 18)} <span>Slip Gaji</span></a>
+          <a href="#payslips" title="Slip Gaji">${uiIcon('file-text', '', 18)} <span>Slip Gaji</span></a>
         </li>
         ${isMgrOrOwner ? `
         <li class="sidebar-item ${state.route === '#management' ? 'active' : ''}">
-          <a href="#management">${uiIcon('chart', '', 18)} <span>Dashboard Pengelola</span></a>
+          <a href="#management" title="Dashboard Pengelola">${uiIcon('chart', '', 18)} <span>Dashboard Pengelola</span></a>
         </li>
         ` : ''}
+        <li class="sidebar-item ${state.route === '#profile' ? 'active' : ''}">
+          <a href="#profile" title="Edit Profil &amp; Password">${uiIcon('user', '', 18)} <span>Edit Profil</span></a>
+        </li>
       </ul>
+      <div class="sidebar-footer">
+        <button type="button" id="btn-expand-sidebar" class="sidebar-expand-btn desktop-only" title="Perbesar Side Panel">
+          ${uiIcon('chevron-right', '', 18)}
+        </button>
+      </div>
     </aside>
   `;
 }
 
 function renderHeader() {
+  const avatarHtml = state.user.avatarUrl
+    ? `<img src="${escapeHtml(state.user.avatarUrl)}" alt="Avatar">`
+    : escapeHtml(state.user.displayName ? state.user.displayName.charAt(0).toUpperCase() : 'U');
+
   return `
     <header class="app-header">
       <div class="header-title-area">
+        <button type="button" id="btn-header-sidebar-toggle" class="btn-header-sidebar-toggle desktop-only" title="${state.sidebarCollapsed ? 'Perbesar Side Panel' : 'Kecilkan Side Panel'}">
+          ${uiIcon('menu', '', 18)}
+        </button>
         <img src="/assets/logo_sultan_arab.jpg" alt="Logo" class="header-logo-mobile">
         <div>
           <h2 style="font-size: 1.05rem; font-weight: 800; color: var(--primary-red);">SULTAN ARAB</h2>
@@ -298,13 +361,13 @@ function renderHeader() {
         </div>
       </div>
       <div class="header-user-info">
-        <div class="user-avatar-badge">${escapeHtml(state.user.displayName ? state.user.displayName.charAt(0).toUpperCase() : 'U')}</div>
-        <div class="header-user-meta">
+        <div class="user-avatar-badge" id="btn-header-profile" title="Klik untuk edit profil &amp; password" onclick="window.location.hash='#profile'">${avatarHtml}</div>
+        <div class="header-user-meta" id="btn-header-profile-meta" style="cursor: pointer;" title="Klik untuk edit profil &amp; password" onclick="window.location.hash='#profile'">
           <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">${escapeHtml(state.user.displayName)}</div>
           <div style="font-size: 0.72rem; color: var(--accent-gold); font-weight: 600;">${escapeHtml(state.user.roles.join(', '))}</div>
         </div>
-        <button id="btn-header-change-pwd" class="btn btn-secondary btn-header-action" title="Ubah Password Akun" style="margin-right: 6px;">
-          ${uiIcon('key', '', 15)} <span class="hide-on-mobile">Password</span>
+        <button id="btn-header-edit-profile" class="btn btn-secondary btn-header-action" title="Edit Profil &amp; Password Saya" style="margin-right: 4px;" onclick="window.location.hash='#profile'">
+          ${uiIcon('user', '', 14)} <span class="hide-on-mobile">Edit Profil</span>
         </button>
         <button id="btn-header-logout" class="btn btn-secondary btn-header-logout">
           ${uiIcon('logout', '', 15)} <span>Keluar</span>
@@ -340,6 +403,10 @@ function renderBottomNav() {
         <span>Kelola</span>
       </a>
       ` : ''}
+      <a href="#profile" class="bottom-nav-item ${state.route === '#profile' ? 'active' : ''}">
+        ${uiIcon('user', '', 20)}
+        <span>Profil</span>
+      </a>
     </nav>
   `;
 }
@@ -357,6 +424,8 @@ function renderMainContent() {
       return renderPayslips();
     case '#management':
       return renderManagement();
+    case '#profile':
+      return renderProfile();
     default:
       return renderHome();
   }
@@ -422,15 +491,27 @@ function renderHome() {
   }
 
   const branchName = state.user.assignedBranchName || (state.branches[0] ? state.branches[0].name : 'Head Quarter Bekasi');
+  const userPhotoHtml = state.user.avatarUrl
+    ? `<img src="${escapeHtml(state.user.avatarUrl)}" alt="${escapeHtml(state.user.displayName)}">`
+    : `<span class="hero-avatar-initial">${escapeHtml(state.user.displayName ? state.user.displayName.charAt(0).toUpperCase() : 'U')}</span>`;
 
   return `
     <div class="employee-hero-card">
       <div class="employee-hero-top">
-        <div>
-          <span class="badge badge-test" style="margin-bottom: 8px;">SULTAN ARAB OPERASIONAL</span>
-          <h2 class="employee-hero-name">${escapeHtml(state.user.displayName)}</h2>
-          <div class="employee-hero-branch">
-            ${uiIcon('map-pin', '', 14)} ${escapeHtml(branchName)} • ${escapeHtml(state.user.jobTitle || 'Staff')}
+        <div class="hero-user-profile-row">
+          <div class="hero-avatar-wrap" id="btn-hero-profile-avatar" title="Klik untuk ganti foto profil" onclick="window.location.hash='#profile'">
+            ${userPhotoHtml}
+            <span class="hero-avatar-edit-icon" title="Ganti foto">${uiIcon('camera', '', 12)}</span>
+          </div>
+          <div>
+            <span class="badge badge-test" style="margin-bottom: 4px;">SULTAN ARAB OPERASIONAL</span>
+            <h2 class="employee-hero-name">${escapeHtml(state.user.displayName)}</h2>
+            <div class="employee-hero-branch">
+              ${uiIcon('map-pin', '', 14)} ${escapeHtml(branchName)} • ${escapeHtml(state.user.jobTitle || 'Staff')}
+            </div>
+            <a href="#profile" style="margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.22); color: #FFFFFF; border: 1px solid rgba(255,255,255,0.35); padding: 4px 11px; border-radius: var(--radius-pill); font-size: 0.78rem; font-weight: 700; text-decoration: none; cursor: pointer;">
+              ${uiIcon('edit', '', 14)} <span>Edit Profil</span>
+            </a>
           </div>
         </div>
         <div class="employee-clock-box">
@@ -445,7 +526,7 @@ function renderHome() {
           ${statusBadge}
         </div>
         <div style="font-size: 0.76rem; color: #FDE68A; display: flex; align-items: center; gap: 6px;">
-          ${uiIcon('shield', '', 13)} Aturan Q02: Wajib hanya absen masuk, pulang tidak wajib.
+          ${uiIcon('shield', '', 13)} Ketentuan Absensi: Wajib absen masuk, absen pulang bersifat opsional.
         </div>
       </div>
     </div>
@@ -457,6 +538,11 @@ function renderHome() {
 
     <!-- Menu Cepat Navigasi -->
     <div class="quick-grid">
+      <div class="quick-card" onclick="window.location.hash='#profile'" style="border-top: 3px solid var(--accent-gold);">
+        ${uiIcon('user', '', 26)}
+        <div class="quick-label"><strong>Edit Profil</strong></div>
+        <small style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Foto &amp; Password</small>
+      </div>
       <div class="quick-card" onclick="window.location.hash='#attendance'">
         ${uiIcon('camera', '', 26)}
         <div class="quick-label">Absen</div>
@@ -475,16 +561,12 @@ function renderHome() {
         <div class="quick-label">Dashboard Kelola</div>
       </div>
       ` : ''}
-      <div class="quick-card" id="quick-card-change-pwd">
-        ${uiIcon('key', '', 26)}
-        <div class="quick-label">Ubah Password</div>
-      </div>
     </div>
 
     <!-- Aturan Shift & Jadwal Pribadi -->
     <div class="card" style="margin-bottom: 20px;">
       <div class="card-header">
-        <h3 class="card-title">${uiIcon('clock', '', 18)} Jadwal Shift &amp; Libur Anda (Q02 &amp; Q04)</h3>
+        <h3 class="card-title">${uiIcon('clock', '', 18)} Jadwal Shift &amp; Ketentuan Libur Anda</h3>
         <span class="badge badge-info">Toleransi 15 Menit</span>
       </div>
       <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.9rem;">
@@ -545,9 +627,9 @@ function renderAttendance() {
 
       <!-- Form Khusus Absen Masuk (Shift, Tipe Hadir, Cabang) - Sembunyi saat Mode Absen Pulang -->
       <div id="section-absen-masuk-only" style="display: ${isModeOut ? 'none' : 'block'};">
-        <!-- Tipe Absensi: Hadir Toko vs Kunjungan Luar (Q05) -->
+        <!-- Tipe Absensi: Hadir Toko vs Kunjungan Luar -->
         <div style="background: var(--bg-main); border: 1px solid var(--border-color); padding: 14px; border-radius: var(--radius-md); margin-bottom: 18px;">
-          <label class="form-label" style="font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Pilih Jenis Kehadiran Hari Ini (Q05):</label>
+          <label class="form-label" style="font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Pilih Jenis Kehadiran Hari Ini:</label>
           <div style="display: flex; gap: 10px;">
             <button type="button" id="btn-type-hadir" class="btn btn-primary" style="flex: 1; padding: 10px 12px; font-size: 0.85rem; flex-direction: column; gap: 2px;">
               <div style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
@@ -564,7 +646,7 @@ function renderAttendance() {
           </div>
         </div>
 
-        <!-- Pemilihan Shift Sendiri (Q02) -->
+        <!-- Pemilihan Shift Kerja Staf -->
         <div class="form-group">
           <label class="form-label" for="attendance-shift-select">Pilih Shift Kerja Anda (Toleransi 15 Menit):</label>
           <select id="attendance-shift-select" class="form-control">
@@ -806,7 +888,7 @@ function renderManagementTabContent() {
       return renderManagementRecapTab();
     case 'payroll':
       return `
-        <!-- Unggah Slip Gaji PDF Masing-Masing Anggota Staf (Q06) -->
+        <!-- Unggah Slip Gaji PDF Masing-Masing Anggota Staf -->
         <div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--primary-red);">
           <div class="card-header">
             <div>
@@ -1232,7 +1314,7 @@ function renderPayslips() {
               Pusat Unggah Slip Gaji PDF Staf Ada di Dashboard Pengelola
             </h3>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
-              Untuk mengunggah berkas slip gaji PDF staf (Q06) dan kirim notifikasi WhatsApp, silakan kelola di Dashboard Pengelola.
+              Untuk mengunggah berkas slip gaji PDF staf dan kirim notifikasi WhatsApp, silakan kelola di Dashboard Pengelola.
             </p>
           </div>
           <div>
@@ -1258,6 +1340,157 @@ function renderPayslips() {
         </div>
         <div id="payslips-list-container">
           <p style="color: var(--text-muted); font-size: 0.9rem;">Memuat slip gaji...</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// --- VIEW 6: PROFIL PENGGUNA & UPLOAD FOTO ---
+function renderProfile() {
+  const user = state.user || {};
+  const currentAvatar = user.avatarUrl || '';
+  const initial = (user.displayName ? user.displayName.charAt(0) : (user.loginIdentifier ? user.loginIdentifier.charAt(0) : 'U')).toUpperCase();
+  const branchName = user.assignedBranchName || (state.branches[0] ? state.branches[0].name : 'Head Quarter Bekasi');
+
+  return `
+    <div style="max-width: 600px; margin: 0 auto; padding-bottom: 24px;">
+      <!-- Kartu Utama Profil & Upload Foto -->
+      <div class="card" style="margin-bottom: 16px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+        <div style="background: linear-gradient(135deg, var(--primary-red) 0%, #8A0000 100%); padding: 24px 16px 44px 16px; text-align: center; color: #fff; margin: -18px -18px 0 -18px;">
+          <h2 style="font-size: 1.25rem; font-weight: 800; color: #fff; margin: 0; letter-spacing: 0.02em;">EDIT PROFIL PENGGUNA</h2>
+          <p style="font-size: 0.8rem; color: #FDE68A; margin: 4px 0 0 0;">Pengaturan foto profil, data akun, dan kata sandi Anda</p>
+        </div>
+
+        <div style="margin-top: -40px; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 10px;">
+          <div id="profile-page-avatar-wrap" class="avatar-preview-circle" style="width: 110px; height: 110px; border-radius: 50%; border: 4px solid #F59E0B; background: #FFFFFF; box-shadow: 0 8px 24px rgba(0,0,0,0.18); display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 12px; position: relative;">
+            ${currentAvatar 
+              ? `<img id="profile-page-avatar-img" src="${escapeHtml(currentAvatar)}" alt="Foto Profil" style="width: 100%; height: 100%; object-fit: cover;">`
+              : `<span id="profile-page-avatar-initial" style="font-size: 2.6rem; font-weight: 800; color: var(--primary-red);">${escapeHtml(initial)}</span>`
+            }
+          </div>
+
+          <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--text-main); margin: 0 0 4px 0;">
+            ${escapeHtml(user.displayName || 'Pengguna')}
+          </h3>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
+            <span>ID: <code>${escapeHtml(user.loginIdentifier || '-')}</code></span>
+            <span>•</span>
+            <span class="badge ${user.isOwner ? 'badge-danger' : (user.isManager ? 'badge-warning' : 'badge-info')}">
+              ${user.isOwner ? 'Owner' : (user.isManager ? 'Manager' : (user.role ? user.role.toUpperCase() : 'Staff'))}
+            </span>
+          </div>
+
+          <!-- Upload / Ganti Foto Profil Box -->
+          <div style="width: 100%; background: var(--bg-hover, #F8FAFC); border: 2px dashed var(--border-color); border-radius: var(--radius-md); padding: 18px 16px; margin-bottom: 14px;">
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main); margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              ${uiIcon('camera', '', 18)} Foto Profil Pengguna
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0 0 14px 0; line-height: 1.4;">
+              Pilih foto dari kamera ponsel atau galeri. Foto otomatis dioptimalkan ukurannya.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                <label for="profile-page-file-input" class="btn btn-primary" style="cursor: pointer; font-weight: 700; padding: 11px 20px; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(201, 0, 0, 0.25);">
+                  ${uiIcon('camera', '', 18)} <span>Pilih / Ambil Foto</span>
+                </label>
+                <input type="file" id="profile-page-file-input" accept="image/*" style="display: none;">
+
+                <button type="button" id="btn-profile-page-save-photo" class="btn btn-success" style="display: none; background: #16A34A; border-color: #16A34A; color: #fff; font-weight: 700; padding: 11px 18px; font-size: 0.92rem;" disabled>
+                  ${uiIcon('check', '', 18)} Simpan Foto Ini
+                </button>
+
+                ${currentAvatar ? `
+                  <button type="button" id="btn-profile-page-del-photo" class="btn btn-secondary" style="color: var(--primary-red); border-color: #FECACA; padding: 11px 16px;" title="Hapus foto profil">
+                    ${uiIcon('trash', '', 16)} Hapus Foto
+                  </button>
+                ` : ''}
+              </div>
+
+              <div id="profile-page-preview-note" style="display: none; font-size: 0.82rem; color: #16A34A; font-weight: 700; background: #DCFCE7; padding: 6px 14px; border-radius: var(--radius-pill); border: 1px solid #BBF7D0;">
+                ✓ Foto terpilih! Klik "Simpan Foto Ini" untuk menerapkan.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kartu Informasi Detail Akun -->
+      <div class="card" style="margin-bottom: 18px;">
+        <div class="card-header">
+          <h3 class="card-title" style="font-size: 1rem;">${uiIcon('user', '', 18)} Informasi Akun &amp; Penempatan</h3>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.88rem;">
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+            <span style="color: var(--text-muted);">Nama Lengkap:</span>
+            <strong>${escapeHtml(user.displayName || '-')}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+            <span style="color: var(--text-muted);">Username / ID Login:</span>
+            <code>${escapeHtml(user.loginIdentifier || '-')}</code>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+            <span style="color: var(--text-muted);">Jabatan / Posisi:</span>
+            <span>${escapeHtml(user.jobTitle || 'Staff')}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+            <span style="color: var(--text-muted);">Cabang Penempatan:</span>
+            <strong>${escapeHtml(branchName)}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Hak Akses (Role):</span>
+            <span class="badge ${user.isOwner ? 'badge-danger' : (user.isManager ? 'badge-warning' : 'badge-info')}">
+              ${escapeHtml((user.roles || []).join(', ').toUpperCase())}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kartu Ganti Password (Terintegrasi Langsung di Edit Profil) -->
+      <div class="card" style="margin-bottom: 18px; border-left: 4px solid var(--accent-gold);">
+        <div class="card-header">
+          <h3 class="card-title" style="font-size: 1rem;">${uiIcon('key', '', 18)} Ganti Password Akun</h3>
+        </div>
+        <form id="form-profile-change-password">
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="profile-input-current-password" style="font-size: 0.85rem; font-weight: 600;">Password Saat Ini:</label>
+              <div style="position: relative;">
+                <input type="password" id="profile-input-current-password" class="form-control" placeholder="Masukkan password saat ini" required autocomplete="current-password">
+                <button type="button" id="btn-peek-profile-current" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center;" title="Lihat/Sembunyikan">${uiIcon('eye', '', 16)}</button>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="profile-input-new-password" style="font-size: 0.85rem; font-weight: 600;">Password Baru (Min 6 Karakter):</label>
+              <div style="position: relative;">
+                <input type="password" id="profile-input-new-password" class="form-control" placeholder="Minimal 6 karakter" required minlength="6" autocomplete="new-password">
+                <button type="button" id="btn-peek-profile-new" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center;" title="Lihat/Sembunyikan">${uiIcon('eye', '', 16)}</button>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="profile-input-confirm-password" style="font-size: 0.85rem; font-weight: 600;">Konfirmasi Password Baru:</label>
+              <div style="position: relative;">
+                <input type="password" id="profile-input-confirm-password" class="form-control" placeholder="Ketik ulang password baru" required minlength="6" autocomplete="new-password">
+                <button type="button" id="btn-peek-profile-confirm" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center;" title="Lihat/Sembunyikan">${uiIcon('eye', '', 16)}</button>
+              </div>
+            </div>
+
+            <button type="submit" id="btn-submit-profile-pwd" class="btn btn-primary btn-block" style="padding: 12px; font-weight: 700; font-size: 0.92rem; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              ${uiIcon('check', '', 16)} Simpan Password Baru
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Kartu Tindakan Logout -->
+      <div class="card" style="margin-bottom: 24px;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" id="btn-profile-page-logout" class="btn btn-danger btn-block" style="padding: 12px; font-size: 0.92rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            ${uiIcon('logout', '', 18)} Keluar dari Aplikasi
+          </button>
         </div>
       </div>
     </div>
@@ -1330,6 +1563,47 @@ function attachShellEvents() {
   const quickChangePwd = document.getElementById('quick-card-change-pwd');
   if (btnHChangePwd) btnHChangePwd.addEventListener('click', openChangePasswordModal);
   if (quickChangePwd) quickChangePwd.addEventListener('click', openChangePasswordModal);
+
+  // Desktop Sidebar Toggle Controls
+  const toggleSidebarAction = () => {
+    state.sidebarCollapsed = !state.sidebarCollapsed;
+    localStorage.setItem('sultan_sidebar_collapsed', state.sidebarCollapsed ? 'true' : 'false');
+    const sidebar = document.querySelector('.app-sidebar');
+    if (sidebar) sidebar.classList.toggle('collapsed', state.sidebarCollapsed);
+    document.body.classList.toggle('sidebar-collapsed', state.sidebarCollapsed);
+    const headerToggle = document.getElementById('btn-header-sidebar-toggle');
+    if (headerToggle) {
+      headerToggle.title = state.sidebarCollapsed ? 'Perbesar Side Panel' : 'Kecilkan Side Panel';
+    }
+  };
+
+  const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+  if (btnToggleSidebar) btnToggleSidebar.addEventListener('click', toggleSidebarAction);
+
+  const btnExpandSidebar = document.getElementById('btn-expand-sidebar');
+  if (btnExpandSidebar) btnExpandSidebar.addEventListener('click', toggleSidebarAction);
+
+  const btnHeaderToggle = document.getElementById('btn-header-sidebar-toggle');
+  if (btnHeaderToggle) btnHeaderToggle.addEventListener('click', toggleSidebarAction);
+
+  // User Profile & Edit Profile Actions (Mobile & Desktop)
+  const openProfileActions = () => {
+    state.route = '#profile';
+    window.location.hash = '#profile';
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const btnHProfile = document.getElementById('btn-header-profile');
+  if (btnHProfile) btnHProfile.addEventListener('click', openProfileActions);
+
+  const btnHProfileMeta = document.getElementById('btn-header-profile-meta');
+  if (btnHProfileMeta) btnHProfileMeta.addEventListener('click', openProfileActions);
+
+  const btnHEditProfile = document.getElementById('btn-header-edit-profile');
+  if (btnHEditProfile) btnHEditProfile.addEventListener('click', openProfileActions);
+
+  const btnHeroProfile = document.getElementById('btn-hero-profile-avatar');
+  if (btnHeroProfile) btnHeroProfile.addEventListener('click', openProfileActions);
 }
 
 function attachViewEvents() {
@@ -1339,6 +1613,170 @@ function attachViewEvents() {
     initManagementView();
   } else if (state.route === '#payslips') {
     loadMyPayslips();
+  } else if (state.route === '#profile') {
+    initProfileView();
+  }
+}
+
+// --- Controller Halaman Edit Profil (Unggah Foto & Ganti Password Terintegrasi) ---
+function initProfileView() {
+  const fileInput = document.getElementById('profile-page-file-input');
+  const avatarWrap = document.getElementById('profile-page-avatar-wrap');
+  const btnSave = document.getElementById('btn-profile-page-save-photo');
+  const btnDel = document.getElementById('btn-profile-page-del-photo');
+  const previewNote = document.getElementById('profile-page-preview-note');
+  const btnLogout = document.getElementById('btn-profile-page-logout');
+
+  let selectedBase64 = null;
+
+  // 1. Upload / Ganti Foto Profil
+  if (fileInput) {
+    fileInput.addEventListener('change', async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      try {
+        const compressed = await compressAndReadImage(file, 600, 600, 0.85);
+        selectedBase64 = compressed;
+        if (avatarWrap) {
+          avatarWrap.innerHTML = `<img src="${compressed}" alt="Preview Foto" style="width: 100%; height: 100%; object-fit: cover;">`;
+        }
+        if (btnSave) {
+          btnSave.style.display = 'inline-flex';
+          btnSave.disabled = false;
+        }
+        if (previewNote) {
+          previewNote.style.display = 'inline-block';
+        }
+      } catch (err) {
+        showToast('Gagal memproses gambar: ' + err.message, 'error');
+      }
+    });
+  }
+
+  if (btnSave) {
+    btnSave.addEventListener('click', async () => {
+      if (!selectedBase64) return;
+      btnSave.disabled = true;
+      btnSave.textContent = 'Menyimpan...';
+
+      const res = await api('/api/v1/auth/avatar', {
+        method: 'POST',
+        body: JSON.stringify({ avatar_base64: selectedBase64, photo_base64: selectedBase64 })
+      });
+
+      btnSave.disabled = false;
+      btnSave.innerHTML = `${uiIcon('check', '', 18)} Simpan Foto Ini`;
+
+      if (res.ok && res.data.success) {
+        const newUrl = res.data.avatarUrl || res.data.photo_url;
+        state.user.avatarUrl = newUrl;
+        if (state.employee && state.employee.user_id === state.user.id) {
+          state.employee.photo_url = newUrl;
+        }
+        showToast('Foto profil berhasil disimpan dan diperbarui!', 'success');
+        render();
+        attachShellEvents();
+        attachViewEvents();
+      } else {
+        showToast(res.data.error || 'Gagal menyimpan foto profil.', 'error');
+      }
+    });
+  }
+
+  if (btnDel) {
+    btnDel.addEventListener('click', async () => {
+      if (!confirm('Hapus foto profil Anda?')) return;
+      btnDel.disabled = true;
+      btnDel.textContent = 'Menghapus...';
+
+      const res = await api('/api/v1/auth/avatar', {
+        method: 'DELETE'
+      });
+
+      btnDel.disabled = false;
+      btnDel.innerHTML = `${uiIcon('trash', '', 16)} Hapus Foto`;
+
+      if (res.ok && res.data.success) {
+        state.user.avatarUrl = null;
+        if (state.employee && state.employee.user_id === state.user.id) {
+          state.employee.photo_url = null;
+        }
+        showToast('Foto profil berhasil dihapus.', 'success');
+        render();
+        attachShellEvents();
+        attachViewEvents();
+      } else {
+        showToast(res.data.error || 'Gagal menghapus foto profil.', 'error');
+      }
+    });
+  }
+
+  // 2. Ganti Password Terintegrasi
+  const setupToggle = (inputId, btnId) => {
+    const input = document.getElementById(inputId);
+    const btn = document.getElementById(btnId);
+    if (input && btn) {
+      btn.addEventListener('click', () => {
+        input.type = input.type === 'password' ? 'text' : 'password';
+      });
+    }
+  };
+  setupToggle('profile-input-current-password', 'btn-peek-profile-current');
+  setupToggle('profile-input-new-password', 'btn-peek-profile-new');
+  setupToggle('profile-input-confirm-password', 'btn-peek-profile-confirm');
+
+  const pwdForm = document.getElementById('form-profile-change-password');
+  if (pwdForm) {
+    pwdForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const curPass = document.getElementById('profile-input-current-password').value;
+      const newPass = document.getElementById('profile-input-new-password').value;
+      const confPass = document.getElementById('profile-input-confirm-password').value;
+
+      if (newPass.length < 6) {
+        showToast('Password baru minimal 6 karakter.', 'error');
+        return;
+      }
+      if (newPass !== confPass) {
+        showToast('Konfirmasi password baru tidak cocok.', 'error');
+        return;
+      }
+
+      const submitBtn = document.getElementById('btn-submit-profile-pwd');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Menyimpan...';
+
+      const res = await api('/api/v1/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({
+          current_password: curPass,
+          new_password: newPass,
+          confirm_password: confPass
+        })
+      });
+
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `${uiIcon('check', '', 16)} Simpan Password Baru`;
+
+      if (res.ok && res.data.success) {
+        showToast(res.data.message || 'Password berhasil diubah!', 'success');
+        pwdForm.reset();
+      } else {
+        showToast(res.data.error || 'Gagal mengubah password.', 'error');
+      }
+    });
+  }
+
+  // 3. Logout
+  if (btnLogout) {
+    btnLogout.addEventListener('click', async () => {
+      if (!confirm('Keluar dari aplikasi Sultan Arab?')) return;
+      await api('/api/v1/auth/logout', { method: 'POST' });
+      state.user = null;
+      state.route = '#login';
+      window.location.hash = '#login';
+      render();
+    });
   }
 }
 
@@ -1388,7 +1826,7 @@ function initAttendanceView() {
   if (tabIn) tabIn.addEventListener('click', () => setAttendanceMode('in'));
   if (tabOut) tabOut.addEventListener('click', () => setAttendanceMode('out'));
 
-  // Toggle Type Kehadiran (Q05)
+  // Toggle Type Kehadiran
   if (btnTypeHadir && btnTypeKunjungan) {
     btnTypeHadir.addEventListener('click', () => {
       state.attendanceType = 'hadir';
@@ -2011,7 +2449,7 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
   `;
 };
 
-// --- Fungsi Memuat Tabel Slip Gaji Per Staf (Q06) ---
+// --- Fungsi Memuat Tabel Slip Gaji Per Staf ---
 async function loadStaffSlipsTable(tbodyId) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
@@ -2096,7 +2534,7 @@ async function loadStaffSlipsTable(tbodyId) {
 async function loadPayrollData() {
   const container = document.getElementById('payroll-runs-container');
 
-  // Load tabel slip gaji staf (Q06)
+  // Load tabel slip gaji staf
   loadStaffSlipsTable('payroll-staff-slips-tbody');
   const btnRefreshStaffPayroll = document.getElementById('btn-refresh-staff-slips-payroll');
   if (btnRefreshStaffPayroll) {
@@ -2203,7 +2641,7 @@ async function loadPayrollData() {
       btnCalc.innerHTML = `${uiIcon('zap', '', 16)} Hitung Draft`;
 
       if (res.ok) {
-        showToast('Draft payroll berhasil dihitung sesuai aturan Q05!', 'success');
+        showToast('Draft payroll berhasil dihitung sesuai data kehadiran!', 'success');
         loadPayrollData();
       } else {
         showToast(res.data.error || 'Gagal menghitung.', 'error');
@@ -2234,17 +2672,27 @@ async function loadMasterData() {
       : empRes.data.employees.map(e => `
       <tr>
         <td class="cell-title" data-label="Nama">
-          <div style="display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <strong>${escapeHtml(e.name)}</strong>
-            <button type="button" class="btn-edit-name-master" data-id="${e.id}" style="background:none; border:none; color:var(--primary-red); cursor:pointer; font-size:0.85rem; padding:0 2px;" title="Edit Nama Karyawan">✎</button>
-            <small class="cell-code">${escapeHtml(e.employee_code)}</small>
-          </div>
-          <div class="cell-note" style="display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px;">
-            <span>WA: ${escapeHtml(e.phone || 'Belum diisi')}</span>
-            <button type="button" class="btn-edit-phone-master" data-id="${e.id}" data-name="${escapeHtml(e.name)}" data-phone="${escapeHtml(e.phone || '')}" style="background:none; border:none; color:var(--primary-red); cursor:pointer; font-size:0.75rem; padding:0 2px;" title="Ubah nomor WhatsApp">✎</button>
-            <span style="color:var(--border-color, #cbd5e1);">•</span>
-            <span style="font-weight:600; color:#4f46e5;">Libur: ${escapeHtml(e.day_off || 'Ahad')}</span>
-            <button type="button" class="btn-edit-dayoff-master" data-id="${e.id}" data-name="${escapeHtml(e.name)}" data-dayoff="${escapeHtml(e.day_off || 'Ahad')}" style="background:none; border:none; color:#4f46e5; cursor:pointer; font-size:0.75rem; padding:0 2px;" title="Ubah Hari Libur Tetap">✎</button>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div class="emp-table-avatar btn-trigger-emp-photo" data-id="${e.id}" title="Klik untuk lihat / ganti foto">
+              ${(e.photo_url || e.avatar_url)
+                ? `<img src="${escapeHtml(e.photo_url || e.avatar_url)}" alt="${escapeHtml(e.name)}">`
+                : `<span>${escapeHtml(e.name ? e.name.charAt(0).toUpperCase() : 'K')}</span>`
+              }
+            </div>
+            <div>
+              <div style="display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <strong>${escapeHtml(e.name)}</strong>
+                <button type="button" class="btn-edit-name-master" data-id="${e.id}" style="background:none; border:none; color:var(--primary-red); cursor:pointer; font-size:0.85rem; padding:0 2px;" title="Edit Nama Karyawan">✎</button>
+                <small class="cell-code">${escapeHtml(e.employee_code)}</small>
+              </div>
+              <div class="cell-note" style="display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px;">
+                <span>WA: ${escapeHtml(e.phone || 'Belum diisi')}</span>
+                <button type="button" class="btn-edit-phone-master" data-id="${e.id}" data-name="${escapeHtml(e.name)}" data-phone="${escapeHtml(e.phone || '')}" style="background:none; border:none; color:var(--primary-red); cursor:pointer; font-size:0.75rem; padding:0 2px;" title="Ubah nomor WhatsApp">✎</button>
+                <span style="color:var(--border-color, #cbd5e1);">•</span>
+                <span style="font-weight:600; color:#4f46e5;">Libur: ${escapeHtml(e.day_off || 'Ahad')}</span>
+                <button type="button" class="btn-edit-dayoff-master" data-id="${e.id}" data-name="${escapeHtml(e.name)}" data-dayoff="${escapeHtml(e.day_off || 'Ahad')}" style="background:none; border:none; color:#4f46e5; cursor:pointer; font-size:0.75rem; padding:0 2px;" title="Ubah Hari Libur Tetap">✎</button>
+              </div>
+            </div>
           </div>
         </td>
         <td data-label="Jabatan">${escapeHtml(e.job_title || 'Crew Toko')}</td>
@@ -2252,6 +2700,9 @@ async function loadMasterData() {
         <td data-label="Status"><span class="badge badge-success">Aktif</span></td>
         <td class="cell-actions" data-label="Aksi">
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+            <button class="btn btn-secondary btn-sm btn-edit-photo-emp" data-id="${e.id}" title="Unggah atau ganti foto karyawan">
+              ${uiIcon('camera', '', 14)} Foto
+            </button>
             <button class="btn btn-secondary btn-sm btn-edit-name-action" data-id="${e.id}" title="Edit nama karyawan">
               ${uiIcon('edit', '', 14)} Edit Nama
             </button>
@@ -2265,6 +2716,13 @@ async function loadMasterData() {
         </td>
       </tr>
     `).join('');
+
+    document.querySelectorAll('.btn-edit-photo-emp, .btn-trigger-emp-photo').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const emp = empRes.data.employees.find(x => x.id === btn.dataset.id);
+        if (emp) openUpdateEmployeePhotoModal(emp);
+      });
+    });
 
     document.querySelectorAll('.btn-edit-name-master, .btn-edit-name-action').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -2440,7 +2898,7 @@ async function loadMyPayslips() {
 }
 
 // --- Modals ---
-// Modal Upload PDF Slip Gaji oleh Manager (Q06)
+// Modal Upload PDF Slip Gaji oleh Manager
 async function openUploadSlipPdfModal(periods = [], preselectedEmpId = null) {
   if (!periods || periods.length === 0) {
     const pRes = await api('/api/v1/payroll/periods');
@@ -3006,9 +3464,11 @@ function openDeleteEmployeeModal(emp) {
 
 function openAddEmployeeModal() {
   const modalContainer = document.getElementById('modal-container');
+  let newEmpPhotoBase64 = null;
+
   modalContainer.innerHTML = `
     <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
-      <div class="modal-card">
+      <div class="modal-card" style="max-width: 520px;">
         <div class="modal-header">
           <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
             ${uiIcon('users', '', 18)} Tambah Karyawan Baru
@@ -3017,6 +3477,30 @@ function openAddEmployeeModal() {
         </div>
         <form id="form-add-emp">
           <div class="modal-body">
+            <!-- Upload Foto Karyawan -->
+            <div class="form-group" style="text-align: center; margin-bottom: 20px;">
+              <label class="form-label" style="display: block; margin-bottom: 8px;">Foto Profil Karyawan (Opsional):</label>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                <div id="add-emp-photo-preview" class="avatar-preview-circle" style="width: 84px; height: 84px; border-radius: 50%; background: var(--bg-hover, #F1F5F9); border: 2px dashed var(--border-color, #CBD5E1); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+                  <span id="add-emp-photo-placeholder" style="color: var(--text-muted); display: flex; flex-direction: column; align-items: center; font-size: 0.72rem; gap: 2px;">
+                    ${uiIcon('camera', '', 24)}
+                    <span>Pilih Foto</span>
+                  </span>
+                  <img id="add-emp-photo-img" src="" alt="Preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <label for="add-emp-photo-file" class="btn btn-secondary btn-sm" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                    ${uiIcon('upload', '', 14)} Pilih Berkas Foto
+                  </label>
+                  <input type="file" id="add-emp-photo-file" accept="image/*" style="display: none;">
+                  <button type="button" id="btn-clear-add-photo" class="btn btn-secondary btn-sm" style="display: none; color: var(--primary-red);" title="Hapus foto terpilih">
+                    ${uiIcon('trash', '', 14)} Batal
+                  </button>
+                </div>
+                <small class="form-hint" style="margin: 0;">Maksimal 5MB. Foto akan otomatis dikompres secara optimal.</small>
+              </div>
+            </div>
+
             <div class="form-group">
               <label class="form-label">Kode Karyawan:</label>
               <input type="text" id="add-emp-code" class="form-control" placeholder="Contoh: SA-CRW-06" required>
@@ -3056,7 +3540,7 @@ function openAddEmployeeModal() {
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" id="btn-submit-add-emp" class="btn btn-primary">
               ${uiIcon('check', '', 16)} Simpan Karyawan
             </button>
           </div>
@@ -3064,6 +3548,40 @@ function openAddEmployeeModal() {
       </div>
     </div>
   `;
+
+  const photoFileInput = document.getElementById('add-emp-photo-file');
+  const photoImg = document.getElementById('add-emp-photo-img');
+  const photoPlaceholder = document.getElementById('add-emp-photo-placeholder');
+  const btnClearPhoto = document.getElementById('btn-clear-add-photo');
+
+  if (photoFileInput) {
+    photoFileInput.addEventListener('change', async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      try {
+        const compressed = await compressAndReadImage(file, 600, 600, 0.85);
+        newEmpPhotoBase64 = compressed;
+        if (photoImg && photoPlaceholder && btnClearPhoto) {
+          photoImg.src = compressed;
+          photoImg.style.display = 'block';
+          photoPlaceholder.style.display = 'none';
+          btnClearPhoto.style.display = 'inline-flex';
+        }
+      } catch (err) {
+        showToast('Gagal memproses file foto: ' + err.message, 'error');
+      }
+    });
+  }
+
+  if (btnClearPhoto) {
+    btnClearPhoto.addEventListener('click', () => {
+      newEmpPhotoBase64 = null;
+      if (photoFileInput) photoFileInput.value = '';
+      if (photoImg) { photoImg.src = ''; photoImg.style.display = 'none'; }
+      if (photoPlaceholder) photoPlaceholder.style.display = 'flex';
+      btnClearPhoto.style.display = 'none';
+    });
+  }
 
   document.getElementById('form-add-emp').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -3074,10 +3592,27 @@ function openAddEmployeeModal() {
     const branchId = document.getElementById('add-emp-branch').value;
     const dayOff = document.getElementById('add-emp-dayoff').value;
 
+    const submitBtn = document.getElementById('btn-submit-add-emp');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Menyimpan...';
+
     const res = await api('/api/v1/employees', {
       method: 'POST',
-      body: JSON.stringify({ employee_code: code, name, phone: phone.trim(), job_title: job, branch_id: branchId, day_off: dayOff, is_test_data: false })
+      body: JSON.stringify({
+        employee_code: code,
+        name,
+        phone: phone.trim(),
+        job_title: job,
+        branch_id: branchId,
+        day_off: dayOff,
+        photo_base64: newEmpPhotoBase64 || null,
+        is_test_data: false
+      })
     });
+
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = `${uiIcon('check', '', 16)} Simpan Karyawan`;
+
     if (res.ok) {
       showToast('Karyawan berhasil ditambahkan!', 'success');
       closeModal();
@@ -3121,7 +3656,7 @@ async function openRunDetailModal(runId) {
       <div style="background: var(--status-success-bg, #F0FDF4); border: 1px solid #BBF7D0; color: #166534; padding: 12px 14px; border-radius: var(--radius-sm); font-size: 0.85rem; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 8px;">
         ${uiIcon('check-circle', '', 16)}
         <div>
-          <strong>Aturan Q05 Sultan Arab:</strong> Uang makan Rp10.000 hanya dihitung untuk kehadiran fisik toko. Kunjungan luar tidak mendapatkan uang makan.
+          <strong>Ketentuan Uang Makan:</strong> Uang makan Rp10.000 hanya dihitung untuk kehadiran fisik toko. Kunjungan luar tidak mendapatkan uang makan.
         </div>
       </div>
       <div style="margin-bottom: 12px; font-size: 0.9rem;">
@@ -3588,6 +4123,317 @@ function openResetEmployeePasswordModal(emp) {
       showToast(res.data.error || 'Gagal mereset password.', 'error');
     }
   });
+}
+
+// Modal Profil User & Penggantian Foto Pribadi Mandiri
+function openUserProfileModal() {
+  const modalContainer = document.getElementById('modal-container');
+  const user = state.user || {};
+  let selectedPhotoBase64 = null;
+
+  const currentAvatar = user.avatarUrl || '';
+  const initial = (user.displayName ? user.displayName.charAt(0) : (user.loginIdentifier ? user.loginIdentifier.charAt(0) : 'U')).toUpperCase();
+
+  modalContainer.innerHTML = `
+    <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
+      <div class="modal-card" style="max-width: 480px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-red), #9E0000); color: #fff;">
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('user', '', 18)} Profil & Foto Pengguna
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+        <div class="modal-body">
+          <!-- Area Foto & Identitas -->
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 20px;">
+            <div id="user-profile-avatar-wrap" class="avatar-preview-circle" style="width: 100px; height: 100px; border-radius: 50%; background: var(--bg-hover, #F1F5F9); border: 3px solid var(--accent-gold); display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: var(--shadow-sm); margin-bottom: 12px; position: relative;">
+              ${currentAvatar 
+                ? `<img id="user-profile-avatar-img" src="${escapeHtml(currentAvatar)}" alt="Foto Profil" style="width: 100%; height: 100%; object-fit: cover;">`
+                : `<span id="user-profile-avatar-initial" style="font-size: 2.2rem; font-weight: 700; color: var(--primary-red);">${escapeHtml(initial)}</span>`
+              }
+            </div>
+            
+            <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin: 0 0 4px 0;">
+              ${escapeHtml(user.displayName || 'Pengguna')}
+            </h4>
+            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px;">
+              <span>ID: <code>${escapeHtml(user.loginIdentifier || '-')}</code></span>
+              <span>•</span>
+              <span class="badge ${user.isOwner ? 'badge-danger' : (user.isManager ? 'badge-warning' : 'badge-info')}">
+                ${user.isOwner ? 'Owner' : (user.isManager ? 'Manager' : (user.role ? user.role.toUpperCase() : 'Staff'))}
+              </span>
+            </div>
+            ${user.branchName ? `
+              <div style="font-size: 0.8rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px;">
+                ${uiIcon('building', '', 14)} ${escapeHtml(user.branchName)}
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Upload / Ganti Foto Profil Box -->
+          <div style="background: var(--bg-main, #F8FAFC); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px;">
+            <label class="form-label" style="display: block; font-weight: 700; margin-bottom: 8px;">Ganti Foto Profil Anda:</label>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <label for="input-user-avatar-file" class="btn btn-secondary btn-sm" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                ${uiIcon('camera', '', 14)} Pilih Foto Baru
+              </label>
+              <input type="file" id="input-user-avatar-file" accept="image/*" style="display: none;">
+              
+              <button type="button" id="btn-save-user-avatar" class="btn btn-primary btn-sm" style="display: none;" disabled>
+                ${uiIcon('check', '', 14)} Simpan Foto
+              </button>
+
+              ${currentAvatar ? `
+                <button type="button" id="btn-delete-user-avatar" class="btn btn-secondary btn-sm" style="color: var(--primary-red); border-color: #FECACA;" title="Hapus foto profil">
+                  ${uiIcon('trash', '', 14)} Hapus Foto
+                </button>
+              ` : ''}
+            </div>
+            <small class="form-hint" style="margin-top: 8px; display: block;">Foto yang diunggah akan otomatis dikompresi agar hemat kuota dan cepat dimuat.</small>
+          </div>
+
+          <!-- Opsi Keamanan Akun -->
+          <div style="border-top: 1px solid var(--border-color); padding-top: 14px;">
+            <button type="button" id="btn-profile-to-change-pwd" class="btn btn-secondary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+              ${uiIcon('key', '', 16)} Ubah Password Akun
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const fileInput = document.getElementById('input-user-avatar-file');
+  const avatarWrap = document.getElementById('user-profile-avatar-wrap');
+  const btnSaveAvatar = document.getElementById('btn-save-user-avatar');
+  const btnDeleteAvatar = document.getElementById('btn-delete-user-avatar');
+  const btnChangePwd = document.getElementById('btn-profile-to-change-pwd');
+
+  if (fileInput) {
+    fileInput.addEventListener('change', async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      try {
+        const compressed = await compressAndReadImage(file, 600, 600, 0.85);
+        selectedPhotoBase64 = compressed;
+        if (avatarWrap) {
+          avatarWrap.innerHTML = `<img src="${compressed}" alt="Preview Foto" style="width: 100%; height: 100%; object-fit: cover;">`;
+        }
+        if (btnSaveAvatar) {
+          btnSaveAvatar.style.display = 'inline-flex';
+          btnSaveAvatar.disabled = false;
+        }
+      } catch (err) {
+        showToast('Gagal memproses gambar: ' + err.message, 'error');
+      }
+    });
+  }
+
+  if (btnSaveAvatar) {
+    btnSaveAvatar.addEventListener('click', async () => {
+      if (!selectedPhotoBase64) return;
+      btnSaveAvatar.disabled = true;
+      btnSaveAvatar.textContent = 'Menyimpan...';
+
+      const res = await api('/api/v1/auth/avatar', {
+        method: 'POST',
+        body: JSON.stringify({ avatar_base64: selectedPhotoBase64 })
+      });
+
+      btnSaveAvatar.disabled = false;
+      btnSaveAvatar.innerHTML = `${uiIcon('check', '', 14)} Simpan Foto`;
+
+      if (res.ok && res.data.success) {
+        state.user.avatarUrl = res.data.avatarUrl;
+        showToast('Foto profil berhasil diperbarui!', 'success');
+        closeModal();
+        render();
+        attachShellEvents();
+        attachViewEvents();
+      } else {
+        showToast(res.data.error || 'Gagal menyimpan foto profil.', 'error');
+      }
+    });
+  }
+
+  if (btnDeleteAvatar) {
+    btnDeleteAvatar.addEventListener('click', async () => {
+      if (!confirm('Hapus foto profil Anda?')) return;
+      btnDeleteAvatar.disabled = true;
+      btnDeleteAvatar.textContent = 'Menghapus...';
+
+      const res = await api('/api/v1/auth/avatar', {
+        method: 'DELETE'
+      });
+
+      btnDeleteAvatar.disabled = false;
+      btnDeleteAvatar.innerHTML = `${uiIcon('trash', '', 14)} Hapus Foto`;
+
+      if (res.ok && res.data.success) {
+        state.user.avatarUrl = null;
+        showToast('Foto profil berhasil dihapus.', 'success');
+        closeModal();
+        render();
+        attachShellEvents();
+        attachViewEvents();
+      } else {
+        showToast(res.data.error || 'Gagal menghapus foto profil.', 'error');
+      }
+    });
+  }
+
+  if (btnChangePwd) {
+    btnChangePwd.addEventListener('click', () => {
+      closeModal();
+      openChangePasswordModal();
+    });
+  }
+}
+
+// Modal Kelola Foto Karyawan oleh Pengelola (Owner & Manager)
+function openUpdateEmployeePhotoModal(emp) {
+  const modalContainer = document.getElementById('modal-container');
+  let selectedPhotoBase64 = null;
+  const currentPhoto = emp.photo_url || emp.avatar_url || '';
+  const initial = (emp.name ? emp.name.charAt(0) : 'K').toUpperCase();
+
+  modalContainer.innerHTML = `
+    <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
+      <div class="modal-card" style="max-width: 480px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-red), #9E0000); color: #fff;">
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('camera', '', 18)} Foto Karyawan
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="background: var(--bg-hover, #F8FAFC); border: 1px solid var(--border-color); padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 16px;">
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main);">${escapeHtml(emp.name)}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+              <span class="cell-code">${escapeHtml(emp.employee_code)}</span> • ${escapeHtml(emp.job_title || 'Crew Toko')} • ${escapeHtml(emp.branch_name || 'Cabang')}
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 20px;">
+            <div id="emp-photo-preview-wrap" class="avatar-preview-circle" style="width: 110px; height: 110px; border-radius: 50%; background: var(--bg-hover, #F1F5F9); border: 3px solid var(--accent-gold); display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: var(--shadow-sm); margin-bottom: 12px; position: relative;">
+              ${currentPhoto
+                ? `<img id="emp-photo-preview-img" src="${escapeHtml(currentPhoto)}" alt="Foto Karyawan" style="width: 100%; height: 100%; object-fit: cover;">`
+                : `<span style="font-size: 2.5rem; font-weight: 700; color: var(--primary-red);">${escapeHtml(initial)}</span>`
+              }
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+              <label for="input-emp-photo-file" class="btn btn-secondary btn-sm" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                ${uiIcon('upload', '', 14)} Pilih Foto Baru
+              </label>
+              <input type="file" id="input-emp-photo-file" accept="image/*" style="display: none;">
+
+              <button type="button" id="btn-save-emp-photo" class="btn btn-primary btn-sm" style="display: none;" disabled>
+                ${uiIcon('check', '', 14)} Simpan Foto
+              </button>
+
+              ${currentPhoto ? `
+                <button type="button" id="btn-delete-emp-photo" class="btn btn-secondary btn-sm" style="color: var(--primary-red); border-color: #FECACA;" title="Hapus foto karyawan">
+                  ${uiIcon('trash', '', 14)} Hapus Foto
+                </button>
+              ` : ''}
+            </div>
+            <small class="form-hint" style="margin-top: 8px;">Maksimal 5MB. Foto akan otomatis dikompresi agar optimal.</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const fileInput = document.getElementById('input-emp-photo-file');
+  const previewWrap = document.getElementById('emp-photo-preview-wrap');
+  const btnSave = document.getElementById('btn-save-emp-photo');
+  const btnDelete = document.getElementById('btn-delete-emp-photo');
+
+  if (fileInput) {
+    fileInput.addEventListener('change', async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      try {
+        const compressed = await compressAndReadImage(file, 600, 600, 0.85);
+        selectedPhotoBase64 = compressed;
+        if (previewWrap) {
+          previewWrap.innerHTML = `<img src="${compressed}" alt="Preview Foto" style="width: 100%; height: 100%; object-fit: cover;">`;
+        }
+        if (btnSave) {
+          btnSave.style.display = 'inline-flex';
+          btnSave.disabled = false;
+        }
+      } catch (err) {
+        showToast('Gagal memproses file foto: ' + err.message, 'error');
+      }
+    });
+  }
+
+  if (btnSave) {
+    btnSave.addEventListener('click', async () => {
+      if (!selectedPhotoBase64) return;
+      btnSave.disabled = true;
+      btnSave.textContent = 'Menyimpan...';
+
+      const res = await api(`/api/v1/employees/${emp.id}/photo`, {
+        method: 'PATCH',
+        body: JSON.stringify({ photo_base64: selectedPhotoBase64 })
+      });
+
+      btnSave.disabled = false;
+      btnSave.innerHTML = `${uiIcon('check', '', 14)} Simpan Foto`;
+
+      if (res.ok && res.data.success) {
+        showToast('Foto karyawan berhasil disimpan!', 'success');
+        if (state.user && state.user.id === emp.user_id) {
+          state.user.avatarUrl = res.data.photo_url;
+          render();
+          attachShellEvents();
+          attachViewEvents();
+        }
+        closeModal();
+        loadMasterData();
+      } else {
+        showToast(res.data.error || 'Gagal menyimpan foto karyawan.', 'error');
+      }
+    });
+  }
+
+  if (btnDelete) {
+    btnDelete.addEventListener('click', async () => {
+      if (!confirm(`Hapus foto untuk karyawan ${emp.name}?`)) return;
+      btnDelete.disabled = true;
+      btnDelete.textContent = 'Menghapus...';
+
+      const res = await api(`/api/v1/employees/${emp.id}/photo`, {
+        method: 'DELETE'
+      });
+
+      btnDelete.disabled = false;
+      btnDelete.innerHTML = `${uiIcon('trash', '', 14)} Hapus Foto`;
+
+      if (res.ok && res.data.success) {
+        showToast('Foto karyawan berhasil dihapus.', 'success');
+        if (state.user && state.user.id === emp.user_id) {
+          state.user.avatarUrl = null;
+          render();
+          attachShellEvents();
+          attachViewEvents();
+        }
+        closeModal();
+        loadMasterData();
+      } else {
+        showToast(res.data.error || 'Gagal menghapus foto karyawan.', 'error');
+      }
+    });
+  }
 }
 
 // --- Utilities ---

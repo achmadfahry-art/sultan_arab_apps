@@ -27,14 +27,14 @@ Sistem ini dirancang tanpa ketergantungan pihak ketiga yang mengikat (database m
 
 ## 🌟 Fitur Utama & Keputusan Bisnis (Q01–Q11)
 
-### 🏢 1. Multi-Cabang & Validasi Lokasi Geofencing (Q01)
+### 🏢 1. Multi-Cabang & Validasi Lokasi Geofencing
 - Mendukung cabang aktif:
   - **Head Quarter Bekasi (Pusat Grosir)**: Titik koordinat resmi dengan radius 150 meter.
   - **Cabang Cikarang**: Titik koordinat resmi dengan radius 150 meter.
 - **Tombol `+ Cabang` Dinamis**: Pengelola (Owner/Manager) dapat menambahkan cabang baru langsung lewat dashboard pengelola lengkap dengan input koordinat / Google Maps, dan shift crew toko otomatis terbit.
 - Perhitungan jarak akurat menggunakan formula **Haversine** di sisi server untuk memvalidasi presensi staf.
 
-### ⏰ 2. Shift Mandiri & Toleransi Keterlambatan (Q02)
+### ⏰ 2. Shift Mandiri & Toleransi Keterlambatan
 - Staf kantor dan admin bekerja dengan jam kerja reguler (**08:00 – 17:00 WIB**).
 - Crew toko memilih shift kerja secara mandiri saat absen masuk:
   - **Shift Pagi**: 08:00 – 17:00 WIB
@@ -42,16 +42,16 @@ Sistem ini dirancang tanpa ketergantungan pihak ketiga yang mengikat (database m
 - Toleransi keterlambatan **15 menit** otomatis diperhitungkan sistem.
 - **Wajib hanya absen masuk**, absen pulang bersifat fleksibel/opsional.
 
-### 📸 3. Kamera Multi-Mode & Optimasi Otomatis (Q03)
+### 📸 3. Kamera Multi-Mode & Optimasi Otomatis
 - **Live Stream Viewfinder**: Pratinjau langsung kamera dengan fitur balik kamera depan (*selfie*) dan belakang (*toko*) pada koneksi aman HTTPS.
 - **Pemicu Kamera Bawaan HP**: Dukungan pemicu kamera bawaan Android & iOS (`capture="user"` / `capture="environment"`) yang 100% berfungsi lancar di peramban HP bahkan lewat jaringan HTTP IP tanpa terblokir izin browser.
 - **Auto-Kompresi**: Foto beresolusi tinggi otomatis dioptimalkan ke resolusi optimal (maks. 1280x960 piksel, ~150KB) sebelum diunggah sehingga proses absen instan dan hemat kuota.
 
-### 🍱 4. Uang Makan & Kunjungan Luar (Q05)
+### 🍱 4. Uang Makan & Kunjungan Luar
 - **Uang makan Rp10.000** hanya diberikan jika staf hadir secara fisik di area toko/kantor.
 - Disediakan tombol **"Kunjungan Luar"** bagi staf yang bertugas di luar toko: absen berhasil tercatat tanpa batasan radius, namun **tidak mendapatkan uang makan**.
 
-### 📄 5. Pusat Unggah Slip Gaji PDF Pengelola (Q06 & Q07)
+### 📄 5. Pusat Unggah Slip Gaji PDF Pengelola
 - Disediakan khusus di **Dashboard Pengelola (`#management`) ➔ Tab "Slip Gaji PDF & Payroll"** untuk **Manager (Fauzi)** dan **Owner**.
 - Manager/Owner dapat mengunggah berkas PDF untuk masing-masing nama staf, mengganti berkas, dan langsung mengirimkan notifikasi via WhatsApp.
 
@@ -59,14 +59,14 @@ Sistem ini dirancang tanpa ketergantungan pihak ketiga yang mengikat (database m
 - Layar **Slip Gaji (`#payslips`)** untuk karyawan/staf didesain sangat bersih: hanya menampilkan periode gaji, tanggal terbit, dan tombol utama **`📥 Unduh Slip Gaji (PDF)`**.
 - Tidak ada kalkulasi matematis membingungkan bagi staf—dokumen resmi PDF dari pengelola menjadi satu-satunya acuan.
 
-### 📲 7. Integrasi Notifikasi WhatsApp (Q011)
+### 📲 7. Integrasi Notifikasi WhatsApp
 - Tautan pesan instan WhatsApp (`api.whatsapp.com/send?phone=...`) otomatis tersedia setelah berkas slip PDF staf diunggah oleh pengelola.
 
-### 🛡️ 8. Anti Duplikasi & Retensi Foto 7 Hari (Q09)
+### 🛡️ 8. Anti Duplikasi & Retensi Foto 7 Hari
 - Proteksi idempotency token mencegah pencatatan presensi ganda akibat penekanan tombol berulang.
 - Skrip retensi otomatis `scripts/cleanup-old-photos.js` membersihkan berkas foto lawas yang melewati 7 hari untuk menghemat ruang penyimpanan.
 
-### 🌐 9. Akses Jaringan & Domain Produksi (Q10)
+### 🌐 9. Akses Jaringan & Domain Produksi
 - **Domain Resmi Publik (HTTPS Aktif)**: **[https://absen.sultanarab.store](https://absen.sultanarab.store)**
   - Menggunakan Cloudflare Tunnel (bebas kendala IP dinamis/CGNAT, SSL gratis, aman untuk kamera & GPS).
 - **Akses Jaringan Privat (Tailscale)**:
@@ -76,7 +76,7 @@ Sistem ini dirancang tanpa ketergantungan pihak ketiga yang mengikat (database m
 
 ---
 
-## 👥 Roster & Akun Pengguna Resmi (Q04)
+## 👥 Roster & Akun Pengguna Resmi
 
 Semua akun terdaftar menggunakan kata sandi bawaan (default: `password123`, Fauzi: `fauzi123`, Owner: `owner123`): 
 
@@ -93,10 +93,10 @@ Semua akun terdaftar menggunakan kata sandi bawaan (default: `password123`, Fauz
 | **Refan** | Crew Toko | `refan` | Cabang Cikarang | Selasa |
 | **Owner** | **Owner Sultan Arab** | `owner` | Seluruh Cabang | - |
 
-### 🔑 Pengelolaan Password & Keamanan
-1. **Ubah Password Mandiri (Setiap Akun)**:
-   - Tombol `🔑 Ubah Password` tersedia langsung di **Beranda (Quick Card)**, **Header Atas**, dan **Sidebar Bawah**.
-   - Setiap pengguna dapat mengganti kata sandi mereka sendiri kapan saja dengan memasukkan password lama dan password baru (minimal 6 karakter).
+### 🔑 Pengelolaan Profil, Foto & Keamanan Akun
+1. **Edit Profil Mandiri (Foto & Kata Sandi)**:
+   - Menu `👤 Edit Profil` tersedia langsung di **Navigasi Bawah Mobile**, **Header Atas**, **Sidebar Desktop**, dan **Beranda (Quick Card)**.
+   - Pengguna dapat mengunggah/mengganti foto profil (dari kamera ponsel maupun galeri) dengan kompresi otomatis, melihat identitas akun & cabang penempatan, serta mengganti kata sandi akun secara mandiri dalam satu tampilan terpadu yang responsif.
 2. **Reset Password oleh Pengelola (Preventif Lupa Password)**:
    - Terletak di **Dashboard Pengelola** → Tab **👥 Karyawan & Cabang**.
    - Pada baris tiap karyawan terdapat tombol `🔑 Reset Password`.

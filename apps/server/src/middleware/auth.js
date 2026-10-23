@@ -57,7 +57,7 @@ async function authenticate(req, res, next) {
 
     // Fetch employee data if linked
     const empRes = await db.query(
-      `SELECT e.id, e.employee_code, e.name, e.job_title,
+      `SELECT e.id, e.employee_code, e.name, e.job_title, e.photo_url,
               ea.branch_id, b.name as branch_name, b.code as branch_code
        FROM employees e
        LEFT JOIN employee_assignments ea ON e.id = ea.employee_id AND ea.is_primary = true
@@ -81,7 +81,7 @@ async function authenticate(req, res, next) {
       loginIdentifier: row.login_identifier,
       displayName: row.display_name,
       phone: row.phone,
-      avatarUrl: row.avatar_url,
+      avatarUrl: row.avatar_url || (employee ? employee.photo_url : null),
       roles,
       isOwner: roles.includes('owner'),
       isManager: roles.includes('manager'),

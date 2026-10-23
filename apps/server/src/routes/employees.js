@@ -1,15 +1,40 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
 const db = require('../db');
 const { requireAuth, requireRoles } = require('../middleware/auth');
 const { logAudit } = require('../utils/audit');
+
+const UPLOAD_ROOT = process.env.UPLOAD_ROOT || path.resolve(__dirname, '../../../storage');
+const AVATARS_DIR = path.join(UPLOAD_ROOT, 'avatars');
+
+function saveAvatarBase64(base64Data, prefix = 'emp') {
+  if (!base64Data) return null;
+  try {
+    const cleanData = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(cleanData, 'base64');
+    if (!fs.existsSync(AVATARS_DIR)) {
+      fs.mkdirSync(AVATARS_DIR, { recursive: true });
+    }
+    const filename = `${prefix}_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}.jpg`;
+    const fullPath = path.join(AVATARS_DIR, filename);
+    fs.writeFileSync(fullPath, buffer);
+    return `/storage/avatars/${filename}`;
+  } catch (err) {
+    console.error('[Save Employee Avatar Error]', err.message);
+    return null;
+  }
+}
 
 // GET /api/v1/employees
 router.get('/', requireAuth, async (req, res) => {
   try {
     const result = await db.query(`
       SELECT e.id, e.user_id, e.employee_code, e.name, e.job_title, e.hire_date, e.active, e.is_test_data,
+             COALESCE(e.photo_url, p.avatar_url) as photo_url,
+             COALESCE(e.photo_url, p.avatar_url) as avatar_url,
              COALESCE(e.phone, p.phone) as phone,
              COALESCE(e.day_off, 'Ahad') as day_off,
              ea.branch_id, b.name as branch_name, b.code as branch_code,
@@ -23,7 +48,7 @@ router.get('/', requireAuth, async (req, res) => {
       LEFT JOIN employee_assignments ea ON e.id = ea.employee_id AND ea.is_primary = true
       LEFT JOIN branches b ON ea.branch_id = b.id
       WHERE e.active = true
-      GROUP BY e.id, ea.branch_id, b.name, b.code, u.login_identifier, p.phone, e.day_off
+      GROUP BY e.id, ea.branch_id, b.name, b.code, u.login_identifier, p.phone, p.avatar_url, e.day_off, e.photo_url
       ORDER BY e.name ASC;
     `);
 
@@ -39,7 +64,7 @@ router.get('/', requireAuth, async (req, res) => {
 
 // POST /api/v1/employees (Owner & Manager only)
 router.post('/', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
-  const { employee_code, name, job_title, hire_date, branch_id, is_test_data, phone, day_off } = req.body;
+  const { employee_code, name, job_title, hire_date, branch_id, is_test_data, phone, day_off, photo_base64 } = req.body;
   if (!employee_code || !name) {
     return res.status(400).json({ success: false, error: 'Kode karyawan dan nama wajib diisi.' });
   }
@@ -50,10 +75,15 @@ router.post('/', requireAuth, requireRoles(['owner', 'manager']), async (req, re
 
     const cleanPhone = phone ? phone.trim() : null;
     const cleanDayOff = day_off ? day_off.trim() : 'Ahad';
+    const cleanCode = employee_code.trim();
+    const cleanName = name.trim();
+
+    // Simpan foto jika dilampirkan
+    const photoUrl = photo_base64 ? saveAvatarBase64(photo_base64, `emp_${cleanCode.toLowerCase().replace(/[^a-z0-9]/g, '')}`) : null;
 
     // 1. Buat akun user dan profile otomatis agar staf baru bisa login & direset password
     let newUserId = null;
-    const baseUsername = employee_code.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const baseUsername = cleanCode.toLowerCase().replace(/[^a-z0-9]/g, '');
     const uCheck = await client.query('SELECT id FROM users WHERE LOWER(login_identifier) = LOWER($1)', [baseUsername]);
     let username = baseUsername;
     if (uCheck.rows.length > 0) {
@@ -71,9 +101,9 @@ router.post('/', requireAuth, requireRoles(['owner', 'manager']), async (req, re
 
     // Profile
     await client.query(
-      `INSERT INTO profiles (id, display_name, phone, active)
-       VALUES ($1, $2, $3, true);`,
-      [newUserId, name.trim(), cleanPhone]
+      `INSERT INTO profiles (id, display_name, phone, avatar_url, active)
+       VALUES ($1, $2, $3, $4, true);`,
+      [newUserId, cleanName, cleanPhone, photoUrl]
     );
 
     // Role karyawan
@@ -94,10 +124,10 @@ router.post('/', requireAuth, requireRoles(['owner', 'manager']), async (req, re
 
     // 2. Insert ke employees
     const empRes = await client.query(
-      `INSERT INTO employees (user_id, employee_code, name, job_title, hire_date, is_test_data, phone, day_off)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO employees (user_id, employee_code, name, job_title, hire_date, is_test_data, phone, day_off, photo_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *;`,
-      [newUserId, employee_code.trim(), name.trim(), job_title || 'Crew Toko', hire_date || new Date(), is_test_data === true, cleanPhone, cleanDayOff]
+      [newUserId, cleanCode, cleanName, job_title || 'Crew Toko', hire_date || new Date(), is_test_data === true, cleanPhone, cleanDayOff, photoUrl]
     );
     const newEmp = empRes.rows[0];
 
@@ -348,6 +378,99 @@ router.delete('/:id', requireAuth, requireRoles(['owner', 'manager']), async (re
   } catch (err) {
     console.error('[Delete Employee Error]', err);
     return res.status(500).json({ success: false, error: 'Gagal menghapus karyawan: ' + err.message });
+  }
+});
+
+// PATCH /api/v1/employees/:id/photo (Owner & Manager)
+router.patch('/:id/photo', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
+  const { photo_base64 } = req.body;
+  if (!photo_base64) {
+    return res.status(400).json({ success: false, error: 'Foto tidak boleh kosong.' });
+  }
+
+  try {
+    const empLookup = await db.query('SELECT * FROM employees WHERE id = $1', [req.params.id]);
+    if (empLookup.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Karyawan tidak ditemukan.' });
+    }
+    const emp = empLookup.rows[0];
+
+    const photoUrl = saveAvatarBase64(photo_base64, `emp_${emp.employee_code.toLowerCase().replace(/[^a-z0-9]/g, '')}`);
+    if (!photoUrl) {
+      return res.status(500).json({ success: false, error: 'Gagal menyimpan file foto karyawan.' });
+    }
+
+    const empRes = await db.query(
+      `UPDATE employees SET photo_url = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *;`,
+      [photoUrl, req.params.id]
+    );
+    const updatedEmp = empRes.rows[0];
+
+    if (updatedEmp.user_id) {
+      await db.query(
+        `UPDATE profiles SET avatar_url = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2;`,
+        [photoUrl, updatedEmp.user_id]
+      );
+    }
+
+    await logAudit({
+      actorId: req.user.id,
+      action: 'UPDATE_EMPLOYEE_PHOTO',
+      entityType: 'employees',
+      entityId: updatedEmp.id,
+      changes: { photo_url: photoUrl },
+      ipAddress: req.ip
+    });
+
+    return res.json({
+      success: true,
+      message: 'Foto karyawan berhasil diperbarui.',
+      photo_url: photoUrl,
+      employee: updatedEmp
+    });
+  } catch (err) {
+    console.error('[Update Employee Photo Error]', err);
+    return res.status(500).json({ success: false, error: 'Gagal memperbarui foto karyawan: ' + err.message });
+  }
+});
+
+// DELETE /api/v1/employees/:id/photo (Owner & Manager)
+router.delete('/:id/photo', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
+  try {
+    const empLookup = await db.query('SELECT * FROM employees WHERE id = $1', [req.params.id]);
+    if (empLookup.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Karyawan tidak ditemukan.' });
+    }
+    const emp = empLookup.rows[0];
+
+    await db.query(
+      `UPDATE employees SET photo_url = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1;`,
+      [req.params.id]
+    );
+
+    if (emp.user_id) {
+      await db.query(
+        `UPDATE profiles SET avatar_url = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1;`,
+        [emp.user_id]
+      );
+    }
+
+    await logAudit({
+      actorId: req.user.id,
+      action: 'DELETE_EMPLOYEE_PHOTO',
+      entityType: 'employees',
+      entityId: emp.id,
+      changes: { photo_url: null },
+      ipAddress: req.ip
+    });
+
+    return res.json({
+      success: true,
+      message: 'Foto karyawan berhasil dihapus.'
+    });
+  } catch (err) {
+    console.error('[Delete Employee Photo Error]', err);
+    return res.status(500).json({ success: false, error: 'Gagal menghapus foto karyawan: ' + err.message });
   }
 });
 

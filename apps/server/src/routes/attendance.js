@@ -37,7 +37,7 @@ router.post('/check-in', requireAuth, async (req, res) => {
   const {
     branch_id,
     shift_id,
-    attendance_type, // 'hadir' atau 'kunjungan_luar' (Q05)
+    attendance_type, // 'hadir' atau 'kunjungan_luar'
     latitude,
     longitude,
     accuracy_m,
@@ -88,7 +88,7 @@ router.post('/check-in', requireAuth, async (req, res) => {
   const branchRes = await db.query(`SELECT * FROM branches WHERE id = $1`, [targetBranchId]);
   const branch = branchRes.rows[0] || {};
 
-  // Tipe Absensi (Q05): 'kunjungan_luar' vs 'hadir'
+  // Tipe Absensi: 'kunjungan_luar' vs 'hadir'
   const isKunjunganLuar = attendance_type === 'kunjungan_luar';
   const isMealEligible = !isKunjunganLuar; // Kunjungan Luar TIDAK dapat uang makan
 
@@ -107,7 +107,7 @@ router.post('/check-in', requireAuth, async (req, res) => {
     isWithinRadius = distanceM !== null && distanceM <= (branch.radius_m || 150);
   }
 
-  // Cek Shift & Toleransi Terlambat 15 Menit (Q02)
+  // Cek Shift & Toleransi Terlambat 15 Menit
   let initialStatus = 'present';
   let chosenShiftId = shift_id || null;
   if (chosenShiftId) {
@@ -237,7 +237,7 @@ router.post('/check-in', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/v1/attendance/check-out (Opsional / Tidak Wajib sesuai Q02)
+// POST /api/v1/attendance/check-out (Opsional / Tidak Wajib)
 router.post('/check-out', requireAuth, async (req, res) => {
   const {
     branch_id,
@@ -429,7 +429,7 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/v1/attendance/monitoring (Owner & Manager sesuai Q07)
+// GET /api/v1/attendance/monitoring (Owner & Manager)
 router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'supervisor']), async (req, res) => {
   const { date, branch_id } = req.query;
   const targetDate = date || new Date().toISOString().split('T')[0];
@@ -497,7 +497,7 @@ router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'superv
   }
 });
 
-// POST /api/v1/attendance/adjustments (Owner & Manager only sesuai Q07)
+// POST /api/v1/attendance/adjustments (Owner & Manager only)
 router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
   const { session_id, employee_id, work_date, branch_id, new_shift_id, new_status, reason } = req.body;
   if (!reason) {

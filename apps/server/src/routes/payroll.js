@@ -100,7 +100,7 @@ router.get('/components', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/v1/payroll/commissions (Owner & Manager sesuai Q07)
+// GET /api/v1/payroll/commissions (Owner & Manager)
 router.get('/commissions', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
   const { period_id, employee_id } = req.query;
   try {
@@ -134,7 +134,7 @@ router.get('/commissions', requireAuth, requireRoles(['owner', 'manager']), asyn
   }
 });
 
-// POST /api/v1/payroll/commissions (Input Manual Komisi Sales - Owner & Manager sesuai Q07)
+// POST /api/v1/payroll/commissions (Input Manual Komisi Sales - Owner & Manager)
 router.post('/commissions', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
   const { employee_id, period_id, amount, note } = req.body;
   if (!employee_id || !period_id || amount === undefined) {
@@ -165,7 +165,7 @@ router.post('/commissions', requireAuth, requireRoles(['owner', 'manager']), asy
   }
 });
 
-// GET /api/v1/payroll/staff-slips (Daftar Seluruh Staf & Status Slip PDF untuk Manager & Owner - Sesuai Q06)
+// GET /api/v1/payroll/staff-slips (Daftar Seluruh Staf & Status Slip PDF untuk Manager & Owner)
 router.get('/staff-slips', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
   try {
     const result = await db.query(`
@@ -212,7 +212,7 @@ router.get('/staff-slips', requireAuth, requireRoles(['owner', 'manager']), asyn
   }
 });
 
-// POST /api/v1/payroll/upload-slip (Upload Slip Gaji PDF oleh Manager/Owner - Sesuai Q06)
+// POST /api/v1/payroll/upload-slip (Upload Slip Gaji PDF oleh Manager/Owner)
 router.post('/upload-slip', requireAuth, requireRoles(['owner', 'manager']), upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, error: 'Berkas PDF slip gaji wajib diunggah.' });
@@ -253,7 +253,7 @@ router.post('/upload-slip', requireAuth, requireRoles(['owner', 'manager']), upl
 
     const payslip = result.rows[0];
 
-    // Ambil info karyawan untuk notifikasi WhatsApp (Q011)
+    // Ambil info karyawan untuk notifikasi WhatsApp
     const empRes = await db.query(
       `SELECT e.name, COALESCE(e.phone, p.phone) as phone, pp.label as period_label 
        FROM employees e 
@@ -326,7 +326,7 @@ router.get('/slips/:id/download', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/v1/payroll/runs/calculate (Draft Payroll dengan Aturan Q05 & Q06)
+// POST /api/v1/payroll/runs/calculate (Draft Payroll Otomatis)
 router.post('/runs/calculate', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
   const { period_id } = req.body;
   if (!period_id) {
@@ -352,7 +352,7 @@ router.post('/runs/calculate', requireAuth, requireRoles(['owner', 'manager']), 
 
     const runRes = await client.query(
       `INSERT INTO payroll_runs (period_id, version, status, created_by, notes)
-       VALUES ($1, $2, 'draft', $3, 'Draft kalkulasi otomatis (Aturan Q05: Hadir dapat uang makan, kunjungan luar tidak dapat)')
+       VALUES ($1, $2, 'draft', $3, 'Draft kalkulasi otomatis (Kehadiran fisik toko berhak uang makan, kunjungan luar tidak berhak)')
        RETURNING *;`,
       [period_id, nextVersion, req.user.id]
     );
@@ -364,7 +364,7 @@ router.post('/runs/calculate', requireAuth, requireRoles(['owner', 'manager']), 
     const itemsSummary = [];
 
     for (const emp of employees) {
-      // 1. Hitung hari kehadiran yang berhak uang makan (Q05: Hadir toko dapat uang makan, Kunjungan luar TIDAK)
+      // 1. Hitung hari kehadiran yang berhak uang makan (Hadir toko dapat uang makan, Kunjungan luar TIDAK)
       const attHadirRes = await client.query(
         `SELECT COUNT(DISTINCT s.work_date) as total_hadir_uang_makan
          FROM attendance_sessions s
@@ -425,7 +425,7 @@ router.post('/runs/calculate', requireAuth, requireRoles(['owner', 'manager']), 
             uangMakanRate,
             totalUangMakan,
             totalKomisi,
-            rules: 'Q05 Applied: Uang makan Rp10.000 hanya untuk absensi hadir'
+            rules: 'Uang makan Rp10.000 hanya untuk absensi hadir fisik toko'
           })
         ]
       );
@@ -436,7 +436,7 @@ router.post('/runs/calculate', requireAuth, requireRoles(['owner', 'manager']), 
         `INSERT INTO payroll_item_lines (item_id, name, kind, quantity, rate, amount, source_reference)
          VALUES 
          ($1, 'Gaji Pokok', 'earning', 1, $2, $2, 'Standar Gaji'),
-         ($1, 'Uang Makan (Hadir Toko)', 'earning', $3, $4, $5, 'Kehadiran berhak uang makan (Q05)'),
+         ($1, 'Uang Makan (Hadir Toko)', 'earning', $3, $4, $5, 'Kehadiran berhak uang makan'),
          ($1, 'Komisi Sales Manual', 'earning', 1, $6, $6, 'Input Manual Manager')`,
         [itemId, gapokNominal, totalHadirUangMakan, uangMakanRate, totalUangMakan, totalKomisi]
       );
@@ -464,7 +464,7 @@ router.post('/runs/calculate', requireAuth, requireRoles(['owner', 'manager']), 
 
     return res.status(201).json({
       success: true,
-      message: 'Draft kalkulasi payroll berhasil dibuat sesuai aturan kehadiran Q05.',
+      message: 'Draft kalkulasi payroll berhasil dibuat sesuai data kehadiran.',
       run: {
         id: run.id,
         periodId: period_id,
@@ -543,7 +543,7 @@ router.get('/runs/:id', requireAuth, requireRoles(['owner', 'manager']), async (
   }
 });
 
-// POST /api/v1/payroll/runs/:id/finalize (Owner Only sesuai Q07)
+// POST /api/v1/payroll/runs/:id/finalize (Owner Only)
 router.post('/runs/:id/finalize', requireAuth, requireRoles(['owner']), async (req, res) => {
   const { id } = req.params;
 

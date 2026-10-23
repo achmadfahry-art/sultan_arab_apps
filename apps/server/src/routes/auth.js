@@ -2,9 +2,32 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
 const db = require('../db');
 const { hashToken, requireAuth, requireRoles } = require('../middleware/auth');
 const { logAudit } = require('../utils/audit');
+
+const UPLOAD_ROOT = process.env.UPLOAD_ROOT || path.resolve(__dirname, '../../../storage');
+const AVATARS_DIR = path.join(UPLOAD_ROOT, 'avatars');
+
+function saveAvatarBase64(base64Data, prefix = 'user') {
+  if (!base64Data) return null;
+  try {
+    const cleanData = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(cleanData, 'base64');
+    if (!fs.existsSync(AVATARS_DIR)) {
+      fs.mkdirSync(AVATARS_DIR, { recursive: true });
+    }
+    const filename = `${prefix}_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}.jpg`;
+    const fullPath = path.join(AVATARS_DIR, filename);
+    fs.writeFileSync(fullPath, buffer);
+    return `/storage/avatars/${filename}`;
+  } catch (err) {
+    console.error('[Save Avatar Error]', err.message);
+    return null;
+  }
+}
 
 // POST /api/v1/auth/login
 router.post('/login', async (req, res) => {
@@ -75,7 +98,7 @@ router.post('/login', async (req, res) => {
 
     // Fetch employee data if linked
     const empRes = await db.query(
-      `SELECT e.id, e.employee_code, e.name, e.job_title,
+      `SELECT e.id, e.employee_code, e.name, e.job_title, e.photo_url,
               ea.branch_id, b.name as branch_name, b.code as branch_code
        FROM employees e
        LEFT JOIN employee_assignments ea ON e.id = ea.employee_id AND ea.is_primary = true
@@ -103,7 +126,7 @@ router.post('/login', async (req, res) => {
         loginIdentifier: user.login_identifier,
         displayName: user.display_name || user.login_identifier,
         phone: user.phone,
-        avatarUrl: user.avatar_url,
+        avatarUrl: user.avatar_url || (employee ? employee.photo_url : null),
         roles,
         isOwner: roles.includes('owner'),
         isManager: roles.includes('manager'),
@@ -281,6 +304,82 @@ router.post('/reset-password', requireAuth, requireRoles(['owner', 'manager']), 
   } catch (err) {
     console.error('[Reset Password Error]', err);
     return res.status(500).json({ success: false, error: 'Terjadi kesalahan sistem saat mereset password.' });
+  }
+});
+
+// POST /api/v1/auth/avatar (Upload/Ganti foto profil mandiri)
+router.post('/avatar', requireAuth, async (req, res) => {
+  const photo_base64 = req.body.photo_base64 || req.body.avatar_base64;
+  if (!photo_base64) {
+    return res.status(400).json({ success: false, error: 'Foto tidak boleh kosong.' });
+  }
+
+  const avatarUrl = saveAvatarBase64(photo_base64, `user_${req.user.id.slice(0, 8)}`);
+  if (!avatarUrl) {
+    return res.status(500).json({ success: false, error: 'Gagal menyimpan foto profil.' });
+  }
+
+  try {
+    // 1. Update profiles table
+    await db.query(
+      `UPDATE profiles SET avatar_url = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2;`,
+      [avatarUrl, req.user.id]
+    );
+
+    // 2. Sync ke employees jika ada relasi
+    await db.query(
+      `UPDATE employees SET photo_url = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2;`,
+      [avatarUrl, req.user.id]
+    );
+
+    await logAudit({
+      actorId: req.user.id,
+      action: 'UPDATE_AVATAR',
+      entityType: 'users',
+      entityId: req.user.id,
+      changes: { avatar_url: avatarUrl },
+      ipAddress: req.ip
+    });
+
+    return res.json({
+      success: true,
+      message: 'Foto profil berhasil diperbarui.',
+      avatarUrl
+    });
+  } catch (err) {
+    console.error('[Update Avatar Error]', err);
+    return res.status(500).json({ success: false, error: 'Terjadi kesalahan sistem saat memperbarui foto.' });
+  }
+});
+
+// DELETE /api/v1/auth/avatar (Hapus foto profil mandiri)
+router.delete('/avatar', requireAuth, async (req, res) => {
+  try {
+    await db.query(
+      `UPDATE profiles SET avatar_url = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1;`,
+      [req.user.id]
+    );
+    await db.query(
+      `UPDATE employees SET photo_url = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1;`,
+      [req.user.id]
+    );
+
+    await logAudit({
+      actorId: req.user.id,
+      action: 'DELETE_AVATAR',
+      entityType: 'users',
+      entityId: req.user.id,
+      changes: { avatar_url: null },
+      ipAddress: req.ip
+    });
+
+    return res.json({
+      success: true,
+      message: 'Foto profil berhasil dihapus.'
+    });
+  } catch (err) {
+    console.error('[Delete Avatar Error]', err);
+    return res.status(500).json({ success: false, error: 'Gagal menghapus foto profil.' });
   }
 });
 

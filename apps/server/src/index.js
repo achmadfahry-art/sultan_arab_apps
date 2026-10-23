@@ -45,12 +45,31 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+const fs = require('fs');
+
+// Storage Directory Setup & Static Serving
+const STORAGE_DIR = process.env.UPLOAD_ROOT ? path.resolve(process.env.UPLOAD_ROOT) : path.resolve(__dirname, '../../../storage');
+const AVATARS_DIR = path.join(STORAGE_DIR, 'avatars');
+if (!fs.existsSync(AVATARS_DIR)) {
+  fs.mkdirSync(AVATARS_DIR, { recursive: true });
+}
+app.use('/storage', express.static(STORAGE_DIR));
+
 // Serve Frontend Static Files
 const WEB_DIR = path.resolve(__dirname, '../../web');
-app.use(express.static(WEB_DIR));
+app.use(express.static(WEB_DIR, {
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+  }
+}));
 
 // SPA Fallback to index.html for client-side routing
 app.get('*', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(path.join(WEB_DIR, 'index.html'));
 });
 

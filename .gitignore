@@ -19,6 +19,8 @@ storage/attendance-photos/*
 !storage/attendance-photos/.gitkeep
 storage/payslips/*
 !storage/payslips/.gitkeep
+storage/avatars/*
+!storage/avatars/.gitkeep
 
 # Operating System files
 Thumbs.db
