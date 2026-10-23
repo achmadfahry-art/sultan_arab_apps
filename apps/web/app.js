@@ -9,6 +9,7 @@
  * - Manager PDF Payslip Upload per anggota staf
  * - Integrasi WhatsApp reminder
  */
+const APP_VERSION = '1.1.0';
 
 const state = {
   user: null,
@@ -446,15 +447,17 @@ function renderHome() {
     const outTime = checkOutEvent ? new Date(checkOutEvent.server_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null;
 
     if (checkOutEvent) {
-      statusBadge = `<span class="badge badge-success">${uiIcon('check-circle', '', 13)} Hadir (${inTime}) • Pulang (${outTime})</span>`;
+      statusBadge = `<span class="badge badge-success">${uiIcon('check-circle', '', 13)} Absensi Hari Ini Selesai • Masuk (${inTime}) • Pulang (${outTime})</span>`;
       heroButtonsHtml = `
-        <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
-          <a href="#attendance?mode=out" class="btn-absen-hero" style="background: linear-gradient(135deg, #059669, #10B981);">
-            ${uiIcon('check-circle', '', 20)}
-            <span>SUDAH ABSEN PULANG (${outTime}) — ABSEN PULANG LAGI?</span>
-          </a>
-          <div style="text-align:center;">
-            <a href="#attendance?mode=in" style="font-size:0.82rem; color:rgba(255,255,255,0.9); text-decoration:underline;">Absen Masuk Kembali / Koreksi</a>
+        <div style="background: rgba(16, 185, 129, 0.16); border: 1.5px solid rgba(52, 211, 153, 0.4); border-radius: var(--radius-md); padding: 16px; text-align: center; color: #fff; width: 100%; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
+          <div style="font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; color: #34D399;">
+            ${uiIcon('check-circle', '', 22)} Absensi Hari Ini Telah Lengkap
+          </div>
+          <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 6px;">
+            Masuk: ${inTime} WIB • Pulang: ${outTime} WIB
+          </div>
+          <div style="font-size: 0.8rem; color: #E2E8F0; opacity: 0.95;">
+            ✅ Anda sudah melakukan absensi hari ini. Tidak dapat melakukan absensi lagi pada hari yang sama.
           </div>
         </div>
       `;
@@ -465,14 +468,14 @@ function renderHome() {
         statusBadge = `<span class="badge badge-success">${uiIcon('check-circle', '', 13)} Sudah Hadir (${inTime}) • Belum Pulang</span>`;
       }
       heroButtonsHtml = `
-        <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+        <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+          <div style="background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 0.82rem; color: #fff; text-align: center;">
+            ${uiIcon('check', '', 15)} Absen Masuk tercatat pukul <strong>${inTime} WIB</strong> (Tidak dapat absen masuk lagi)
+          </div>
           <a href="#attendance?mode=out" class="btn-absen-hero" style="background: linear-gradient(135deg, #1E3A8A, #2563EB); box-shadow: 0 4px 14px rgba(37,99,235,0.4);">
             ${uiIcon('log-out', '', 20)}
             <span>ABSEN PULANG SEKARANG (OPSIONAL)</span>
           </a>
-          <div style="text-align:center;">
-            <a href="#attendance?mode=in" style="font-size:0.82rem; color:rgba(255,255,255,0.9); text-decoration:underline;">Absen Masuk Lagi / Koreksi</a>
-          </div>
         </div>
       `;
     }
@@ -483,9 +486,6 @@ function renderHome() {
           ${uiIcon('camera', '', 20)}
           <span>ABSEN MASUK SEKARANG</span>
         </a>
-        <div style="text-align:center;">
-          <a href="#attendance?mode=out" style="font-size:0.82rem; color:rgba(255,255,255,0.9); text-decoration:underline;">Langsung Absen Pulang</a>
-        </div>
       </div>
     `;
   }
@@ -597,6 +597,68 @@ function renderAttendance() {
   const isModeOut = window.location.hash.includes('mode=out');
   state.attendanceMode = isModeOut ? 'out' : 'in';
   const targetBranch = state.branches.find(b => b.id === state.user.assignedBranchId) || state.branches[0] || {};
+
+  const todayEvents = (state.todaySession && state.todaySession.events) || [];
+  const checkInEvent = todayEvents.find(e => e.event_type === 'check_in');
+  const checkOutEvent = todayEvents.find(e => e.event_type === 'check_out');
+  const inTime = checkInEvent ? new Date(checkInEvent.server_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null;
+  const outTime = checkOutEvent ? new Date(checkOutEvent.server_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null;
+
+  // Kasus 1: Mau absen masuk, tapi sudah pernah absen masuk hari ini
+  if (!isModeOut && checkInEvent) {
+    return `
+      <div class="attendance-process-card" style="text-align: center; padding: 36px 20px;">
+        <div style="width: 72px; height: 72px; border-radius: 50%; background: #DCFCE7; color: #16A34A; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          ${uiIcon('check-circle', '', 40)}
+        </div>
+        <h2 style="font-size: 1.35rem; font-weight: 800; color: #15803D; margin-bottom: 8px;">
+          Anda Sudah Absen Masuk Hari Ini
+        </h2>
+        <p style="font-size: 0.92rem; color: #166534; max-width: 420px; margin: 0 auto 20px auto; line-height: 1.5;">
+          Absen masuk Anda telah tercatat di server pada pukul <strong>${inTime} WIB</strong>.<br>
+          Sistem membatasi absensi masuk 1 kali per hari demi keabsahan data kerja.
+        </p>
+
+        ${!checkOutEvent ? `
+          <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px; max-width: 380px; margin-left: auto; margin-right: auto;">
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Ingin menyelesaikan shift kerja Anda?</div>
+            <a href="#attendance?mode=out" class="btn btn-primary" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; font-weight: 700; padding: 12px;">
+              ${uiIcon('log-out', '', 18)} Lanjut ke Absen Pulang
+            </a>
+          </div>
+        ` : `
+          <div style="background: #F0FDF4; border: 1px solid #86EFAC; border-radius: var(--radius-md); padding: 14px; margin-bottom: 24px; max-width: 380px; margin-left: auto; margin-right: auto; font-size: 0.88rem; color: #166534; font-weight: 700;">
+            ${uiIcon('check-circle', '', 18)} Absen pulang juga telah selesai (${outTime} WIB).
+          </div>
+        `}
+
+        <div>
+          <a href="#home" class="btn btn-secondary" style="padding: 10px 24px;">Kembali ke Beranda</a>
+        </div>
+      </div>
+    `;
+  }
+
+  // Kasus 2: Mau absen pulang, tapi sudah pernah absen pulang hari ini
+  if (isModeOut && checkOutEvent) {
+    return `
+      <div class="attendance-process-card" style="text-align: center; padding: 36px 20px;">
+        <div style="width: 72px; height: 72px; border-radius: 50%; background: #DCFCE7; color: #16A34A; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          ${uiIcon('check-circle', '', 40)}
+        </div>
+        <h2 style="font-size: 1.35rem; font-weight: 800; color: #15803D; margin-bottom: 8px;">
+          Absensi Hari Ini Sudah Lengkap
+        </h2>
+        <p style="font-size: 0.92rem; color: #166534; max-width: 420px; margin: 0 auto 20px auto; line-height: 1.5;">
+          Absen masuk (${inTime ? inTime + ' WIB' : '-'}) dan absen pulang (${outTime} WIB) telah lengkap tercatat oleh server.<br>
+          Anda tidak dapat melakukan absensi pulang lagi pada hari yang sama.
+        </p>
+        <div>
+          <a href="#home" class="btn btn-primary" style="padding: 10px 24px;">Kembali ke Beranda</a>
+        </div>
+      </div>
+    `;
+  }
 
   return `
     <div class="attendance-process-card">
@@ -2014,8 +2076,10 @@ function initAttendanceView() {
     });
   }
 
-  // Start live camera stream upon view initialization
-  startLiveCamera('user');
+  // Start live camera stream upon view initialization if camera container is present
+  if (video) {
+    startLiveCamera('user');
+  }
 
   // GPS
   const getTargetBranch = () => {
@@ -3463,10 +3527,9 @@ function openDeleteEmployeeModal(emp) {
 }
 
 function openAddEmployeeModal() {
-  const modalContainer = document.getElementById('modal-container');
   let newEmpPhotoBase64 = null;
 
-  modalContainer.innerHTML = `
+  setModalHtml(`
     <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
       <div class="modal-card" style="max-width: 520px;">
         <div class="modal-header">
@@ -3512,7 +3575,7 @@ function openAddEmployeeModal() {
             <div class="form-group">
               <label class="form-label">Nomor WhatsApp / HP:</label>
               <input type="tel" id="add-emp-phone" class="form-control" placeholder="Contoh: 081234567890 atau 6281234567890">
-              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Untuk pengiriman notifikasi slip gaji & pesan resmi via WhatsApp.</small>
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Untuk pengiriman kredensial akun absensi, notifikasi slip gaji & pesan resmi via WhatsApp.</small>
             </div>
             <div class="form-group">
               <label class="form-label">Jabatan:</label>
@@ -3537,17 +3600,39 @@ function openAddEmployeeModal() {
               </select>
               <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Jadwal libur mingguan tetap yang otomatis tersimpan ke database & memperbarui ketentuan libur tim.</small>
             </div>
+
+            <!-- Bagian Kredensial Akun Absen Sistem -->
+            <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: var(--radius-md); padding: 14px; margin-top: 16px; margin-bottom: 6px;">
+              <div style="font-weight: 700; color: var(--text-main); font-size: 0.88rem; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                ${uiIcon('shield', '', 16)} Akun Login Absensi Staf
+              </div>
+              <div class="form-group" style="margin-bottom: 10px;">
+                <label class="form-label" style="font-size: 0.82rem;">Nama Akun / Username:</label>
+                <input type="text" id="add-emp-username" class="form-control" placeholder="Biarkan kosong untuk otomatis dari kode karyawan">
+                <small style="color: var(--text-muted); font-size: 0.72rem;">Digunakan staf untuk login ke web absensi (huruf kecil & angka tanpa spasi).</small>
+              </div>
+              <div class="form-group" style="margin-bottom: 4px;">
+                <label class="form-label" style="font-size: 0.82rem;">Password Awal:</label>
+                <div style="display: flex; gap: 6px;">
+                  <input type="text" id="add-emp-password" class="form-control" value="sultan123" placeholder="Minimal 6 karakter" required>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('add-emp-password').value = 'sultan' + Math.floor(100 + Math.random()*900)" title="Acak Password">
+                    ${uiIcon('refresh', '', 14)} Acak
+                  </button>
+                </div>
+                <small style="color: var(--text-muted); font-size: 0.72rem;">Password default: <strong>sultan123</strong>. Staf dapat menggantinya sendiri di menu Edit Profil setelah login.</small>
+              </div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
             <button type="submit" id="btn-submit-add-emp" class="btn btn-primary">
-              ${uiIcon('check', '', 16)} Simpan Karyawan
+              ${uiIcon('check', '', 16)} Simpan & Buat Akun Karyawan
             </button>
           </div>
         </form>
       </div>
     </div>
-  `;
+  `);
 
   const photoFileInput = document.getElementById('add-emp-photo-file');
   const photoImg = document.getElementById('add-emp-photo-img');
@@ -3583,47 +3668,174 @@ function openAddEmployeeModal() {
     });
   }
 
-  document.getElementById('form-add-emp').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const code = document.getElementById('add-emp-code').value;
-    const name = document.getElementById('add-emp-name').value;
-    const phone = document.getElementById('add-emp-phone').value;
-    const job = document.getElementById('add-emp-job').value;
-    const branchId = document.getElementById('add-emp-branch').value;
-    const dayOff = document.getElementById('add-emp-dayoff').value;
+  const formAddEmp = document.getElementById('form-add-emp');
+  if (formAddEmp) {
+    formAddEmp.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = document.getElementById('add-emp-code').value;
+      const name = document.getElementById('add-emp-name').value;
+      const phone = document.getElementById('add-emp-phone').value;
+      const job = document.getElementById('add-emp-job').value;
+      const branchId = document.getElementById('add-emp-branch').value;
+      const dayOff = document.getElementById('add-emp-dayoff').value;
+      const customUsername = document.getElementById('add-emp-username').value;
+      const customPassword = document.getElementById('add-emp-password').value;
 
-    const submitBtn = document.getElementById('btn-submit-add-emp');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Menyimpan...';
+      const submitBtn = document.getElementById('btn-submit-add-emp');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Menyimpan & Membuat Akun...';
 
-    const res = await api('/api/v1/employees', {
-      method: 'POST',
-      body: JSON.stringify({
-        employee_code: code,
-        name,
-        phone: phone.trim(),
-        job_title: job,
-        branch_id: branchId,
-        day_off: dayOff,
-        photo_base64: newEmpPhotoBase64 || null,
-        is_test_data: false
-      })
-    });
+      const res = await api('/api/v1/employees', {
+        method: 'POST',
+        body: JSON.stringify({
+          employee_code: code,
+          name,
+          phone: phone ? phone.trim() : '',
+          job_title: job,
+          branch_id: branchId,
+          day_off: dayOff,
+          custom_username: customUsername ? customUsername.trim() : null,
+          custom_password: customPassword ? customPassword.trim() : 'sultan123',
+          photo_base64: newEmpPhotoBase64 || null,
+          is_test_data: false
+        })
+      });
 
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = `${uiIcon('check', '', 16)} Simpan Karyawan`;
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `${uiIcon('check', '', 16)} Simpan & Buat Akun Karyawan`;
 
-    if (res.ok) {
-      showToast('Karyawan berhasil ditambahkan!', 'success');
-      closeModal();
-      loadMasterData();
-      if (document.getElementById('payroll-staff-slips-tbody')) {
-        loadStaffSlipsTable('payroll-staff-slips-tbody');
+      if (res.ok && res.data.success) {
+        showToast('Karyawan & akun absensi berhasil dibuat!', 'success');
+        loadMasterData();
+        if (document.getElementById('payroll-staff-slips-tbody')) {
+          loadStaffSlipsTable('payroll-staff-slips-tbody');
+        }
+        // Tampilkan popup kredensial akun staf baru
+        openEmployeeCreatedModal({
+          employee: res.data.employee,
+          username: res.data.username,
+          initialPassword: res.data.initialPassword || customPassword || 'sultan123',
+          phone: phone ? phone.trim() : ''
+        });
+      } else {
+        showToast((res.data && res.data.error) || 'Gagal menambah karyawan.', 'error');
       }
-    } else {
-      showToast(res.data.error || 'Gagal menambah karyawan.', 'error');
-    }
-  });
+    });
+  }
+}
+
+// Modal Popup Menampilkan Akun & Password Absensi Karyawan Baru
+function openEmployeeCreatedModal({ employee, username, initialPassword, phone }) {
+  const currentUrl = window.location.origin;
+  const empName = employee ? (employee.name || 'Karyawan Baru') : 'Karyawan Baru';
+  const empCode = employee ? (employee.employee_code || '') : '';
+
+  // Format pesan WhatsApp resmi
+  const waMessage = `Halo ${empName},\nBerikut adalah data akun login Absensi Sultan Arab Anda:\n\n🌐 Link Website: ${currentUrl}\n👤 Username: ${username}\n🔑 Password: ${initialPassword}\n\nSilakan login untuk mulai absensi masuk dan ganti password Anda di menu Edit Profil setelah login pertama kali. Terima kasih!`;
+  const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
+  const waPhone = cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone;
+  const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null;
+
+  setModalHtml(`
+    <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
+      <div class="modal-card" style="max-width: 500px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, #059669, #10B981); color: #fff;">
+          <h3 style="font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+            ${uiIcon('check-circle', '', 22)} Akun Absen Berhasil Dibuat!
+          </h3>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 22px;">
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px;">
+            Data staf dan akun absensi telah aktif di sistem. Berikan nama akun dan password berikut kepada karyawan bersangkutan:
+          </p>
+
+          <div style="background: #F8FAFC; border: 1.5px solid #CBD5E1; border-radius: var(--radius-md); padding: 16px; margin-bottom: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px dashed #CBD5E1; padding-bottom: 8px;">
+              <span style="font-size: 0.82rem; color: var(--text-muted);">Nama Staf:</span>
+              <strong style="font-size: 0.95rem; color: var(--text-main);">${escapeHtml(empName)} (${escapeHtml(empCode)})</strong>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px dashed #CBD5E1; padding-bottom: 8px;">
+              <div>
+                <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">NAMA AKUN / USERNAME:</div>
+                <div id="disp-cred-username" style="font-size: 1.15rem; font-weight: 800; color: #1E40AF; letter-spacing: 0.5px;">${escapeHtml(username)}</div>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="copyTextToClipboard('${escapeHtml(username)}', 'Username berhasil disalin!')" title="Salin Username">
+                ${uiIcon('copy', '', 14)} Salin
+              </button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px dashed #CBD5E1; padding-bottom: 8px;">
+              <div>
+                <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">PASSWORD AWAL:</div>
+                <div id="disp-cred-password" style="font-size: 1.15rem; font-weight: 800; color: var(--primary-red); font-family: monospace;">${escapeHtml(initialPassword)}</div>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="copyTextToClipboard('${escapeHtml(initialPassword)}', 'Password berhasil disalin!')" title="Salin Password">
+                ${uiIcon('copy', '', 14)} Salin
+              </button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">LINK ABSENSI:</div>
+                <div style="font-size: 0.85rem; color: var(--text-main); word-break: break-all;">${escapeHtml(currentUrl)}</div>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="copyTextToClipboard('${escapeHtml(currentUrl)}', 'Link login berhasil disalin!')" title="Salin Link">
+                ${uiIcon('copy', '', 14)} Salin
+              </button>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button type="button" class="btn btn-secondary btn-block" onclick="copyTextToClipboard('Akun Absensi Sultan Arab\\nNama: ${escapeHtml(empName)}\\nUsername: ${escapeHtml(username)}\\nPassword: ${escapeHtml(initialPassword)}\\nLink: ${escapeHtml(currentUrl)}', 'Seluruh rincian akun berhasil disalin!')" style="font-weight: 700; padding: 10px;">
+              ${uiIcon('copy', '', 16)} Salin Seluruh Rincian Akun
+            </button>
+            ${waUrl ? `
+              <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block" style="background: #25D366; border-color: #25D366; color: #fff; font-weight: 700; padding: 10px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                ${uiIcon('send', '', 16)} Kirim Akun via WhatsApp (${escapeHtml(phone)})
+              </a>
+            ` : `
+              <small style="color: var(--text-muted); font-size: 0.75rem; text-align: center;">Nomor WhatsApp staf belum diisi, salin rincian secara manual di atas.</small>
+            `}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">Selesai</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+// Helper salin teks ke clipboard
+function copyTextToClipboard(text, successMsg = 'Teks berhasil disalin!') {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(successMsg, 'success');
+    }).catch(() => {
+      fallbackCopyText(text, successMsg);
+    });
+  } else {
+    fallbackCopyText(text, successMsg);
+  }
+}
+
+function fallbackCopyText(text, successMsg) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast(successMsg, 'success');
+  } catch (err) {
+    showToast('Gagal menyalin otomatis. Silakan salin manual.', 'warning');
+  }
+  document.body.removeChild(ta);
 }
 
 async function openRunDetailModal(runId) {
@@ -3761,7 +3973,16 @@ function openPayslipDetailModal(slip) {
   `;
 }
 
+function setModalHtml(html) {
+  const container = document.getElementById('modal-container');
+  if (container) {
+    container.innerHTML = html;
+    document.body.classList.add('modal-open');
+  }
+}
+
 function closeModal() {
+  document.body.classList.remove('modal-open');
   const container = document.getElementById('modal-container');
   if (container) container.innerHTML = '';
 }

@@ -1,6 +1,6 @@
 {
   "name": "sultan-arab-apps",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "SULTAN ARAB APP - Sistem Absensi, Manajemen Karyawan, dan Payroll",
   "main": "apps/server/src/index.js",
   "scripts": {

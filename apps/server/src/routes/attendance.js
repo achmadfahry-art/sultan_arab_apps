@@ -161,6 +161,20 @@ router.post('/check-in', requireAuth, async (req, res) => {
       sessionId = createSession.rows[0].id;
     } else {
       sessionId = sessionRes.rows[0].id;
+      // Validasi ketat: Cegah absen masuk ulang di hari yang sama
+      const existingCheckIn = await client.query(
+        `SELECT id, server_time FROM attendance_events WHERE session_id = $1 AND event_type = 'check_in' LIMIT 1`,
+        [sessionId]
+      );
+      if (existingCheckIn.rows.length > 0) {
+        await client.query('ROLLBACK');
+        const inTimeStr = new Date(existingCheckIn.rows[0].server_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        return res.status(400).json({
+          success: false,
+          error: `Anda sudah melakukan absen masuk hari ini pada pukul ${inTimeStr} WIB. Anda tidak dapat melakukan absen masuk lagi pada hari yang sama.`
+        });
+      }
+
       await client.query(
         `UPDATE attendance_sessions 
          SET shift_id = COALESCE($1, shift_id), 
@@ -312,6 +326,20 @@ router.post('/check-out', requireAuth, async (req, res) => {
     sessionId = createSession.rows[0].id;
   } else {
     sessionId = sessionRes.rows[0].id;
+
+    // Validasi ketat: Cegah absen pulang ulang jika sudah absen pulang
+    const existingCheckOut = await db.query(
+      `SELECT id, server_time FROM attendance_events WHERE session_id = $1 AND event_type = 'check_out' LIMIT 1`,
+      [sessionId]
+    );
+    if (existingCheckOut.rows.length > 0) {
+      const outTimeStr = new Date(existingCheckOut.rows[0].server_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      return res.status(400).json({
+        success: false,
+        error: `Anda sudah melakukan absen pulang hari ini pada pukul ${outTimeStr} WIB. Absensi hari ini telah lengkap dan tidak dapat dilakukan lagi.`
+      });
+    }
+
     await db.query(`UPDATE attendance_sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [sessionId]);
   }
 

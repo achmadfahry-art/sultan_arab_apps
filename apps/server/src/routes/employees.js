@@ -64,7 +64,7 @@ router.get('/', requireAuth, async (req, res) => {
 
 // POST /api/v1/employees (Owner & Manager only)
 router.post('/', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
-  const { employee_code, name, job_title, hire_date, branch_id, is_test_data, phone, day_off, photo_base64 } = req.body;
+  const { employee_code, name, job_title, hire_date, branch_id, is_test_data, phone, day_off, photo_base64, custom_username, custom_password } = req.body;
   if (!employee_code || !name) {
     return res.status(400).json({ success: false, error: 'Kode karyawan dan nama wajib diisi.' });
   }
@@ -83,14 +83,20 @@ router.post('/', requireAuth, requireRoles(['owner', 'manager']), async (req, re
 
     // 1. Buat akun user dan profile otomatis agar staf baru bisa login & direset password
     let newUserId = null;
-    const baseUsername = cleanCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const rawUsername = (custom_username && custom_username.trim()) || cleanCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const baseUsername = rawUsername.toLowerCase().replace(/[^a-z0-9_]/g, '');
     const uCheck = await client.query('SELECT id FROM users WHERE LOWER(login_identifier) = LOWER($1)', [baseUsername]);
     let username = baseUsername;
     if (uCheck.rows.length > 0) {
+      if (custom_username && custom_username.trim()) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ success: false, error: `Nama akun/username '${custom_username.trim()}' sudah digunakan oleh staf lain. Silakan pilih username berbeda.` });
+      }
       username = `${baseUsername}_${Math.floor(100 + Math.random() * 900)}`;
     }
 
-    const defaultPasswordHash = await bcrypt.hash('sultan123', 10);
+    const plainPassword = (custom_password && custom_password.trim().length >= 6) ? custom_password.trim() : 'sultan123';
+    const defaultPasswordHash = await bcrypt.hash(plainPassword, 10);
     const userRes = await client.query(
       `INSERT INTO users (login_identifier, password_hash, active)
        VALUES ($1, $2, true)
@@ -151,7 +157,12 @@ router.post('/', requireAuth, requireRoles(['owner', 'manager']), async (req, re
       ipAddress: req.ip
     });
 
-    return res.status(201).json({ success: true, employee: newEmp, username });
+    return res.status(201).json({
+      success: true,
+      employee: newEmp,
+      username,
+      initialPassword: plainPassword
+    });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('[Create Employee Error]', err);

@@ -1601,7 +1601,12 @@ select.form-control {
   stroke: var(--primary-red);
 }
 
-/* Modal Overlay & Backdrop */
+/* Modal Overlay & Backdrop - Lock Background & Smooth Inner Scroll */
+body.modal-open {
+  overflow: hidden !important;
+  touch-action: none;
+}
+
 .modal-overlay,
 .modal-backdrop {
   display: none;
@@ -1617,6 +1622,9 @@ select.form-control {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-overlay.active,
@@ -1632,13 +1640,22 @@ select.form-control {
   width: 100%;
   box-shadow: var(--shadow-xl);
   overflow: hidden;
-  max-height: 90vh;
+  max-height: min(90vh, 780px);
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
+.modal-card form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .modal-header {
+  flex-shrink: 0;
   padding: 16px 22px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -1647,11 +1664,16 @@ select.form-control {
 }
 
 .modal-body {
+  flex: 1 1 auto;
   padding: 22px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  max-height: 100%;
 }
 
 .modal-footer {
+  flex-shrink: 0;
   padding: 14px 22px;
   border-top: 1px solid var(--border-color);
   display: flex;
@@ -1831,14 +1853,32 @@ select.form-control {
   .modal-backdrop {
     padding: 0;
     align-items: flex-end;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
   .modal-card {
     max-width: 100% !important;
     border-radius: 20px 20px 0 0;
     max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-card form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
   }
   .modal-body {
+    flex: 1 1 auto;
     padding: 18px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    max-height: 100%;
   }
   .modal-footer {
     padding: 12px 18px max(14px, env(safe-area-inset-bottom));

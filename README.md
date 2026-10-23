@@ -23,9 +23,7 @@
 
 Sistem ini dirancang tanpa ketergantungan pihak ketiga yang mengikat (database mandiri PostgreSQL), siap berjalan di lingkungan server lokal, dan dapat dipindahkan (*lift-and-shift*) ke VPS Linux publik.
 
----
-
-## 🌟 Fitur Utama & Keputusan Bisnis (Q01–Q11)
+## 🌟 Fitur Utama (Versi 1.1.0)
 
 ### 🏢 1. Multi-Cabang & Validasi Lokasi Geofencing
 - Mendukung cabang aktif:
