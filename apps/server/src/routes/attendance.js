@@ -32,6 +32,28 @@ function saveBase64Photo(base64Data, employeeId, workDate, eventId) {
   }
 }
 
+// Helper Tanggal & Waktu WIB (Asia/Jakarta, UTC+7)
+function getJakartaDateStr(d = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(d);
+}
+
+function getJakartaMinutes(d = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Jakarta',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false
+  }).formatToParts(d);
+  const hour = parseInt(parts.find(p => p.type === 'hour').value, 10);
+  const minute = parseInt(parts.find(p => p.type === 'minute').value, 10);
+  return hour * 60 + minute;
+}
+
 // POST /api/v1/attendance/check-in
 router.post('/check-in', requireAuth, async (req, res) => {
   const {
@@ -114,10 +136,9 @@ router.post('/check-in', requireAuth, async (req, res) => {
     const shiftRes = await db.query(`SELECT * FROM shifts WHERE id = $1`, [chosenShiftId]);
     if (shiftRes.rows.length > 0) {
       const shift = shiftRes.rows[0];
-      const now = new Date();
       const [sh, sm] = shift.start_time.split(':').map(Number);
       const shiftStartMinutes = sh * 60 + sm;
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const currentMinutes = getJakartaMinutes(new Date());
 
       // Toleransi 15 menit
       if (currentMinutes > shiftStartMinutes + 15) {
@@ -127,7 +148,7 @@ router.post('/check-in', requireAuth, async (req, res) => {
   }
 
   const eventId = uuidv4();
-  const workDate = new Date().toISOString().split('T')[0];
+  const workDate = getJakartaDateStr();
   const photoPath = saveBase64Photo(photo_base64, employeeId, workDate, eventId);
 
   const client = await db.getClient();
@@ -288,7 +309,7 @@ router.post('/check-out', requireAuth, async (req, res) => {
     else return res.status(403).json({ success: false, error: 'Akun tidak terhubung ke karyawan.' });
   }
 
-  const workDate = new Date().toISOString().split('T')[0];
+  const workDate = getJakartaDateStr();
 
   const sessionRes = await db.query(
     `SELECT id, branch_id, status FROM attendance_sessions WHERE employee_id = $1 AND work_date = $2`,
@@ -408,7 +429,7 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getJakartaDateStr();
 
     const todayRes = await db.query(`
       SELECT s.id, s.work_date, s.status, s.attendance_type, s.is_meal_allowance_eligible,
@@ -460,7 +481,7 @@ router.get('/me', requireAuth, async (req, res) => {
 // GET /api/v1/attendance/monitoring (Owner & Manager)
 router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'supervisor']), async (req, res) => {
   const { date, branch_id } = req.query;
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || getJakartaDateStr();
 
   try {
     let query = `
@@ -542,7 +563,7 @@ router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), asy
     let activeSessionId = session_id;
     let beforeData = {};
     let empId = employee_id;
-    let targetDate = work_date || new Date().toISOString().split('T')[0];
+    let targetDate = work_date || getJakartaDateStr();
     let targetBranchId = branch_id;
     let afterData = {};
 
@@ -726,7 +747,7 @@ router.get('/monthly-recap', requireAuth, requireRoles(['owner', 'manager', 'sup
     );
     const specificDaysOffByEmp = {};
     for (const d of daysOffRes.rows) {
-      const dStr = typeof d.off_date === 'string' ? d.off_date : d.off_date.toISOString().split('T')[0];
+      const dStr = typeof d.off_date === 'string' ? d.off_date : getJakartaDateStr(d.off_date);
       if (!specificDaysOffByEmp[d.employee_id]) {
         specificDaysOffByEmp[d.employee_id] = new Set();
       }

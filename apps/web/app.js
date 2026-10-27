@@ -1090,7 +1090,7 @@ function renderManagementTabContent() {
                 </div>
                 <div class="form-group">
                   <label class="form-label">Tanggal:</label>
-                  <input type="date" id="schedule-date-input" class="form-control" value="${new Date().toISOString().split('T')[0]}" required>
+                  <input type="date" id="schedule-date-input" class="form-control" value="${new Date().toLocaleDateString('en-CA')}" required>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Pilih Shift:</label>
@@ -1112,7 +1112,7 @@ function renderManagementTabContent() {
                 </div>
                 <div class="form-group">
                   <label class="form-label">Tanggal Libur:</label>
-                  <input type="date" id="dayoff-date-input" class="form-control" value="${new Date().toISOString().split('T')[0]}" required>
+                  <input type="date" id="dayoff-date-input" class="form-control" value="${new Date().toLocaleDateString('en-CA')}" required>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Alasan Libur:</label>
