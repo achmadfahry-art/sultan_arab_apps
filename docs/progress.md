@@ -9,7 +9,7 @@
 
 | Kode | Pertanyaan & Keputusan Pengguna | Status Implementasi | Bukti Teknis & Lokasi |
 |---|---|---|---|
-| **Q01** | **Cabang Nyata & Dinamis:**<br>1. Head Quarter Bekasi (`-6.2122736, 107.0218103`)<br>2. Cabang Cikarang (`-6.3001269, 107.1638182`)<br>3. Tombol **`+ Cabang`** pada dashboard pengelola | **SELESAI** | Migrasi `003` & `004`. Disediakan tombol interaktif `+ Cabang` dengan modal pembuat cabang baru, pembaca link Google Maps/GPS, dan pembuatan otomatis shift crew toko. |
+| **Q01** | **Cabang Nyata & Dinamis:**<br>1. Kantor Pusat (`HQ-BKS`, `-6.2122736, 107.0218103`)<br>2. Cabang Cikarang (`CBG-CKR`, `-6.3001269, 107.1638182`)<br>3. Tombol **`+ Cabang`** pada dashboard pengelola | **SELESAI** | Migrasi `003`, `004`, & `009` (`Kantor Pusat`). Disediakan tombol interaktif `+ Cabang` dengan modal pembuat cabang baru, pembaca link Google Maps/GPS, dan pembuatan otomatis shift crew toko. |
 | **Q02** | **Aturan Shift & Presensi:**<br>- Staff Kantor & Admin Non-shift (08:00 - 17:00)<br>- Crew Toko: Shift Pagi (08:00 - 17:00) & Shift Siang (**12:00 - 21:00**)<br>- Toleransi 15 menit<br>- Pemilihan shift diserahkan mandiri ke masing-masing personal<br>- Wajib **hanya absen masuk, absen pulang tidak wajib (opsional)** | **SELESAI** | Jadwal Shift Siang dimutakhirkan ke **12:00 - 21:00** di database dan UI. Selector shift dinamis memfilter shift cabang terpilih di `#attendance`. |
 | **Q03** | **Kamera / Foto:** Foto wajah atau foto lokasi dalam toko/kantor, toko dilengkapi Wi-Fi | **SELESAI** | Capture langsung via kamera peramban (`getUserMedia`) atau tombol file picker untuk foto lokasi / wajah. |
 | **Q04** | **Jadwal Libur Tim Resmi:**<br>- Staff Kantor: Fahry, Fauzi, Miftah (Libur Ahad)<br>- Admin: Eka (Libur Selasa)<br>- Crew Toko Bekasi: Adit (Senin), Mufti (Kamis), Kamal (Rabu)<br>- Crew Toko Cikarang: Milkan (Kamis), Refan (Selasa) | **SELESAI** | Terdaftar pada tabel `day_off_rules` & `employee_schedules`. Master akun dan profil dibuat di migrasi `003`. |
@@ -82,6 +82,11 @@ Hasil eksekusi:
 4. **Fitur Edit Nama Karyawan**:
    - Tersedia tombol pensil (✎) di sebelah nama staf dan tombol **`Edit Nama`** di kolom Aksi tabel karyawan.
    - Endpoint `PATCH /api/v1/employees/:id/name` menyinkronkan nama staf ke database, profil pengguna, dan tampilan rekapitulasi secara instan.
-5. **Fitur Kurang Karyawan (Hapus / Deaktivasi Staf)**:
-   - Tombol **`Kurang Karyawan`** di kolom Aksi dilengkapi modal konfirmasi berlatar merah Sultan.
+5. **Fitur Hapus Karyawan (Hapus / Deaktivasi Staf)**:
+   - Tombol **`Hapus Karyawan`** *(diperbarui dari `Kurang Karyawan`)* di kolom Aksi dilengkapi modal konfirmasi berlatar merah Sultan.
    - Endpoint `DELETE /api/v1/employees/:id` dengan proteksi ganda: mempertahankan integritas audit riwayat absensi/gaji masa lampau lewat deaktivasi terproteksi (*soft delete*), atau penghapusan permanen (*hard delete*) untuk data uji/kesalahan ketik baru, disertai pengamanan akun Owner dan larangan self-delete.
+6. **Rilis `v1.2.0` (21 November 2026 — Live di `vps-sultanarab`):**
+   - Migrasi `009` mengubah nama cabang `Head Quarter Bekasi (Pusat Grosir)` $\rightarrow$ **`Kantor Pusat`**.
+   - Rekap Bulanan memakai **cut-off tanggal `27` bulan sebelumnya s.d. tanggal `26` bulan ini** (`apps/server/src/utils/recap.js`).
+   - Perbaikan tanggal pada modal rincian setiap karyawan (`Rab, 18 Nov 2026`).
+   - Penambahan panel **Analisa Rekap Bulanan** dan tombol **`Download PDF`** (`/api/v1/attendance/monthly-recap/pdf` via pure-Node PDF generator `apps/server/src/utils/pdf.js`).

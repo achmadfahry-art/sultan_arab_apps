@@ -27,8 +27,8 @@ Sistem ini dirancang tanpa ketergantungan pihak ketiga yang mengikat (database m
 
 ### 🏢 1. Multi-Cabang & Validasi Lokasi Geofencing
 - Mendukung cabang aktif:
-  - **Head Quarter Bekasi (Pusat Grosir)**: Titik koordinat resmi dengan radius 150 meter.
-  - **Cabang Cikarang**: Titik koordinat resmi dengan radius 150 meter.
+  - **Kantor Pusat** (`HQ-BKS`): Titik koordinat resmi Bekasi dengan radius 150 meter.
+  - **Cabang Cikarang** (`CBG-CKR`): Titik koordinat resmi Cikarang dengan radius 150 meter.
 - **Tombol `+ Cabang` Dinamis**: Pengelola (Owner/Manager) dapat menambahkan cabang baru langsung lewat dashboard pengelola lengkap dengan input koordinat / Google Maps, dan shift crew toko otomatis terbit.
 - Perhitungan jarak akurat menggunakan formula **Haversine** di sisi server untuk memvalidasi presensi staf.
 
@@ -66,11 +66,15 @@ Sistem ini dirancang tanpa ketergantungan pihak ketiga yang mengikat (database m
 
 ### 🌐 9. Akses Jaringan & Domain Produksi
 - **Domain Resmi Publik (HTTPS Aktif)**: **[https://absen.sultanarab.store](https://absen.sultanarab.store)**
-  - Menggunakan Cloudflare Tunnel (bebas kendala IP dinamis/CGNAT, SSL gratis, aman untuk kamera & GPS).
+  - Di-host di **`vps-sultanarab`** (`VM-0-3-ubuntu`, `/home/ubuntu/sultan_arab_apps`, PM2 `sultan-app`) melalui **Cloudflare Tunnel** (`cloudflared.service`).
 - **Akses Jaringan Privat (Tailscale)**:
-  - `http://100.86.176.62:3000` (atau `http://100.84.77.41:3000`)
+  - `http://100.121.167.83:3000` (`vps-sultanarab`)
 - **Dokumentasi Lengkap Setup Produksi & SOP Update**:
-  - Lihat [docs/production_cloudflare_deployment.md](docs/production_cloudflare_deployment.md) untuk detail kredensial server, Cloudflare tunnel token, dan panduan menambah aplikasi baru.
+  - Lihat [docs/production_cloudflare_deployment.md](docs/production_cloudflare_deployment.md) untuk panduan deploy, migrasi DB, dan backup di `vps-sultanarab`.
+
+### 📊 10. Rekapitulasi Bulanan Cut-Off `27–26`, Analisa & Download PDF (`v1.2.0`)
+- Periode cut-off rekap bulanan otomatis dihitung dari **tanggal 27 bulan sebelumnya s.d. tanggal 26 bulan berjalan** (contoh: November = `27 Okt – 26 Nov`).
+- Dilengkapi **Analisa Rekap Bulanan** (tingkat ketepatan waktu tim, distribusi shift, sorotan karyawan, dan catatan per staf), rincian tanggal per karyawan, serta tombol **`Download PDF`** (`/api/v1/attendance/monthly-recap/pdf`).
 
 ---
 
@@ -80,14 +84,16 @@ Semua akun terdaftar menggunakan kata sandi bawaan (default: `password123`, Fauz
 
 | Nama | Role / Jabatan | Username | Penugasan Cabang | Hari Libur Tetap |
 |---|---|---|---|---|
-| **Fauzi** | **Manager & Staff** | `fauzi` | Head Quarter Bekasi | Ahad |
-| **Fahry** | Staff Kantor | `fahry` | Head Quarter Bekasi | Ahad |
-| **Miftah** | Staff Kantor | `miftah` | Head Quarter Bekasi | Ahad |
-| **Eka** | Admin | `eka` | Head Quarter Bekasi | Selasa |
-| **Adit** | Crew Toko | `adit` | Head Quarter Bekasi | Senin |
-| **Mufti** | Crew Toko | `mufti` | Head Quarter Bekasi | Kamis |
-| **Kamal** | Crew Toko | `kamal` | Head Quarter Bekasi | Rabu |
-| **Milkan** | Crew Toko | `milkan` | Cabang Cikarang | Kamis |
+| **Fauzi** | **Manager & Staff** | `fauzi` | Kantor Pusat | Ahad |
+| **Fahry** | Staff Kantor | `fahry` | Kantor Pusat | Ahad |
+| **Miftah** | Staff Kantor | `miftah` | Kantor Pusat | Ahad |
+| **Eka** | Admin CS | `eka` | Kantor Pusat | Selasa |
+| **Mufti** | Crew Toko | `mufti` | Kantor Pusat | Kamis |
+| **Kamal** | Crew Toko | `kamal` | Kantor Pusat | Rabu |
+| **Arida** | Host Live | `arida` | Kantor Pusat | Jumat |
+| **Zakie** | Crew Produksi | `zakie` | Kantor Pusat | Selasa |
+| **Fina (Shafina)** | Crew Toko | `fina` | Kantor Pusat | Senin |
+| **Milkan** | Kepala Toko Cikarang | `milkan` | Cabang Cikarang | Kamis |
 | **Refan** | Crew Toko | `refan` | Cabang Cikarang | Selasa |
 | **Owner** | **Owner Sultan Arab** | `owner` | Seluruh Cabang | - |
 

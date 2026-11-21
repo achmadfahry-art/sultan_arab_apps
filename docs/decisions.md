@@ -22,7 +22,7 @@ Dokumen ini mencatat seluruh keputusan arsitektur, pilihan teknis, dan pemetaan 
 
 | ID | Topik Keputusan | Status | Keputusan & Implementasi Teknis |
 |---|---|---|---|
-| **Q01** | Cabang & Koordinat GPS | **DITETAPKAN & AKTIF** | 1. **Head Quarter Bekasi (Pusat Grosir)**: (Lat `-6.2122736`, Lon `107.0218103`).<br>2. **Cabang Cikarang**: (Lat `-6.3001269`, Lon `107.1638182`). Radius geofence default 150 meter.<br>3. **Dukungan Tambah Cabang**: Disediakan tombol interaktif `+ Cabang` pada dashboard pengelola lengkap dengan input koordinat, alamat, radius, dan pembuatan shift otomatis. |
+| **Q01** | Cabang & Koordinat GPS | **DITETAPKAN & AKTIF** | 1. **Kantor Pusat** (`HQ-BKS`, Bekasi): (Lat `-6.2122736`, Lon `107.0218103`).<br>2. **Cabang Cikarang** (`CBG-CKR`): (Lat `-6.3001269`, Lon `107.1638182`). Radius geofence default 150 meter.<br>3. **Dukungan Tambah Cabang**: Disediakan tombol interaktif `+ Cabang` pada dashboard pengelola lengkap dengan input koordinat, alamat, radius, dan pembuatan shift otomatis. |
 | **Q02** | Jam Shift & Presensi | **DITETAPKAN & AKTIF** | - **Staff Kantor & Admin**: Non-shift (08:00 – 17:00).<br>- **Crew Toko**: Shift Pagi (08:00 – 17:00) & Shift Siang (**12:00 – 21:00**).<br>- Toleransi keterlambatan 15 menit.<br>- **Pemilihan shift diserahkan mandiri ke masing-masing personal crew** di form presensi.<br>- **Wajib hanya absen masuk; absen pulang tidak wajib (opsional)**. |
 | **Q03** | Foto & Bukti Kehadiran | **DITETAPKAN & AKTIF** | Foto wajah atau foto lokasi dalam toko/kantor via kamera atau upload foto. Toko dilengkapi fasilitas Wi-Fi. |
 | **Q04** | Jadwal Libur Tim Resmi | **DITETAPKAN & AKTIF** | - **Staff Kantor**: Fahry, Fauzi, Miftah (Libur Ahad).<br>- **Admin**: Eka (Libur Selasa).<br>- **Crew Toko Bekasi**: Adit (Senin), Mufti (Kamis), Kamal (Rabu).<br>- **Crew Toko Cikarang**: Milkan (Kamis), Refan (Selasa).<br>Tercatat pada tabel `day_off_rules` dan `employee_schedules`. |
@@ -66,11 +66,16 @@ Dokumen ini mencatat seluruh keputusan arsitektur, pilihan teknis, dan pemetaan 
 
 ---
 
-## 6. Fitur Kurang Karyawan dan Edit Nama Karyawan (13 Oktober 2026)
+## 6. Fitur Hapus Karyawan dan Edit Nama Karyawan (Diperbarui 21 November 2026)
 
 | No | Modul / Fitur | Status | Detail Implementasi & Teknis |
 |---|---|---|---|
 | 1 | **Edit Nama Karyawan (`PATCH /api/v1/employees/:id/name`)** | **SELESAI & AKTIF** | • **Akses UI**: Tombol pensil (✎) di sebelah nama staf pada tabel master karyawan serta tombol **`Edit Nama`** di kolom Aksi.<br>• **Modal Interaktif**: Modal pengubahan nama lengkap dan jabatan staf dengan validasi nama tidak boleh kosong.<br>• **Sinkronisasi Multi-Tabel**: Mengupdate `employees.name` dan `profiles.display_name` secara konsisten serta mencatat riwayat ke `audit_logs`.<br>• **Real-time Refresh**: Memperbarui tabel daftar karyawan, ketentuan libur tim, dan rekapitulasi gaji seketika tanpa reload halaman. |
-| 2 | **Kurang Karyawan (`DELETE /api/v1/employees/:id`)** | **SELESAI & AKTIF** | • **Akses UI**: Tombol bahaya merah **`Kurang Karyawan`** dengan ikon tempat sampah di kolom Aksi tabel karyawan.<br>• **Modal Konfirmasi Aman**: Modal peringatan merah yang mengonfirmasi identitas karyawan sebelum penghapusan dilakukan.<br>• **Integritas Riwayat Absensi & Payroll**: Jika karyawan memiliki rekam jejak absensi atau payroll historis, sistem secara cerdas melakukan *soft delete* (`active = false` pada `employees` dan `users`, serta membersihkan penugasan masa depan) sehingga data audit masa lalu tetap aman. Jika karyawan belum memiliki riwayat (misal salah input), sistem melakukan penghapusan bersih (*hard delete*).<br>• **Proteksi Keamanan Role**: Mencegah penghapusan akun Owner, mencegah penghapusan akun diri sendiri, dan mencegah Manager menghapus sesama Manager. |
+| 2 | **Hapus Karyawan (`DELETE /api/v1/employees/:id`)** | **SELESAI & AKTIF** | • **Akses UI**: Tombol bahaya merah **`Hapus Karyawan`** *(sebelumnya `Kurang Karyawan`)* dengan ikon tempat sampah di kolom Aksi tabel karyawan.<br>• **Modal Konfirmasi Aman**: Modal peringatan merah yang mengonfirmasi identitas karyawan sebelum penghapusan dilakukan.<br>• **Integritas Riwayat Absensi & Payroll**: Jika karyawan memiliki rekam jejak absensi atau payroll historis, sistem secara cerdas melakukan *soft delete* (`active = false` pada `employees` dan `users`, serta membersihkan penugasan masa depan) sehingga data audit masa lalu tetap aman. Jika karyawan belum memiliki riwayat (misal salah input), sistem melakukan penghapusan bersih (*hard delete*).<br>• **Proteksi Keamanan Role**: Mencegah penghapusan akun Owner, mencegah penghapusan akun diri sendiri, dan mencegah Manager menghapus sesama Manager. |
+
+## 7. Rekapitulasi Cut-Off 27–26, Analisa Bulanan & Download PDF (`v1.2.0`, 21 November 2026)
+- Produksi berjalan di **`vps-sultanarab`** (`/home/ubuntu/sultan_arab_apps`, PM2 `sultan-app`, Cloudflare Tunnel `https://absen.sultanarab.store`).
+- Cabang `HQ-BKS` diubah namanya menjadi **`Kantor Pusat`** (migrasi `009`).
+- Periode Rekap Bulanan memakai **cut-off tanggal 27 bulan sebelumnya s.d. 26 bulan terpilih**, rincian per karyawan menampilkan tanggal lengkap, ditambah **Analisa Rekap Bulanan** dan endpoint **`GET /api/v1/attendance/monthly-recap/pdf`**.
 
 

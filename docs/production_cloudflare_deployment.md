@@ -1,147 +1,99 @@
 # PANDUAN DEPLOYMENT PRODUKSI & AKSES PUBLIK (CLOUDFLARE TUNNEL)
 **SULTAN ARAB APP — Sistem Presensi, Manajemen Karyawan & Payroll**
 
-Dokumen ini mencatat seluruh informasi arsitektur jaringan, server produksi lokal, kredensial akses, konfigurasi Cloudflare Tunnel, serta Standar Operasional Prosedur (SOP) untuk revisi fitur/tampilan dan penambahan aplikasi baru di masa depan.
+Dokumen ini mencatat arsitektur jaringan, server produksi aktif di **`vps-sultanarab`**, konfigurasi Cloudflare Tunnel, serta Standar Operasional Prosedur (SOP) rilis dan backup.
+
+> [!NOTE] Pembaruan Arsitektur (`21 Nov 2026`)
+> Produksi resmi telah dipindahkan dari workstation/laptop toko Windows lama (`sultanarab-server` / `100.86.176.62` / `C:\sultan_arab_apps`) ke **`vps-sultanarab`** (`VM-0-3-ubuntu` Linux 24/7). Jangan deploy ke host Windows lama tersebut.
 
 ---
 
 ## 1. Identitas Domain & Akses Publik
 
-* **Domain Utama**: `sultanarab.store` (Dibeli di Hostinger)
+* **Domain Utama**: `sultanarab.store` (Hostinger DNS dikelola via Cloudflare)
 * **URL Aplikasi Resmi**: **`https://absen.sultanarab.store`**
-* **Pengelola DNS & CDN**: Cloudflare (Paket Free)
-  * Nameserver 1: `lia.ns.cloudflare.com`
-  * Nameserver 2: `neil.ns.cloudflare.com`
-* **Keamanan SSL / HTTPS**: Otomatis melalui Cloudflare Universal SSL. Seluruh request dari browser ponsel dan PC dienkripsi HTTPS sehingga sensor kamera (selfie presensi) dan GPS (geolokasi cabang) diizinkan oleh browser.
+* **Keamanan SSL / HTTPS**: Otomatis melalui Cloudflare Tunnel + Universal SSL. Seluruh request browser ponsel/PC terenkripsi HTTPS sehingga kamera presensi dan GPS cabang berjalan lancar.
 
 ---
 
-## 2. Spesifikasi Komputer Server Lokal
+## 2. Spesifikasi Server Produksi Aktif (`vps-sultanarab`)
 
-Aplikasi dan basis data berjalan secara mandiri pada perangkat fisik lokal di cabang:
-
-* **Nama Komputer (Hostname)**: `sultanarab-server` (identitas fisik: `LAPTOP-0D0R5FD2`)
-* **Sistem Operasi**: Windows 11 / Windows 10 (x64)
-* **Alamat Jaringan Privat (Tailscale)**: `100.86.176.62`
+* **Hostname**: `VM-0-3-ubuntu` (SSH alias: `vps-sultanarab`)
+* **Sistem Operasi**: Ubuntu Linux (Cloud VPS 24/7)
+* **Alamat Jaringan Privat (Tailscale)**: `100.121.167.83`
 * **Akses SSH Remote**:
-  * Host: `100.86.176.62`
-  * Port: `22`
-  * User: `darmawan store`
-  * Password: `bismillah`
-* **Direktori Aplikasi**: `C:\sultan_arab_apps`
-* **Repositori Git**: `https://github.com/achmadfahry-art/sultan_arab_apps.git`
-* **Basis Data**: PostgreSQL 18
-  * Port: `5432` (Lokal)
+  * Alias: `ssh vps-sultanarab` (user `ubuntu`, kunci SSH `~/.ssh/id_ed25519`)
+* **Direktori Aplikasi**: `/home/ubuntu/sultan_arab_apps`
+* **Repositori Git**: `https://github.com/achmadfahry-art/sultan_arab_apps.git` (branch `main`)
+* **Basis Data**: PostgreSQL 18 (`postgresql.service`)
+  * Port lokal: `5432`
   * Nama Database: `sultan_arab_app`
-  * User DB: `postgres`
-* **Service Aplikasi Otomatis**:
-  * Dikelola sebagai **Windows Service** resmi melalui **NSSM**: `SultanArabApp`
-  * Startup Type: `Automatic` (Berjalan otomatis saat boot, sebelum login user, tanpa batas waktu timeout)
-  * Dependensi: `postgresql-x64-18` (otomatis menunggu PostgreSQL aktif terlebih dahulu)
-  * Auto Recovery: Otomatis restart jika terjadi crash/error (delay 5 detik)
-  * Self-Healing Watchdog: Task Scheduler `SultanArabApp_Watchdog` memantau port 3000 setiap 5 menit
-  * Log server: `C:\sultan_arab_apps\server.log`
-  * Port internal: `http://localhost:3000`
-* **Keamanan Daya & Perilaku Fisik (Power Policy)**:
-  * **Tombol Power Fisik**: `Do Nothing` (Nilai `0` — jika terpencet tidak sengaja, server **tidak akan mati/sleep**).
-  * **Tutup Layar (Lid Close)**: `Do Nothing` (Nilai `0` — layar aman ditutup tanpa membuat server mati).
-  * **Sleep / Standby Timeout**: `Never Sleep` (Nilai `0 detik` — server tidak pernah masuk mode tidur).
+  * Konfigurasi koneksi disimpan di `/home/ubuntu/sultan_arab_apps/.env` (`DATABASE_URL`, jangan ditulis ke dokumen/Git)
+* **Process Manager**: **PM2**
+  * Nama proses: `sultan-app`
+  * Entry point: `/home/ubuntu/sultan_arab_apps/apps/server/src/index.js` (port internal `3000`)
+  * Log: `/home/ubuntu/.pm2/logs/sultan-app-out-0.log` & `sultan-app-error-0.log`
 
 ---
 
-## 3. Konfigurasi Cloudflare Tunnel (Zero Trust)
+## 3. Konfigurasi Cloudflare Tunnel
 
-Koneksi dari internet publik (`https://absen.sultanarab.store`) ke laptop server (`localhost:3000`) dihubungkan melalui **Cloudflare Tunnel (cloudflared)** tanpa perlu IP Publik Statis maupun Port Forwarding.
-
-* **Nama Tunnel**: `sultan-arab-tunnel`
-* **Tunnel ID**: `8423fd94-6e66-4ed2-b0d2-080b3d68f0a4`
-* **Token Tunnel**:
-  ```text
-  eyJhIjoiZmFjNDNlZTU3MmVmYTQ5YThjMWI5OThkZWRkMWE0ZjMiLCJ0IjoiODQyM2ZkOTQtNmU2Ni00ZWQyLWIwZDItMDgwYjNkNjhmMGE0IiwicyI6Ik56Z3dPV0UwTURNdFpESXlPQzAwTlRrNUxUaGtaakF0TmpoaFlXUmtZV1EzWWpJNCJ9
-  ```
-* **Executable di Server**: `C:\cloudflared\cloudflared.exe`
-* **Service Name**: `Cloudflared` (Windows Service, StartType: Automatic)
+Trafik publik `https://absen.sultanarab.store` diteruskan oleh service systemd **`cloudflared.service`** di `vps-sultanarab`:
+* **Executable & Unit**: `/usr/bin/cloudflared --no-autoupdate tunnel run --token-file /etc/cloudflared/token`
+* **Status & Kelola**: `sudo systemctl status cloudflared`
 * **Routing Public Hostname**:
-  * Subdomain: `absen`
-  * Domain: `sultanarab.store`
-  * Service Type: `HTTP`
-  * Service URL: `localhost:3000`
+  * `absen.sultanarab.store` $\rightarrow$ `http://localhost:3000` (terpisah dari `sultanarab.id` yang dilayani container `woo_wordpress`).
 
 ---
 
 ## 4. Konfigurasi Lingkungan (`.env`) di Server Produksi
 
-Berkas konfigurasi di `C:\sultan_arab_apps\.env`:
-```ini
-NODE_ENV=production
-PORT=3000
-APP_BASE_URL=https://absen.sultanarab.store
-DATABASE_URL=postgresql://postgres@localhost:5432/sultan_arab_app
-UPLOAD_ROOT=./storage
-SESSION_SECRET=sultan_arab_secret_production_2026
-SESSION_MAX_AGE_MS=86400000
-ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://100.86.176.62:3000,http://100.84.77.41:3000,https://100.86.176.62:3000,https://absen.sultanarab.store
-```
+Lokasi file privat di server: `/home/ubuntu/sultan_arab_apps/.env` (lihat struktur variabel di [`.env.example`](../.env.example), nilai rahasia tetap berada hanya di server).
 
 ---
 
-## 5. SOP Pemeliharaan & Prosedur Revisi Fitur / Tampilan
+## 5. SOP Deploy Update ke Produksi (`vps-sultanarab`)
 
-Jika ada pembaruan kode (revisi frontend, penambahan fitur API, atau migrasi database):
-
-### A. Alur Update Kode & Rilis ke Produksi
-1. Lakukan pengembangan dan pengujian di komputer dev lokal (`d:\Antigravity_project\sultan_arab_apps`).
+### A. Alur Rilis & Update Kode
+1. Kembangkan dan uji di komputer dev (`d:\Antigravity_project\sultan_arab_apps`).
 2. Commit dan push perubahan ke GitHub:
    ```bash
    git add .
    git commit -m "feat/fix: deskripsi pembaruan"
    git push origin main
    ```
-3. Hubungkan ke server produksi via SSH (`100.86.176.62`) lalu jalankan:
-   ```powershell
-   # 1. Masuk ke folder aplikasi dan tarik kode terbaru
-   cd C:\sultan_arab_apps
+3. Masuk ke `vps-sultanarab`, backup database, tarik kode terbaru, jalankan migrasi, lalu restart PM2:
+   ```bash
+   ssh vps-sultanarab
+   cd /home/ubuntu/sultan_arab_apps
+   mkdir -p backups
+   set -a; source .env; set +a
+   pg_dump "$DATABASE_URL" -Fc -f "backups/pre_deploy_$(date +%Y%m%d_%H%M%S).dump"
    git pull origin main
-
-   # 2. Jika ada dependensi baru:
-   npm install --production
-
-   # 3. Jika ada migrasi database SQL baru:
-   npm run db:migrate
-
-   # 4. Restart aplikasi agar kode baru aktif:
-   Restart-Service -Name SultanArabApp
-   # Atau jika menggunakan net/nssm:
-   # nssm restart SultanArabApp
+   npm install --production   # jika ada perubahan dependensi di package.json
+   npm run db:migrate         # jika ada file baru di database/migrations/
+   pm2 restart sultan-app
+   pm2 list
+   ```
+4. Verifikasi endpoint produksi:
+   ```bash
+   curl -s https://absen.sultanarab.store/api/health
    ```
 
 ### B. Prosedur Backup Berkala
 * **Backup Database**:
-  ```powershell
-  & "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" -U postgres -p 5432 -F c -b -v -f "C:\sultan_arab_apps\backups\sultan_arab_$(Get-Date -Format 'yyyyMMdd_HHmmss').dump" sultan_arab_app
+  ```bash
+  set -a; source /home/ubuntu/sultan_arab_apps/.env; set +a
+  pg_dump "$DATABASE_URL" -Fc -f "/home/ubuntu/sultan_arab_apps/backups/sultan_arab_$(date +%Y%m%d_%H%M%S).dump"
   ```
 * **Backup Direktori Storage (Foto Bukti & Slip Gaji)**:
-  Arsipkan folder `C:\sultan_arab_apps\storage` secara berkala ke flashdisk atau cloud drive.
+  ```bash
+  tar -czf "/home/ubuntu/sultan_arab_apps/backups/storage_$(date +%Y%m%d_%H%M%S).tar.gz" -C /home/ubuntu/sultan_arab_apps storage
+  ```
 
 ---
 
-## 6. Panduan Menambahkan Aplikasi Baru di Masa Depan
+## 6. Menambahkan Subdomain / Aplikasi Baru di Tunnel yang Sama
 
-Jika suatu saat ingin membuat aplikasi baru (misal: POS Kasir, E-commerce, Inventory, atau Dashboard Owner):
-
-1. **Gunakan Port Berbeda di Komputer yang Sama**:
-   * Contoh:
-     * Sultan Arab App Presensi: Port `3000`
-     * Aplikasi Kasir / POS: Port `4000`
-     * Dashboard Reporting: Port `5000`
-2. **Tidak Perlu Pasang Cloudflared Baru!**:
-   * Cloudflared service yang sudah terpasang dapat melayani banyak subdomain sekaligus.
-3. **Cukup Tambah Route di Cloudflare Dashboard**:
-   * Buka Cloudflare Zero Trust -> **Networks** -> **Tunnels** -> Pilih `sultan-arab-tunnel`.
-   * Klik **Configure** -> Tab **Public Hostnames** -> Klik **Add a public hostname**:
-     * Subdomain: `kasir` (atau nama aplikasi baru)
-     * Domain: `sultanarab.store`
-     * Type: `HTTP`
-     * URL: `localhost:4000` (sesuai port aplikasi baru)
-   * Klik **Save hostname**.
-   * Aplikasi baru otomatis langsung dapat diakses di `https://kasir.sultanarab.store` ber-HTTPS resmi!
+1. Jalankan aplikasi baru di port internal berbeda (mis. `4000`, `5000`).
+2. Tambahkan *Public Hostname* baru pada tunnel yang dikelola `cloudflared.service` di Cloudflare Zero Trust Dashboard ke `http://localhost:<port>` — tidak perlu memasang daemon `cloudflared` baru.
