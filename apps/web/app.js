@@ -2,14 +2,32 @@
  * SULTAN ARAB APP — Frontend Application (Single Page Application)
  * Mendukung tampilan Ponsel dan PC secara responsif.
  * Modul Operasional: Absensi, Multi-Cabang, Manajemen Jadwal, Payroll & Slip Gaji.
- * - Cabang: HQ Bekasi & Cabang Cikarang
+ * - Cabang: Kantor Pusat & Cabang Cikarang
  * - Shift: Staff & Admin (Non-Shift 08-17), Crew Toko (Pagi 08-17, Siang 12:00-21), Toleransi 15 Menit
  * - Aturan Absen: Wajib absen masuk, absen pulang bersifat opsional
  * - Uang Makan: Rp10.000 saat hadir toko; tombol Kunjungan Luar tidak dapat uang makan
  * - Manager PDF Payslip Upload per anggota staf
  * - Integrasi WhatsApp reminder
  */
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
+
+function getDefaultCutoffPeriod() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date()).split('-').map(Number);
+  let y = parts[0];
+  let m = parts[1];
+  if (parts[2] >= 27) {
+    m = m === 12 ? 1 : m + 1;
+    if (m === 1) y += 1;
+  }
+  return { year: y, month: m };
+}
+
+const defaultCutoff = getDefaultCutoffPeriod();
 
 const state = {
   user: null,
@@ -21,8 +39,8 @@ const state = {
   myPayslips: [],
   uploadedSlips: [],
   activeManagementTab: 'monitoring',
-  recapMonth: new Date().getMonth() + 1,
-  recapYear: new Date().getFullYear(),
+  recapMonth: defaultCutoff.month,
+  recapYear: defaultCutoff.year,
   recapBranchId: '',
   recapData: null,
   payslipViewMode: 'staff', // 'me' atau 'staff'
@@ -490,7 +508,7 @@ function renderHome() {
     `;
   }
 
-  const branchName = state.user.assignedBranchName || (state.branches[0] ? state.branches[0].name : 'Head Quarter Bekasi');
+  const branchName = state.user.assignedBranchName || (state.branches[0] ? state.branches[0].name : 'Kantor Pusat');
   const userPhotoHtml = state.user.avatarUrl
     ? `<img src="${escapeHtml(state.user.avatarUrl)}" alt="${escapeHtml(state.user.displayName)}">`
     : `<span class="hero-avatar-initial">${escapeHtml(state.user.displayName ? state.user.displayName.charAt(0).toUpperCase() : 'U')}</span>`;
@@ -819,7 +837,7 @@ function renderDynamicDayOffRules(employees = []) {
   for (const emp of employees) {
     let grp = 'Staff';
     const job = (emp.job_title || '').toLowerCase();
-    const branch = emp.branch_name || 'Head Quarter';
+    const branch = emp.branch_name || 'Kantor Pusat';
     if (job.includes('staff') || job.includes('staf') || job.includes('manager')) {
       grp = 'Staff Kantor';
     } else if (job.includes('admin')) {
@@ -1161,10 +1179,13 @@ function renderManagementRecapTab() {
     <div class="card" style="margin-bottom: 20px;">
       <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
         <div>
-          <h3 class="card-title">${uiIcon('chart', '', 20)} Rekapitulasi Kehadiran Bulanan Staf</h3>
-          <p class="card-subtitle">Akumulasi kehadiran, lembur (08:00–21:00), keterlambatan, dan uang makan terhitung per bulan.</p>
+          <h3 class="card-title">${uiIcon('chart', '', 20)} Rekapitulasi &amp; Analisa Kehadiran Bulanan Staf</h3>
+          <p class="card-subtitle">Data cut-off tanggal <strong>27 bulan sebelumnya s.d. 26 bulan ini</strong>. <span id="recap-period-badge" class="badge badge-info" style="margin-left:4px;">Memuat periode...</span></p>
         </div>
         <div class="card-actions" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button type="button" id="btn-download-recap-pdf" class="btn btn-primary" title="Unduh Laporan & Analisa PDF">
+            ${uiIcon('download', '', 16)} Download PDF
+          </button>
           <button type="button" class="btn btn-secondary" onclick="window.print()" title="Cetak Tabel Rekapitulasi">
             ${uiIcon('printer', '', 16)} Cetak
           </button>
@@ -1178,7 +1199,7 @@ function renderManagementRecapTab() {
       <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px;">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: flex-end;">
           <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" style="font-size: 0.82rem; font-weight: 600;">Bulan:</label>
+            <label class="form-label" style="font-size: 0.82rem; font-weight: 600;">Periode Bulan (Cut-off Tgl 26):</label>
             <select id="recap-filter-month" class="form-control">
               ${monthOptions}
             </select>
@@ -1250,6 +1271,12 @@ function renderManagementRecapTab() {
             <div class="kpi-label">Total Uang Makan</div>
           </div>
         </div>
+      </div>
+
+      <!-- Panel Analisa Rekap Bulanan -->
+      <div id="recap-analytics-panel" style="background: #F8FAFC; border: 1px solid var(--border-color); border-left: 4px solid var(--primary-red); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 18px;">
+        <div style="font-size: 0.92rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">Analisa Rekap Bulanan</div>
+        <div style="font-size: 0.84rem; color: var(--text-muted);">Memuat hasil analisa kehadiran periode ini...</div>
       </div>
 
       <!-- Tabel Rekap Per Karyawan -->
@@ -1413,7 +1440,7 @@ function renderProfile() {
   const user = state.user || {};
   const currentAvatar = user.avatarUrl || '';
   const initial = (user.displayName ? user.displayName.charAt(0) : (user.loginIdentifier ? user.loginIdentifier.charAt(0) : 'U')).toUpperCase();
-  const branchName = user.assignedBranchName || (state.branches[0] ? state.branches[0].name : 'Head Quarter Bekasi');
+  const branchName = user.assignedBranchName || (state.branches[0] ? state.branches[0].name : 'Kantor Pusat');
 
   return `
     <div style="max-width: 600px; margin: 0 auto; padding-bottom: 24px;">
@@ -2307,6 +2334,17 @@ async function loadMonitoringData() {
 }
 
 // --- Fungsi Rekapitulasi Bulanan Staf ---
+function formatRecapDateLabel(dateStr) {
+  if (!dateStr) return '-';
+  const clean = String(dateStr).slice(0, 10);
+  const parts = clean.split('-').map(Number);
+  if (parts.length !== 3 || !parts[0]) return clean;
+  const days = ['Ahad', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+  const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const dow = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])).getUTCDay();
+  return `${days[dow]}, ${parts[2]} ${months[parts[1]] || parts[1]} ${parts[0]}`;
+}
+
 function setupRecapFilterListeners() {
   const btnApply = document.getElementById('btn-apply-recap-filter');
   if (btnApply) {
@@ -2329,11 +2367,97 @@ function setupRecapFilterListeners() {
       showToast('Data rekap disinkronkan!', 'info');
     });
   }
+
+  const btnDownloadPdf = document.getElementById('btn-download-recap-pdf');
+  if (btnDownloadPdf) {
+    btnDownloadPdf.addEventListener('click', async () => {
+      const { month, year } = getDefaultCutoffPeriod();
+      const selMonth = document.getElementById('recap-filter-month')?.value || state.recapMonth || month;
+      const selYear = document.getElementById('recap-filter-year')?.value || state.recapYear || year;
+      const selBranch = document.getElementById('recap-filter-branch')?.value ?? state.recapBranchId ?? '';
+
+      let pdfUrl = `/api/v1/attendance/monthly-recap/pdf?year=${encodeURIComponent(selYear)}&month=${encodeURIComponent(selMonth)}`;
+      if (selBranch) pdfUrl += `&branch_id=${encodeURIComponent(selBranch)}`;
+
+      btnDownloadPdf.disabled = true;
+      const origHtml = btnDownloadPdf.innerHTML;
+      btnDownloadPdf.textContent = 'Membuat PDF...';
+      try {
+        const resp = await fetch(pdfUrl, { credentials: 'include' });
+        if (!resp.ok) {
+          let errMsg = 'Gagal mengunduh PDF rekap bulanan.';
+          try { const j = await resp.json(); if (j.error) errMsg = j.error; } catch (_) {}
+          showToast(errMsg, 'error');
+          return;
+        }
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `rekap-absensi-${selYear}-${String(selMonth).padStart(2, '0')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+        showToast('PDF Rekap & Analisa Bulanan berhasil diunduh!', 'success');
+      } catch (err) {
+        showToast('Gagal mengunduh PDF: ' + err.message, 'error');
+      } finally {
+        btnDownloadPdf.disabled = false;
+        btnDownloadPdf.innerHTML = origHtml;
+      }
+    });
+  }
+}
+
+function renderRecapAnalyticsPanel(data) {
+  const panel = document.getElementById('recap-analytics-panel');
+  if (!panel) return;
+  const analytics = data.analytics || {};
+  const period = data.period || {};
+  const shifts = analytics.shift_breakdown || { pagi: 0, siang: 0, lembur: 0 };
+  const insights = analytics.insights || [];
+
+  const insightsHtml = insights.map(text =>
+    `<li style="margin-bottom: 4px; color: var(--text-main);">${escapeHtml(text)}</li>`
+  ).join('');
+
+  const topPunctualBadge = analytics.top_hadir
+    ? `<span class="badge badge-success">Hadir Tertinggi: ${escapeHtml(analytics.top_hadir.name)} (${analytics.top_hadir.count} hr)</span>`
+    : '';
+  const mostLateBadge = analytics.most_late
+    ? `<span class="badge badge-danger">Terlambat Terbanyak: ${escapeHtml(analytics.most_late.name)} (${analytics.most_late.count}x)</span>`
+    : `<span class="badge badge-present">0 Keterlambatan</span>`;
+  const mostOvertimeBadge = analytics.most_overtime
+    ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e;">Lembur Terbanyak: ${escapeHtml(analytics.most_overtime.name)} (${analytics.most_overtime.count}x)</span>`
+    : '';
+
+  panel.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+      <div style="font-size:0.95rem; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:6px;">
+        ${uiIcon('chart', '', 16)} Analisa Rekap Bulanan (${escapeHtml(period.cutoff_label || '')})
+      </div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <span class="badge badge-info">Disiplin Tepat Waktu: ${analytics.on_time_rate_pct ?? 100}%</span>
+        <span class="badge badge-secondary">Rata-rata: ${analytics.avg_hadir_per_staff ?? 0} hr / ${analytics.avg_jam_per_staff ?? 0} jam per staf</span>
+      </div>
+    </div>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+      ${topPunctualBadge}
+      ${mostLateBadge}
+      ${mostOvertimeBadge}
+      <span class="badge badge-secondary">Shift Pagi: ${shifts.pagi} • Siang: ${shifts.siang} • Lembur: ${shifts.lembur}</span>
+    </div>
+    <ul style="margin:0; padding-left:18px; font-size:0.84rem; line-height:1.45;">
+      ${insightsHtml}
+    </ul>
+  `;
 }
 
 async function loadMonthlyRecapData() {
-  const month = state.recapMonth || (new Date().getMonth() + 1);
-  const year = state.recapYear || new Date().getFullYear();
+  const def = getDefaultCutoffPeriod();
+  const month = state.recapMonth || def.month;
+  const year = state.recapYear || def.year;
   const branchId = state.recapBranchId || '';
 
   let query = `/api/v1/attendance/monthly-recap?year=${year}&month=${month}`;
@@ -2347,6 +2471,14 @@ async function loadMonthlyRecapData() {
 
   state.recapData = res.data;
   const summary = res.data.summary || {};
+  const period = res.data.period || {};
+
+  const periodBadge = document.getElementById('recap-period-badge');
+  if (periodBadge && period.cutoff_label) {
+    periodBadge.textContent = `Periode: ${period.cutoff_label}`;
+  }
+
+  renderRecapAnalyticsPanel(res.data);
 
   const kpiEmp = document.getElementById('recap-kpi-employees');
   const kpiHadir = document.getElementById('recap-kpi-hadir');
@@ -2372,14 +2504,16 @@ async function loadMonthlyRecapData() {
   }
 
   tbody.innerHTML = recapList.map((item, idx) => {
+    const noteColor = item.analysis_level === 'attention' ? '#b91c1c' : (item.analysis_level === 'good' ? '#15803d' : 'var(--text-muted)');
     return `
       <tr>
         <td class="cell-title" data-label="Staf">
           <strong>${escapeHtml(item.employee_name)}</strong>
           <small class="cell-code" style="display:block; color:var(--text-muted);">${escapeHtml(item.job_title || '-')}</small>
+          <small style="display:block; font-size:0.72rem; color:${noteColor}; font-weight:600; white-space:normal;">${escapeHtml(item.analysis_note || '')}</small>
         </td>
         <td data-label="Cabang">
-          <span class="badge badge-secondary" style="font-size: 0.74rem;">${escapeHtml(item.branch_name || 'Semua Cabang')}</span>
+          <span class="badge badge-secondary" style="font-size: 0.74rem;">${escapeHtml(item.branch_name || 'Kantor Pusat')}</span>
         </td>
         <td data-label="Hadir">
           <strong>${item.totalHadirFisik}</strong>
@@ -2417,11 +2551,11 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
   const modalContainer = document.getElementById('modal-container');
   if (!modalContainer) return;
 
-  const records = item.dailyRecords || [];
+  const records = item.dailyRecords || item.daily_records || [];
   const recordsHtml = records.length === 0 ? `
-    <tr><td colspan="7" class="cell-empty">Tidak ada riwayat absensi pada bulan ini.</td></tr>
+    <tr><td colspan="7" class="cell-empty">Tidak ada riwayat absensi pada periode cut-off ini.</td></tr>
   ` : records.map(r => {
-    const isLembur = r.isLembur;
+    const isLembur = r.isLembur || r.is_lembur;
     const shiftBadge = isLembur
       ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:600;">${uiIcon('zap', '', 12)} ${escapeHtml(r.shift_name)}</span>`
       : `<span class="badge badge-secondary">${escapeHtml(r.shift_name || '-')}</span>`;
@@ -2434,35 +2568,41 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
       ? `<span class="badge badge-info">${uiIcon('car', '', 12)} Kunjungan</span>`
       : `<span class="badge badge-present">${uiIcon('building', '', 12)} Hadir Toko</span>`;
 
-    const checkIn = r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
-    const checkOut = r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+    const checkIn = r.check_in_label || (r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }) : '-');
+    const checkOut = r.check_out_label || (r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }) : '-');
+    const dateLabel = r.date_formatted || formatRecapDateLabel(r.work_date || r.date);
+    const mealVal = r.uangMakan ?? r.uang_makan ?? 0;
+    const durMin = r.durasiMenit ?? r.durasi_menit ?? 0;
 
     return `
       <tr>
-        <td><strong>${escapeHtml(r.work_date)}</strong></td>
+        <td style="white-space:nowrap;"><strong>${escapeHtml(dateLabel)}</strong></td>
         <td>${shiftBadge}</td>
         <td>${typeBadge}</td>
-        <td>${checkIn} - ${checkOut}</td>
+        <td style="white-space:nowrap;">${checkIn} - ${checkOut}</td>
         <td>${statusBadge}</td>
-        <td>${(r.durasiMenit / 60).toFixed(1)} jam</td>
-        <td>${r.uangMakan > 0 ? `Rp ${formatNumber(r.uangMakan)}` : '-'}</td>
+        <td>${(durMin / 60).toFixed(1)} jam</td>
+        <td>${mealVal > 0 ? `Rp ${formatNumber(mealVal)}` : '-'}</td>
       </tr>
     `;
   }).join('');
 
   modalContainer.innerHTML = `
     <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
-      <div class="modal-card" style="max-width: 840px; width: 95%; max-height: 90vh;">
+      <div class="modal-card" style="max-width: 880px; width: 95%; max-height: 90vh;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-red), #9E0000); color: #fff;">
           <div>
             <h3 class="modal-title" style="color: #fff; font-size: 1.15rem; font-weight: 700; margin: 0; display:flex; align-items:center; gap:8px;">
               ${uiIcon('search', '', 18)} Rincian Kehadiran: ${escapeHtml(item.employee_name)}
             </h3>
-            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); margin-top: 4px;">Periode: ${period.startDate || ''} s.d. ${period.endDate || ''} • Cabang: ${escapeHtml(item.branch_name || 'Semua Cabang')} • Libur Rutin: <strong style="color: #fef08a;">${escapeHtml(item.day_off || '-')}</strong></div>
+            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); margin-top: 4px;">Periode Cut-off: ${escapeHtml(period.cutoff_label || `${period.startDate || ''} s.d. ${period.endDate || ''}`)} • Cabang: ${escapeHtml(item.branch_name || 'Kantor Pusat')} • Libur Rutin: <strong style="color: #fef08a;">${escapeHtml(item.day_off || '-')}</strong></div>
           </div>
           <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.4rem; cursor:pointer; line-height:1; padding:4px 8px;">✕</button>
         </div>
         <div class="modal-body" style="max-height: calc(90vh - 140px); overflow-y: auto;">
+          <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 0.84rem;">
+            <strong>Analisa Staf:</strong> ${escapeHtml(item.analysis_note || '-')} • <strong>Ketepatan Waktu:</strong> ${item.on_time_rate_pct ?? 100}% (${item.total_tepat_waktu ?? 0} tepat waktu, ${item.total_terlambat ?? 0} terlambat) • <strong>Rata-rata:</strong> ${item.avg_hours_per_shift ?? 0} jam/kehadiran
+          </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; background: #f8fafc; padding: 12px; border-radius: 8px;">
             <div>
               <div style="font-size: 0.75rem; color: var(--text-muted);">Hadir Toko</div>
@@ -2553,7 +2693,7 @@ async function loadStaffSlipsTable(tbodyId) {
           ${phoneDisplay}
         </td>
         <td class="cell-full" data-label="Cabang / Jabatan">
-          <div>${escapeHtml(s.branch_name || 'Head Quarter')}</div>
+          <div>${escapeHtml(s.branch_name || 'Kantor Pusat')}</div>
           <div class="cell-note">${escapeHtml(s.job_title || 'Crew Toko')}</div>
         </td>
         <td class="cell-full" data-label="Slip PDF Terakhir">${slipStatusBadge}</td>
@@ -2765,7 +2905,7 @@ async function loadMasterData() {
           </div>
         </td>
         <td data-label="Jabatan">${escapeHtml(e.job_title || 'Crew Toko')}</td>
-        <td data-label="Cabang">${escapeHtml(e.branch_name || 'Head Quarter')}</td>
+        <td data-label="Cabang">${escapeHtml(e.branch_name || 'Kantor Pusat')}</td>
         <td data-label="Status"><span class="badge badge-success">Aktif</span></td>
         <td class="cell-actions" data-label="Aksi">
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
@@ -2781,8 +2921,8 @@ async function loadMasterData() {
             <button class="btn btn-secondary btn-sm btn-reset-emp-pwd" data-id="${e.id}" title="Reset password jika karyawan lupa">
               ${uiIcon('key', '', 14)} Reset Password
             </button>
-            <button class="btn btn-danger btn-sm btn-delete-emp" data-id="${e.id}" title="Kurangi / Hapus karyawan ini dari daftar">
-              ${uiIcon('trash', '', 14)} Kurang Karyawan
+            <button class="btn btn-danger btn-sm btn-delete-emp" data-id="${e.id}" title="Hapus karyawan ini dari daftar">
+              ${uiIcon('trash', '', 14)} Hapus Karyawan
             </button>
           </div>
         </td>
@@ -3414,7 +3554,7 @@ function openUpdateEmployeeNameModal(emp) {
         <form id="form-update-emp-name">
           <div class="modal-body">
             <div style="background: var(--bg-hover, #F8FAFC); border: 1px solid var(--border-color, #E2E8F0); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 0.85rem; color: var(--text-muted);">
-              <strong>Kode:</strong> <span class="cell-code">${escapeHtml(emp.employee_code)}</span> • <strong>Cabang:</strong> ${escapeHtml(emp.branch_name || 'Head Quarter')}
+              <strong>Kode:</strong> <span class="cell-code">${escapeHtml(emp.employee_code)}</span> • <strong>Cabang:</strong> ${escapeHtml(emp.branch_name || 'Kantor Pusat')}
             </div>
             <div class="form-group">
               <label class="form-label" for="update-emp-name-input">Nama Lengkap Karyawan:</label>
@@ -3481,21 +3621,21 @@ function openDeleteEmployeeModal(emp) {
       <div class="modal-card">
         <div class="modal-header" style="background: linear-gradient(135deg, #B91C1C, #991B1B);">
           <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
-            ${uiIcon('trash', '', 18)} Kurang / Hapus Karyawan
+            ${uiIcon('trash', '', 18)} Hapus Karyawan
           </h3>
           <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
         </div>
         <div class="modal-body">
           <div style="background: #FEF2F2; border: 1px solid #FECACA; border-left: 4px solid #DC2626; padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 0.88rem; color: #991B1B;">
-            <strong>Konfirmasi Pengurangan Karyawan:</strong>
-            <p style="margin: 6px 0 0 0;">Apakah Anda yakin ingin mengurangi / menghapus karyawan berikut dari sistem?</p>
+            <strong>Konfirmasi Penghapusan Karyawan:</strong>
+            <p style="margin: 6px 0 0 0;">Apakah Anda yakin ingin menghapus karyawan berikut dari sistem?</p>
           </div>
 
           <div style="background: var(--bg-hover, #F8FAFC); border: 1px solid var(--border-color, #E2E8F0); padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 0.9rem;">
             <div style="margin-bottom: 6px;"><strong>Nama:</strong> ${escapeHtml(emp.name)}</div>
             <div style="margin-bottom: 6px;"><strong>Kode Karyawan:</strong> <span class="cell-code">${escapeHtml(emp.employee_code)}</span></div>
             <div style="margin-bottom: 6px;"><strong>Jabatan:</strong> ${escapeHtml(emp.job_title || 'Crew Toko')}</div>
-            <div><strong>Cabang:</strong> ${escapeHtml(emp.branch_name || 'Head Quarter')}</div>
+            <div><strong>Cabang:</strong> ${escapeHtml(emp.branch_name || 'Kantor Pusat')}</div>
           </div>
 
           <div style="font-size: 0.82rem; color: var(--text-muted); display:flex; align-items:flex-start; gap:6px;">
@@ -3506,7 +3646,7 @@ function openDeleteEmployeeModal(emp) {
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
           <button type="button" id="btn-confirm-delete-emp" class="btn btn-danger">
-            ${uiIcon('trash', '', 16)} Ya, Kurang Karyawan
+            ${uiIcon('trash', '', 16)} Ya, Hapus Karyawan
           </button>
         </div>
       </div>
@@ -3523,7 +3663,7 @@ function openDeleteEmployeeModal(emp) {
     });
 
     btn.disabled = false;
-    btn.innerHTML = `${uiIcon('trash', '', 16)} Ya, Kurang Karyawan`;
+    btn.innerHTML = `${uiIcon('trash', '', 16)} Ya, Hapus Karyawan`;
 
     if (res.ok) {
       showToast(res.data.message || 'Karyawan berhasil dihapus!', 'success');

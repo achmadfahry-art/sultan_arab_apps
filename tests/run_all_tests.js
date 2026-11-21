@@ -34,11 +34,17 @@ try {
   });
   console.log(shiftCorrectionCheckoutTest);
 
-  console.log('--- TAHAP 6: PENGUJIAN FITUR EDIT NAMA & KURANG KARYAWAN ---');
+  console.log('--- TAHAP 6: PENGUJIAN FITUR EDIT NAMA & HAPUS KARYAWAN ---');
   const editDeleteTest = execFileSync('node', [path.resolve(__dirname, 'test_edit_and_delete_employee.js')], {
     encoding: 'utf8'
   });
   console.log(editDeleteTest);
+
+  console.log('--- TAHAP 7: PENGUJIAN CUT-OFF 27..26, TANGGAL RINCIAN, ANALISA & PDF REKAP ---');
+  const recapPdfTest = execFileSync('node', [path.resolve(__dirname, 'test_monthly_recap_cutoff_and_pdf.js')], {
+    encoding: 'utf8'
+  });
+  console.log(recapPdfTest);
 
   console.log('\n>>> KESIMPULAN: SELURUH PENGUJIAN OTOMATIS LULUS 100% <<<');
 } catch (err) {

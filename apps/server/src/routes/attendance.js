@@ -7,6 +7,8 @@ const db = require('../db');
 const { requireAuth, requireRoles } = require('../middleware/auth');
 const { calculateDistanceMeters } = require('../utils/geo');
 const { logAudit } = require('../utils/audit');
+const { buildMonthlyRecapData } = require('../utils/recap');
+const { generateMonthlyRecapPdf } = require('../utils/pdf');
 
 const UPLOAD_ROOT = process.env.UPLOAD_ROOT || path.resolve(__dirname, '../../../storage');
 const PHOTOS_DIR = path.join(UPLOAD_ROOT, 'attendance-photos');
@@ -676,244 +678,52 @@ router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), asy
   }
 });
 
-// GET /api/v1/attendance/monthly-recap (Rekapitulasi Kehadiran Staf Per Bulan)
+// GET /api/v1/attendance/monthly-recap (Rekapitulasi & Analisa Kehadiran Staf Per Periode Cut-Off 27..26)
 router.get('/monthly-recap', requireAuth, requireRoles(['owner', 'manager', 'supervisor']), async (req, res) => {
-  const now = new Date();
-  let year = parseInt(req.query.year, 10);
-  let month = parseInt(req.query.month, 10);
-
-  if (typeof req.query.month === 'string' && req.query.month.includes('-')) {
-    const parts = req.query.month.split('-');
-    year = parseInt(parts[0], 10);
-    month = parseInt(parts[1], 10);
-  } else if (typeof req.query.period === 'string' && req.query.period.includes('-')) {
-    const parts = req.query.period.split('-');
-    year = parseInt(parts[0], 10);
-    month = parseInt(parts[1], 10);
-  }
-
-  if (isNaN(year)) year = now.getFullYear();
-  if (isNaN(month) || month < 1 || month > 12) month = now.getMonth() + 1;
-  const branch_id = req.query.branch_id || null;
-
-  const monthStr = String(month).padStart(2, '0');
-  const startDate = `${year}-${monthStr}-01`;
-  const lastDay = new Date(year, month, 0).getDate();
-  const endDate = `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
-
   try {
-    let empQuery = `
-      SELECT e.id as employee_id, e.employee_code, e.name as employee_name, e.job_title,
-             COALESCE(e.day_off, 'Ahad') as day_off,
-             b.id as branch_id, b.name as branch_name
-      FROM employees e
-      LEFT JOIN employee_assignments ea ON e.id = ea.employee_id AND ea.is_primary = true
-      LEFT JOIN branches b ON ea.branch_id = b.id
-      WHERE e.active = true
-    `;
-    const empParams = [];
-    if (branch_id) {
-      empQuery += ` AND b.id = $1`;
-      empParams.push(branch_id);
-    } else if (!req.user.isOwner && req.user.accessibleBranchIds && req.user.accessibleBranchIds.length > 0) {
-      empQuery += ` AND b.id = ANY($1)`;
-      empParams.push(req.user.accessibleBranchIds);
-    }
-    empQuery += ` ORDER BY b.name ASC, e.name ASC`;
-
-    const employeesRes = await db.query(empQuery, empParams);
-    const employees = employeesRes.rows;
-
-    let attQuery = `
-      SELECT s.id as session_id, s.employee_id, s.work_date, s.status, s.attendance_type, s.is_meal_allowance_eligible,
-             sh.id as shift_id, sh.name as shift_name, sh.start_time as shift_start, sh.end_time as shift_end,
-             MIN(CASE WHEN ev.event_type = 'check_in' THEN ev.server_time END) as check_in_time,
-             MAX(CASE WHEN ev.event_type = 'check_out' THEN ev.server_time END) as check_out_time,
-             BOOL_AND(ev.is_within_radius) as is_location_valid
-      FROM attendance_sessions s
-      LEFT JOIN shifts sh ON s.shift_id = sh.id
-      LEFT JOIN attendance_events ev ON s.id = ev.session_id
-      WHERE s.work_date >= $1 AND s.work_date <= $2
-      GROUP BY s.id, sh.id
-      ORDER BY s.work_date ASC
-    `;
-    const attRes = await db.query(attQuery, [startDate, endDate]);
-    const allSessions = attRes.rows;
-
-    // Ambil data libur manual dari tabel days_off untuk periode ini
-    const daysOffRes = await db.query(
-      `SELECT employee_id, off_date FROM days_off WHERE off_date >= $1 AND off_date <= $2`,
-      [startDate, endDate]
-    );
-    const specificDaysOffByEmp = {};
-    for (const d of daysOffRes.rows) {
-      const dStr = typeof d.off_date === 'string' ? d.off_date : getJakartaDateStr(d.off_date);
-      if (!specificDaysOffByEmp[d.employee_id]) {
-        specificDaysOffByEmp[d.employee_id] = new Set();
-      }
-      specificDaysOffByEmp[d.employee_id].add(dStr);
-    }
-
-    const dayMap = {
-      'ahad': 0, 'minggu': 0,
-      'senin': 1,
-      'selasa': 2,
-      'rabu': 3,
-      'kamis': 4,
-      'jumat': 5, "jum'at": 5,
-      'sabtu': 6
-    };
-
-    const sessionsByEmp = {};
-    for (const s of allSessions) {
-      if (!sessionsByEmp[s.employee_id]) {
-        sessionsByEmp[s.employee_id] = [];
-      }
-      sessionsByEmp[s.employee_id].push(s);
-    }
-
-    const recap = employees.map(emp => {
-      const empSessions = sessionsByEmp[emp.employee_id] || [];
-
-      let totalHadirFisik = 0;
-      let totalKunjunganLuar = 0;
-      let totalLembur = 0;
-      let totalShiftPagi = 0;
-      let totalShiftSiang = 0;
-      let totalTerlambat = 0;
-      let totalUangMakan = 0;
-      let totalMenitKerja = 0;
-
-      const dailyRecords = empSessions.map(s => {
-        const isHadir = (s.status === 'present' || s.status === 'late') && (s.attendance_type === 'hadir' || !s.attendance_type);
-        const isKunjungan = s.attendance_type === 'kunjungan_luar';
-        const isLembur = s.shift_name && /lembur/i.test(s.shift_name);
-        const isPagi = s.shift_name && /pagi/i.test(s.shift_name);
-        const isSiang = s.shift_name && /siang/i.test(s.shift_name);
-
-        if (isHadir) totalHadirFisik++;
-        if (isKunjungan) totalKunjunganLuar++;
-        if (isLembur) totalLembur++;
-        if (isPagi) totalShiftPagi++;
-        if (isSiang) totalShiftSiang++;
-        if (s.status === 'late') totalTerlambat++;
-        if (s.is_meal_allowance_eligible && isHadir) totalUangMakan += 10000;
-
-        let durasiMenit = 0;
-        if (s.check_in_time && s.check_out_time) {
-          const diffMs = new Date(s.check_out_time) - new Date(s.check_in_time);
-          durasiMenit = Math.max(0, Math.round(diffMs / 60000));
-        } else if (isLembur) {
-          durasiMenit = 13 * 60;
-        } else if (isPagi || isSiang) {
-          durasiMenit = 9 * 60;
-        }
-        totalMenitKerja += durasiMenit;
-
-        return {
-          session_id: s.session_id,
-          date: s.work_date,
-          status: s.status,
-          attendance_type: s.attendance_type || 'hadir',
-          shift_name: s.shift_name || '-',
-          is_lembur: Boolean(isLembur),
-          check_in_time: s.check_in_time,
-          check_out_time: s.check_out_time,
-          uang_makan: (s.is_meal_allowance_eligible && isHadir) ? 10000 : 0,
-          durasi_menit: durasiMenit
-        };
-      });
-
-      // Hitung total hari libur bulan ini berdasarkan jadwal libur rutin + days_off manual
-      const targetDayOfWeek = emp.day_off ? dayMap[emp.day_off.toLowerCase().trim()] : 0;
-      const empSpecificDaysOff = specificDaysOffByEmp[emp.employee_id] || new Set();
-
-      const dayOffDates = new Set();
-      for (let dayNum = 1; dayNum <= lastDay; dayNum++) {
-        const dObj = new Date(year, month - 1, dayNum);
-        const dayStr = `${year}-${monthStr}-${String(dayNum).padStart(2, '0')}`;
-        if (targetDayOfWeek !== undefined && dObj.getDay() === targetDayOfWeek) {
-          dayOffDates.add(dayStr);
-        }
-        if (empSpecificDaysOff.has(dayStr)) {
-          dayOffDates.add(dayStr);
-        }
-      }
-      const totalLibur = dayOffDates.size;
-
-      const item = {
-        employee_id: emp.employee_id,
-        employee_code: emp.employee_code,
-        employee_name: emp.employee_name,
-        job_title: emp.job_title || 'Staff',
-        day_off: emp.day_off || 'Ahad',
-        branch_id: emp.branch_id,
-        branch_name: emp.branch_name || '-',
-        total_kehadiran: totalHadirFisik + totalKunjunganLuar,
-        total_hadir_fisik: totalHadirFisik,
-        total_kunjungan_luar: totalKunjunganLuar,
-        total_lembur: totalLembur,
-        total_shift_pagi: totalShiftPagi,
-        total_shift_siang: totalShiftSiang,
-        total_terlambat: totalTerlambat,
-        total_libur: totalLibur,
-        total_uang_makan: totalUangMakan,
-        total_jam_kerja: Math.round(totalMenitKerja / 60),
-        daily_records: dailyRecords,
-        // CamelCase aliases
-        totalHadirFisik: totalHadirFisik,
-        totalKunjunganLuar: totalKunjunganLuar,
-        totalLembur: totalLembur,
-        totalTerlambat: totalTerlambat,
-        totalLibur: totalLibur,
-        totalUangMakan: totalUangMakan,
-        totalJamKerja: Math.round(totalMenitKerja / 60),
-        dailyRecords: dailyRecords
-      };
-      return item;
+    const data = await buildMonthlyRecapData({
+      rawYear: req.query.year,
+      rawMonth: req.query.month,
+      rawPeriod: req.query.period,
+      branchId: req.query.branch_id || null,
+      user: req.user
     });
-
-    const monthNames = [
-      '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ];
-
-    const grandTotal = {
-      totalKaryawan: recap.length,
-      totalEmployees: recap.length,
-      grandHadir: recap.reduce((acc, r) => acc + r.total_hadir_fisik, 0),
-      totalHadirFisik: recap.reduce((acc, r) => acc + r.total_hadir_fisik, 0),
-      grandKunjungan: recap.reduce((acc, r) => acc + r.total_kunjungan_luar, 0),
-      totalKunjunganLuar: recap.reduce((acc, r) => acc + r.total_kunjungan_luar, 0),
-      grandLembur: recap.reduce((acc, r) => acc + r.total_lembur, 0),
-      totalLembur: recap.reduce((acc, r) => acc + r.total_lembur, 0),
-      grandTerlambat: recap.reduce((acc, r) => acc + r.total_terlambat, 0),
-      totalTerlambat: recap.reduce((acc, r) => acc + r.total_terlambat, 0),
-      grandLibur: recap.reduce((acc, r) => acc + r.totalLibur, 0),
-      totalLibur: recap.reduce((acc, r) => acc + r.totalLibur, 0),
-      grandUangMakan: recap.reduce((acc, r) => acc + r.total_uang_makan, 0),
-      totalUangMakan: recap.reduce((acc, r) => acc + r.total_uang_makan, 0)
-    };
-
-    return res.json({
-      success: true,
-      period: {
-        year,
-        month,
-        month_name: monthNames[month] || `Bulan ${month}`,
-        label: `${monthNames[month] || `Bulan ${month}`} ${year}`,
-        start_date: startDate,
-        startDate: startDate,
-        end_date: endDate,
-        endDate: endDate,
-        days_in_month: lastDay
-      },
-      summary: grandTotal,
-      recap
-    });
+    return res.json(data);
   } catch (err) {
     console.error('[Monthly Recap Error]', err);
     return res.status(500).json({ success: false, error: 'Gagal memproses rekap bulanan staf: ' + err.message });
+  }
+});
+
+// GET /api/v1/attendance/monthly-recap/pdf (Download PDF Rekap & Analisa Bulanan)
+router.get('/monthly-recap/pdf', requireAuth, requireRoles(['owner', 'manager', 'supervisor']), async (req, res) => {
+  try {
+    const branchId = req.query.branch_id || null;
+    const data = await buildMonthlyRecapData({
+      rawYear: req.query.year,
+      rawMonth: req.query.month,
+      rawPeriod: req.query.period,
+      branchId,
+      user: req.user
+    });
+
+    let branchLabel = 'Semua Cabang';
+    if (branchId) {
+      const brRes = await db.query('SELECT name FROM branches WHERE id = $1 LIMIT 1', [branchId]);
+      if (brRes.rows.length > 0) branchLabel = brRes.rows[0].name;
+    }
+
+    const pdfBuffer = generateMonthlyRecapPdf(data, branchLabel);
+    const monthStr = String(data.period.month).padStart(2, '0');
+    const filename = `rekap-absensi-${data.period.year}-${monthStr}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    return res.send(pdfBuffer);
+  } catch (err) {
+    console.error('[Monthly Recap PDF Error]', err);
+    return res.status(500).json({ success: false, error: 'Gagal membuat PDF rekap bulanan: ' + err.message });
   }
 });
 
