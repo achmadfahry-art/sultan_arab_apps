@@ -260,12 +260,13 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
       if (s.is_meal_allowance_eligible && isHadir) totalUangMakan += 10000;
 
       let durasiMenit = 0;
+      const isWorkedStatus = s.status === 'present' || s.status === 'late';
       if (s.check_in_time && s.check_out_time) {
         const diffMs = new Date(s.check_out_time) - new Date(s.check_in_time);
         durasiMenit = Math.max(0, Math.round(diffMs / 60000));
-      } else if (isLembur) {
+      } else if (isWorkedStatus && isLembur) {
         durasiMenit = 13 * 60;
-      } else if (isPagi || isSiang) {
+      } else if (isWorkedStatus && (isPagi || isSiang)) {
         durasiMenit = 9 * 60;
       }
       totalMenitKerja += durasiMenit;
@@ -286,6 +287,7 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
         status: s.status,
         attendance_type: s.attendance_type || 'hadir',
         isKunjungan,
+        shift_id: s.shift_id || null,
         shift_name: s.shift_name || '-',
         is_lembur: isLembur,
         isLembur,
@@ -488,5 +490,6 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
 module.exports = {
   buildMonthlyRecapData,
   resolveCutoffPeriod,
-  getJakartaDateStr
+  getJakartaDateStr,
+  normalizeDateStr
 };

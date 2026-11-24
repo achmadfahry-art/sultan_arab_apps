@@ -7,7 +7,7 @@ const db = require('../db');
 const { requireAuth, requireRoles } = require('../middleware/auth');
 const { calculateDistanceMeters } = require('../utils/geo');
 const { logAudit } = require('../utils/audit');
-const { buildMonthlyRecapData } = require('../utils/recap');
+const { buildMonthlyRecapData, resolveCutoffPeriod, normalizeDateStr } = require('../utils/recap');
 const { generateMonthlyRecapPdf } = require('../utils/pdf');
 
 const UPLOAD_ROOT = process.env.UPLOAD_ROOT || path.resolve(__dirname, '../../../storage');
@@ -548,15 +548,30 @@ router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'superv
   }
 });
 
-// POST /api/v1/attendance/adjustments (Owner & Manager only)
+// POST /api/v1/attendance/adjustments (Owner & Manager only, semua cabang)
 router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
-  const { session_id, employee_id, work_date, branch_id, new_shift_id, new_status, reason } = req.body;
-  if (!reason) {
+  const { session_id, employee_id, work_date, branch_id, new_shift_id, new_status, new_attendance_type, reason } = req.body;
+  if (!reason || !String(reason).trim()) {
     return res.status(400).json({ success: false, error: 'Alasan koreksi wajib diisi untuk catatan audit.' });
   }
   if (!session_id && (!employee_id || !work_date)) {
     return res.status(400).json({ success: false, error: 'Session ID atau Karyawan dan Tanggal wajib disertakan.' });
   }
+
+  const allowedStatuses = new Set(['present', 'late', 'incomplete', 'off']);
+  const allowedTypes = new Set(['hadir', 'kunjungan_luar']);
+  if (new_status && !allowedStatuses.has(new_status)) {
+    return res.status(400).json({ success: false, error: 'Status kehadiran tidak valid.' });
+  }
+  if (new_attendance_type && !allowedTypes.has(new_attendance_type)) {
+    return res.status(400).json({ success: false, error: 'Tipe kehadiran tidak valid.' });
+  }
+
+  const currentCutoff = resolveCutoffPeriod();
+  const isWithinCurrentCutoff = (dateStr) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+    return dateStr >= currentCutoff.startDate && dateStr <= currentCutoff.endDate && dateStr <= currentCutoff.todayStr;
+  };
 
   const client = await db.getClient();
   try {
@@ -565,7 +580,7 @@ router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), asy
     let activeSessionId = session_id;
     let beforeData = {};
     let empId = employee_id;
-    let targetDate = work_date || getJakartaDateStr();
+    let targetDate = normalizeDateStr(work_date) || currentCutoff.todayStr;
     let targetBranchId = branch_id;
     let afterData = {};
 
@@ -577,29 +592,36 @@ router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), asy
       }
       beforeData = sessionRes.rows[0];
       empId = beforeData.employee_id;
-      targetDate = beforeData.work_date;
+      targetDate = normalizeDateStr(beforeData.work_date);
       targetBranchId = beforeData.branch_id;
+    }
 
-      let updateFields = [];
-      let updateParams = [];
-      let pIdx = 1;
+    if (!isWithinCurrentCutoff(targetDate)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        error: `Koreksi hanya diizinkan pada periode cut-off berjalan (${currentCutoff.startLabel} s.d. ${currentCutoff.endLabel}, maksimal hari ini).`
+      });
+    }
 
-      if (new_status) {
-        updateFields.push(`status = $${pIdx++}`);
-        updateParams.push(new_status);
-      }
-      if (new_shift_id) {
-        updateFields.push(`shift_id = $${pIdx++}`);
-        updateParams.push(new_shift_id);
-      }
-      updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-      updateParams.push(activeSessionId);
+    if (activeSessionId) {
+      const effectiveStatus = new_status || beforeData.status;
+      const effectiveType = new_attendance_type || beforeData.attendance_type || 'hadir';
+      const effectiveShiftId = new_shift_id || beforeData.shift_id;
+      const mealEligible = effectiveType === 'hadir' && (effectiveStatus === 'present' || effectiveStatus === 'late');
 
-      const updateQuery = `UPDATE attendance_sessions SET ${updateFields.join(', ')} WHERE id = $${pIdx} RETURNING *`;
-      const updatedRes = await client.query(updateQuery, updateParams);
+      const updatedRes = await client.query(
+        `UPDATE attendance_sessions
+         SET status = $1,
+             shift_id = $2,
+             attendance_type = $3,
+             is_meal_allowance_eligible = $4,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $5 RETURNING *`,
+        [effectiveStatus, effectiveShiftId, effectiveType, mealEligible, activeSessionId]
+      );
       afterData = { ...updatedRes.rows[0], adjusted_by: req.user.id };
     } else {
-      // Cek apakah sudah ada sesi untuk employee_id dan work_date
       const existing = await client.query(
         `SELECT * FROM attendance_sessions WHERE employee_id = $1 AND work_date = $2`,
         [empId, targetDate]
@@ -607,13 +629,20 @@ router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), asy
       if (existing.rows.length > 0) {
         activeSessionId = existing.rows[0].id;
         beforeData = existing.rows[0];
+        const effectiveStatus = new_status || beforeData.status;
+        const effectiveType = new_attendance_type || beforeData.attendance_type || 'hadir';
+        const effectiveShiftId = new_shift_id || beforeData.shift_id;
+        const mealEligible = effectiveType === 'hadir' && (effectiveStatus === 'present' || effectiveStatus === 'late');
+
         const updatedRes = await client.query(
-          `UPDATE attendance_sessions 
-           SET shift_id = COALESCE($1, shift_id), 
-               status = COALESCE($2, status), 
-               updated_at = CURRENT_TIMESTAMP 
-           WHERE id = $3 RETURNING *`,
-          [new_shift_id || null, new_status || null, activeSessionId]
+          `UPDATE attendance_sessions
+           SET shift_id = $1,
+               status = $2,
+               attendance_type = $3,
+               is_meal_allowance_eligible = $4,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $5 RETURNING *`,
+          [effectiveShiftId, effectiveStatus, effectiveType, mealEligible, activeSessionId]
         );
         afterData = { ...updatedRes.rows[0], adjusted_by: req.user.id };
       } else {
@@ -628,14 +657,18 @@ router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), asy
             targetBranchId = firstBranch.rows[0]?.id;
           }
         }
+        const effectiveStatus = new_status || 'present';
+        const effectiveType = new_attendance_type || 'hadir';
+        const mealEligible = effectiveType === 'hadir' && (effectiveStatus === 'present' || effectiveStatus === 'late');
+
         const insertRes = await client.query(
-          `INSERT INTO attendance_sessions (employee_id, branch_id, work_date, shift_id, status)
-           VALUES ($1, $2, $3, $4, $5)
+          `INSERT INTO attendance_sessions (employee_id, branch_id, work_date, shift_id, status, attendance_type, is_meal_allowance_eligible)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
            RETURNING *;`,
-          [empId, targetBranchId, targetDate, new_shift_id || null, new_status || 'present']
+          [empId, targetBranchId, targetDate, new_shift_id || null, effectiveStatus, effectiveType, mealEligible]
         );
         activeSessionId = insertRes.rows[0].id;
-        beforeData = { shift_id: null, status: null };
+        beforeData = { shift_id: null, status: null, attendance_type: null };
         afterData = { ...insertRes.rows[0], adjusted_by: req.user.id };
       }
     }
@@ -654,7 +687,7 @@ router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), asy
     await client.query(
       `INSERT INTO attendance_adjustments (session_id, reason, before_data, after_data, actor_id)
        VALUES ($1, $2, $3, $4, $5)`,
-      [activeSessionId, reason, JSON.stringify(beforeData), JSON.stringify(afterData), req.user.id]
+      [activeSessionId, String(reason).trim(), JSON.stringify(beforeData), JSON.stringify(afterData), req.user.id]
     );
 
     await client.query('COMMIT');
@@ -664,7 +697,7 @@ router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), asy
       action: 'ADJUST_ATTENDANCE_SHIFT',
       entityType: 'attendance_sessions',
       entityId: activeSessionId,
-      changes: { before: beforeData, after: afterData, reason, new_shift_id, new_status },
+      changes: { before: beforeData, after: afterData, reason: String(reason).trim(), new_shift_id, new_status, new_attendance_type },
       ipAddress: req.ip
     });
 

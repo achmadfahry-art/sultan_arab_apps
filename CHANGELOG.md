@@ -4,6 +4,17 @@ Semua perubahan penting per rilis versi aplikasi absensi & payroll (`https://abs
 
 ---
 
+## [v1.2.1] — 2026-11-24
+### Rilis Produksi (`vps-sultanarab` — PM2 `sultan-app`)
+- **Edit Absensi Rekap Bulanan (Cut-Off `27–26` Berjalan):**
+  - `POST /api/v1/attendance/adjustments` mendukung pembaruan **Tipe Kehadiran** (`hadir` / `kunjungan_luar`), **Status** (`present`, `late`, `incomplete`, `off`), dan **Shift**, serta otomatis memperbarui kelayakan uang makan (`is_meal_allowance_eligible`) dan mencatat jejak audit (`attendance_adjustments` + `audit_logs`).
+  - Pembatasan tanggal wajib berada pada **periode cut-off `27–26` berjalan** (maksimal hari ini WIB); tanggal lampau di luar cut-off atau masa depan ditolak (`400`).
+  - Akses khusus **`owner`** dan **`manager`** untuk seluruh cabang.
+  - UI **Rekap Bulanan $\rightarrow$ Rincian Kehadiran** menampilkan tombol **`Edit`** per tanggal dan **`+ Koreksi / Input Tanggal`** untuk periode cut-off berjalan; status `off` dan `incomplete` ditampilkan akurat dan tidak dihitung durasi shift kerja.
+  - Penambahan test otomatis [test_recap_cutoff_adjustment.js](tests/test_recap_cutoff_adjustment.js).
+
+---
+
 ## [v1.2.0] — 2026-11-21
 ### Rilis Produksi (`vps-sultanarab` — PM2 `sultan-app`)
 - **Perubahan Penamaan & Migrasi Cabang (`009_rename_headquarter_to_kantor_pusat.sql`):**

@@ -46,6 +46,12 @@ try {
   });
   console.log(recapPdfTest);
 
+  console.log('--- TAHAP 8: PENGUJIAN KOREKSI ABSEN REKAP BULANAN (CUT-OFF 27..26) ---');
+  const recapAdjTest = execFileSync('node', [path.resolve(__dirname, 'test_recap_cutoff_adjustment.js')], {
+    encoding: 'utf8'
+  });
+  console.log(recapAdjTest);
+
   console.log('\n>>> KESIMPULAN: SELURUH PENGUJIAN OTOMATIS LULUS 100% <<<');
 } catch (err) {
   console.error('[Pengujian Gagal]', err.message);

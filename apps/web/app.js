@@ -2543,18 +2543,76 @@ async function loadMonthlyRecapData() {
   }).join('');
 }
 
+function isCurrentCutoffPeriod(period) {
+  if (!period || !period.todayStr || !period.startDate || !period.endDate) return false;
+  return period.todayStr >= period.startDate && period.todayStr <= period.endDate;
+}
+
+window.openRecapAdjustmentByIndex = function(staffIdx, recordIdx) {
+  const item = state.recapData?.recap?.[staffIdx];
+  const period = state.recapData?.period || {};
+  const rec = (item?.dailyRecords || item?.daily_records || [])[recordIdx];
+  if (!item || !rec) return;
+  const maxDate = period.todayStr && period.endDate && period.todayStr < period.endDate ? period.todayStr : period.endDate;
+  openAdjustmentModal({
+    source: 'recap',
+    staffIdx,
+    sessionId: rec.session_id || null,
+    empId: item.employee_id,
+    empName: item.employee_name,
+    empCode: item.employee_code,
+    branchId: item.branch_id || null,
+    shiftId: rec.shift_id || '',
+    status: rec.status || 'present',
+    attendanceType: rec.attendance_type || (rec.isKunjungan ? 'kunjungan_luar' : 'hadir'),
+    date: rec.work_date || rec.date || maxDate,
+    minDate: period.startDate,
+    maxDate,
+    lockDate: true
+  });
+};
+
+window.openNewRecapAdjustmentByIndex = function(staffIdx) {
+  const item = state.recapData?.recap?.[staffIdx];
+  const period = state.recapData?.period || {};
+  if (!item) return;
+  const maxDate = period.todayStr && period.endDate && period.todayStr < period.endDate ? period.todayStr : period.endDate;
+  openAdjustmentModal({
+    source: 'recap',
+    staffIdx,
+    sessionId: null,
+    empId: item.employee_id,
+    empName: item.employee_name,
+    empCode: item.employee_code,
+    branchId: item.branch_id || null,
+    shiftId: '',
+    status: 'present',
+    attendanceType: 'hadir',
+    date: maxDate,
+    minDate: period.startDate,
+    maxDate,
+    lockDate: false
+  });
+};
+
 window.openStaffDailyRecapModalByIndex = function(idx) {
   if (!state.recapData || !state.recapData.recap || !state.recapData.recap[idx]) return;
   const item = state.recapData.recap[idx];
   const period = state.recapData.period || {};
+  const canEditRecap = Boolean(
+    state.user &&
+    (state.user.role === 'owner' || state.user.role === 'manager') &&
+    isCurrentCutoffPeriod(period)
+  );
 
   const modalContainer = document.getElementById('modal-container');
   if (!modalContainer) return;
 
   const records = item.dailyRecords || item.daily_records || [];
+  const colCount = canEditRecap ? 8 : 7;
   const recordsHtml = records.length === 0 ? `
-    <tr><td colspan="7" class="cell-empty">Tidak ada riwayat absensi pada periode cut-off ini.</td></tr>
-  ` : records.map(r => {
+    <tr><td colspan="${colCount}" class="cell-empty">Tidak ada riwayat absensi pada periode cut-off ini.</td></tr>
+  ` : records.map((r, rIdx) => {
     const isLembur = r.isLembur || r.is_lembur;
     const shiftBadge = isLembur
       ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:600;">${uiIcon('zap', '', 12)} ${escapeHtml(r.shift_name)}</span>`
@@ -2562,7 +2620,11 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
 
     const statusBadge = r.status === 'late'
       ? `<span class="badge badge-danger">Terlambat</span>`
-      : `<span class="badge badge-present">Tepat Waktu</span>`;
+      : r.status === 'off'
+        ? `<span class="badge badge-secondary">Libur (Off)</span>`
+        : r.status === 'incomplete'
+          ? `<span class="badge badge-warning">Tidak Lengkap</span>`
+          : `<span class="badge badge-present">Tepat Waktu</span>`;
 
     const typeBadge = r.isKunjungan
       ? `<span class="badge badge-info">${uiIcon('car', '', 12)} Kunjungan</span>`
@@ -2583,13 +2645,18 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
         <td>${statusBadge}</td>
         <td>${(durMin / 60).toFixed(1)} jam</td>
         <td>${mealVal > 0 ? `Rp ${formatNumber(mealVal)}` : '-'}</td>
+        ${canEditRecap ? `<td style="text-align:right; white-space:nowrap;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openRecapAdjustmentByIndex(${idx}, ${rIdx})">
+            ${uiIcon('edit', '', 13)} Edit
+          </button>
+        </td>` : ''}
       </tr>
     `;
   }).join('');
 
   modalContainer.innerHTML = `
     <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
-      <div class="modal-card" style="max-width: 880px; width: 95%; max-height: 90vh;">
+      <div class="modal-card" style="max-width: 920px; width: 95%; max-height: 90vh;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-red), #9E0000); color: #fff;">
           <div>
             <h3 class="modal-title" style="color: #fff; font-size: 1.15rem; font-weight: 700; margin: 0; display:flex; align-items:center; gap:8px;">
@@ -2626,6 +2693,15 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
             </div>
           </div>
 
+          ${canEditRecap ? `
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+              <small style="color: var(--text-muted);">Edit diizinkan untuk periode cut-off berjalan (${escapeHtml(period.startLabel || period.startDate)} s.d. hari ini).</small>
+              <button type="button" class="btn btn-primary btn-sm" onclick="openNewRecapAdjustmentByIndex(${idx})">
+                ${uiIcon('plus', '', 14)} Koreksi / Input Tanggal
+              </button>
+            </div>
+          ` : ''}
+
           <div class="table-responsive">
             <table class="table" style="font-size: 0.85rem;">
               <thead>
@@ -2637,6 +2713,7 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
                   <th>Status</th>
                   <th>Durasi</th>
                   <th>Uang Makan</th>
+                  ${canEditRecap ? '<th style="text-align:right;">Aksi</th>' : ''}
                 </tr>
               </thead>
               <tbody>
@@ -3266,6 +3343,9 @@ function openAdjustmentModal(param) {
     </option>
   `).join('');
 
+  const currentType = info.attendanceType || 'hadir';
+  const isRecapMode = info.source === 'recap';
+
   modalContainer.innerHTML = `
     <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
       <div class="modal-card">
@@ -3282,12 +3362,25 @@ function openAdjustmentModal(param) {
         </div>
         <form id="form-adjustment">
           <div class="modal-body">
+            ${isRecapMode ? `
+              <div class="form-group">
+                <label class="form-label" for="adj-date">Tanggal Absensi (Periode Cut-off Berjalan):</label>
+                <input type="date" id="adj-date" class="form-control" value="${escapeHtml(info.date || '')}" ${info.minDate ? `min="${escapeHtml(info.minDate)}"` : ''} ${info.maxDate ? `max="${escapeHtml(info.maxDate)}"` : ''} ${info.lockDate ? 'readonly' : ''} required>
+              </div>
+            ` : ''}
+            <div class="form-group">
+              <label class="form-label" for="adj-type">Tipe Kehadiran:</label>
+              <select id="adj-type" class="form-control" required>
+                <option value="hadir" ${currentType === 'hadir' ? 'selected' : ''}>Hadir Toko (Dapat Uang Makan)</option>
+                <option value="kunjungan_luar" ${currentType === 'kunjungan_luar' ? 'selected' : ''}>Kunjungan Luar (Rp0 Uang Makan)</option>
+              </select>
+            </div>
             <div class="form-group">
               <label class="form-label" for="adj-shift">Koreksi Jadwal Shift Kerja:</label>
               <select id="adj-shift" class="form-control" required>
                 ${shiftOptions || '<option value="">Pilih shift...</option>'}
               </select>
-              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Perubahan jadwal shift akan langsung tersimpan ke database & memutakhirkan rekap monitoring.</small>
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Perubahan tipe, status, & shift akan langsung tersimpan ke database dan memutakhirkan rekap.</small>
             </div>
             <div class="form-group">
               <label class="form-label" for="adj-status">Status Kehadiran:</label>
@@ -3300,7 +3393,7 @@ function openAdjustmentModal(param) {
             </div>
             <div class="form-group">
               <label class="form-label" for="adj-reason">Alasan Koreksi (Wajib untuk Audit Log):</label>
-              <textarea id="adj-reason" class="form-control" rows="3" placeholder="Contoh: Salah pilih shift pagi seharusnya shift siang, atau instruksi lembur mendadak..." required></textarea>
+              <textarea id="adj-reason" class="form-control" rows="3" placeholder="Contoh: Salah pilih shift pagi seharusnya shift siang, atau koreksi lupa absen..." required></textarea>
             </div>
           </div>
           <div class="modal-footer">
@@ -3319,14 +3412,18 @@ function openAdjustmentModal(param) {
     const reason = document.getElementById('adj-reason').value.trim();
     const status = document.getElementById('adj-status').value;
     const shiftId = document.getElementById('adj-shift').value;
+    const attendanceType = document.getElementById('adj-type').value;
+    const dateInput = document.getElementById('adj-date');
+    const selectedDate = dateInput ? dateInput.value : (info.date || null);
 
     const payload = {
       session_id: info.sessionId || null,
       employee_id: info.empId || null,
-      work_date: info.date || null,
+      work_date: selectedDate,
       branch_id: info.branchId || null,
       new_shift_id: shiftId || null,
       new_status: status,
+      new_attendance_type: attendanceType,
       reason
     };
 
@@ -3337,7 +3434,14 @@ function openAdjustmentModal(param) {
     if (res.ok) {
       showToast('Koreksi jadwal shift & absensi berhasil disimpan!', 'success');
       closeModal();
-      loadMonitoringData();
+      if (isRecapMode) {
+        await loadMonthlyRecapData();
+        if (typeof info.staffIdx === 'number') {
+          openStaffDailyRecapModalByIndex(info.staffIdx);
+        }
+      } else {
+        loadMonitoringData();
+      }
     } else {
       showToast(res.data.error || 'Gagal menyimpan koreksi.', 'error');
     }
