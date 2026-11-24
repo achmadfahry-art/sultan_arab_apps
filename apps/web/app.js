@@ -2543,9 +2543,19 @@ async function loadMonthlyRecapData() {
   }).join('');
 }
 
+function getRecapTodayStr(period) {
+  return period?.todayStr || period?.today_str || new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date());
+}
+
 function isCurrentCutoffPeriod(period) {
-  if (!period || !period.todayStr || !period.startDate || !period.endDate) return false;
-  return period.todayStr >= period.startDate && period.todayStr <= period.endDate;
+  if (!period || !period.startDate || !period.endDate) return false;
+  const today = getRecapTodayStr(period);
+  return today >= period.startDate && today <= period.endDate;
 }
 
 window.openRecapAdjustmentByIndex = function(staffIdx, recordIdx) {
@@ -2553,7 +2563,8 @@ window.openRecapAdjustmentByIndex = function(staffIdx, recordIdx) {
   const period = state.recapData?.period || {};
   const rec = (item?.dailyRecords || item?.daily_records || [])[recordIdx];
   if (!item || !rec) return;
-  const maxDate = period.todayStr && period.endDate && period.todayStr < period.endDate ? period.todayStr : period.endDate;
+  const today = getRecapTodayStr(period);
+  const maxDate = period.endDate && today < period.endDate ? today : period.endDate;
   openAdjustmentModal({
     source: 'recap',
     staffIdx,
@@ -2576,7 +2587,8 @@ window.openNewRecapAdjustmentByIndex = function(staffIdx) {
   const item = state.recapData?.recap?.[staffIdx];
   const period = state.recapData?.period || {};
   if (!item) return;
-  const maxDate = period.todayStr && period.endDate && period.todayStr < period.endDate ? period.todayStr : period.endDate;
+  const today = getRecapTodayStr(period);
+  const maxDate = period.endDate && today < period.endDate ? today : period.endDate;
   openAdjustmentModal({
     source: 'recap',
     staffIdx,
@@ -2599,11 +2611,14 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
   if (!state.recapData || !state.recapData.recap || !state.recapData.recap[idx]) return;
   const item = state.recapData.recap[idx];
   const period = state.recapData.period || {};
-  const canEditRecap = Boolean(
-    state.user &&
-    (state.user.role === 'owner' || state.user.role === 'manager') &&
-    isCurrentCutoffPeriod(period)
+  const isOwnerOrManager = Boolean(
+    state.user && (
+      state.user.isOwner ||
+      state.user.isManager ||
+      (Array.isArray(state.user.roles) && (state.user.roles.includes('owner') || state.user.roles.includes('manager')))
+    )
   );
+  const canEditRecap = isOwnerOrManager && isCurrentCutoffPeriod(period);
 
   const modalContainer = document.getElementById('modal-container');
   if (!modalContainer) return;

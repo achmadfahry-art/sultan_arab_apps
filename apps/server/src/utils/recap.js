@@ -457,6 +457,8 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
       startDate,
       end_date: endDate,
       endDate,
+      today_str: todayStr,
+      todayStr,
       start_label: startLabel,
       end_label: endLabel,
       days_in_month: periodDates.length,
