@@ -4,6 +4,17 @@ Semua perubahan penting per rilis versi aplikasi absensi & payroll (`https://abs
 
 ---
 
+## [v1.3.0] — 2026-11-24
+### Rilis Produksi (`vps-sultanarab` — PM2 `sultan-app`)
+- **Fitur Lembur Berbasis Jam (`1–4` Jam) & Peniadaan `Shift Lembur` Baru (`010_overtime_hourly.sql`):**
+  - Menambahkan kolom `overtime_hours` (`0–4`), `overtime_pay`, dan `overtime_note` pada `attendance_sessions` (data historis `Shift Lembur` lama tetap utuh).
+  - Menonaktifkan `Shift Lembur` dari pilihan dropdown shift baru (`GET /api/v1/schedules/shifts` & pembuatan cabang baru di `branches.js`).
+  - Menambahkan endpoint **`POST /api/v1/attendance/overtime`** bagi karyawan setelah absen masuk toko (`hadir`, maksimal `1x/hari`, ditolak untuk `kunjungan_luar`) dengan tarif baku: `1` jam = **Rp 15.000**, `2` jam = **Rp 30.000**, `3` jam = **Rp 50.000**, `4` jam = **Rp 65.000**.
+  - Menambahkan tombol **`+ CATAT LEMBUR (1-4 JAM)`** di Beranda Karyawan (samping tombol Absen Pulang / status absen selesai).
+  - Memperbarui `POST /api/v1/attendance/adjustments`, Rekap Bulanan, Modal Rincian, dan PDF (`recap.js`, `pdf.js`, `app.js`) untuk mendukung koreksi jam lembur (`0–4`) oleh `owner`/`manager` serta menampilkan total jam & upah lembur.
+
+---
+
 ## [v1.2.1] — 2026-11-24
 ### Rilis Produksi (`vps-sultanarab` — PM2 `sultan-app`)
 - **Edit Absensi Rekap Bulanan (Cut-Off `27–26` Berjalan):**

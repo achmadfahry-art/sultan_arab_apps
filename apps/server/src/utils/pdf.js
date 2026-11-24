@@ -190,7 +190,7 @@ function generateMonthlyRecapPdf(data, branchFilterLabel = 'Semua Cabang') {
   doc.text('Hadir Toko / Kunjungan', 142, kpiY1, { size: 7.5, rgb: [0.4, 0.45, 0.52] });
   doc.text(`${summary.totalHadirFisik || 0} / ${summary.totalKunjunganLuar || 0}`, 142, kpiY2, { size: 10, bold: true });
   doc.text('Lembur / Terlambat', 265, kpiY1, { size: 7.5, rgb: [0.4, 0.45, 0.52] });
-  doc.text(`${summary.totalLembur || 0} / ${summary.totalTerlambat || 0}x`, 265, kpiY2, { size: 10, bold: true });
+  doc.text(`${summary.totalOvertimeHours || 0}j (${formatRp(summary.totalOvertimePay || 0)}) / ${summary.totalTerlambat || 0}x`, 265, kpiY2, { size: 9, bold: true });
   doc.text('Disiplin Tepat Waktu', 370, kpiY1, { size: 7.5, rgb: [0.4, 0.45, 0.52] });
   doc.text(`${analytics.on_time_rate_pct ?? 100}%`, 370, kpiY2, { size: 10, bold: true, rgb: [0.06, 0.5, 0.25] });
   doc.text('Total Uang Makan', 548, kpiY1, { size: 7.5, align: 'right', rgb: [0.4, 0.45, 0.52] });
@@ -240,7 +240,7 @@ function generateMonthlyRecapPdf(data, branchFilterLabel = 'Semua Cabang') {
     doc.text(truncateText(emp.branch_name || '-', 17), 175, ry, { size: 7.8, rgb: [0.35, 0.4, 0.48] });
     doc.text(String(emp.total_hadir_fisik || 0), 282, ry, { size: 8.2, align: 'right' });
     doc.text(String(emp.total_kunjungan_luar || 0), 318, ry, { size: 8.2, align: 'right' });
-    doc.text(String(emp.total_lembur || 0), 352, ry, { size: 8.2, align: 'right' });
+    doc.text(emp.total_overtime_hours > 0 ? `${emp.total_overtime_hours}j` : String(emp.total_lembur || 0), 352, ry, { size: 8.2, align: 'right' });
     doc.text(String(emp.total_terlambat || 0), 386, ry, { size: 8.2, align: 'right' });
     doc.text(String(emp.total_libur || 0), 422, ry, { size: 8.2, align: 'right' });
     doc.text(`${emp.total_jam_kerja || 0}j`, 456, ry, { size: 8.2, align: 'right' });

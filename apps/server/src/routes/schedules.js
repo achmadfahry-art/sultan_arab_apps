@@ -12,6 +12,7 @@ router.get('/shifts', requireAuth, async (req, res) => {
              b.name as branch_name
       FROM shifts s
       LEFT JOIN branches b ON s.branch_id = b.id
+      WHERE s.name NOT ILIKE '%lembur%'
       ORDER BY s.start_time ASC;
     `);
     return res.json({ success: true, shifts: result.rows });

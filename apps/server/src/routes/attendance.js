@@ -10,6 +10,12 @@ const { logAudit } = require('../utils/audit');
 const { buildMonthlyRecapData, resolveCutoffPeriod, normalizeDateStr } = require('../utils/recap');
 const { generateMonthlyRecapPdf } = require('../utils/pdf');
 
+const OVERTIME_RATES = { 0: 0, 1: 15000, 2: 30000, 3: 50000, 4: 65000 };
+function getOvertimePay(hours) {
+  const h = Number(hours);
+  return Object.prototype.hasOwnProperty.call(OVERTIME_RATES, h) ? OVERTIME_RATES[h] : null;
+}
+
 const UPLOAD_ROOT = process.env.UPLOAD_ROOT || path.resolve(__dirname, '../../../storage');
 const PHOTOS_DIR = path.join(UPLOAD_ROOT, 'attendance-photos');
 
@@ -435,6 +441,7 @@ router.get('/me', requireAuth, async (req, res) => {
 
     const todayRes = await db.query(`
       SELECT s.id, s.work_date, s.status, s.attendance_type, s.is_meal_allowance_eligible,
+             s.overtime_hours, s.overtime_pay, s.overtime_note,
              b.name as branch_name, sh.name as shift_name,
              json_agg(json_build_object(
                'id', e.id,
@@ -455,6 +462,7 @@ router.get('/me', requireAuth, async (req, res) => {
 
     const historyRes = await db.query(`
       SELECT s.id, s.work_date, s.status, s.attendance_type, s.is_meal_allowance_eligible,
+             s.overtime_hours, s.overtime_pay, s.overtime_note,
              b.name as branch_name, sh.name as shift_name,
              MIN(CASE WHEN e.event_type = 'check_in' THEN e.server_time END) as check_in_time,
              MAX(CASE WHEN e.event_type = 'check_out' THEN e.server_time END) as check_out_time,
@@ -488,6 +496,7 @@ router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'superv
   try {
     let query = `
       SELECT s.id as session_id, s.work_date, s.status as session_status, s.attendance_type, s.is_meal_allowance_eligible,
+             s.overtime_hours, s.overtime_pay, s.overtime_note,
              e.id as employee_id, e.employee_code, e.name as employee_name, e.job_title,
              COALESCE(s.branch_id, b.id) as branch_id, b.name as branch_name,
              COALESCE(s.shift_id, ws.shift_id) as shift_id,
@@ -548,9 +557,75 @@ router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'superv
   }
 });
 
+// POST /api/v1/attendance/overtime (Karyawan mencatat lembur harian: 1-4 jam, 1x/hari, tidak untuk kunjungan luar)
+router.post('/overtime', requireAuth, async (req, res) => {
+  let employeeId = req.user.employeeId;
+  if (!employeeId) {
+    const empLookup = await db.query(`SELECT id FROM employees WHERE user_id = $1 LIMIT 1`, [req.user.id]);
+    if (empLookup.rows.length > 0) employeeId = empLookup.rows[0].id;
+    else return res.status(403).json({ success: false, error: 'Akun tidak terhubung ke karyawan.' });
+  }
+
+  const hoursNum = Number(req.body.hours);
+  const note = req.body.note ? String(req.body.note).trim() : '';
+  if (![1, 2, 3, 4].includes(hoursNum)) {
+    return res.status(400).json({ success: false, error: 'Durasi lembur harus dipilih antara 1, 2, 3, atau 4 jam.' });
+  }
+  if (!note) {
+    return res.status(400).json({ success: false, error: 'Keterangan pekerjaan tambahan wajib diisi.' });
+  }
+
+  const workDate = getJakartaDateStr();
+  try {
+    const sessRes = await db.query(
+      `SELECT id, attendance_type, status, overtime_hours FROM attendance_sessions WHERE employee_id = $1 AND work_date = $2 LIMIT 1`,
+      [employeeId, workDate]
+    );
+    if (sessRes.rows.length === 0) {
+      return res.status(400).json({ success: false, error: 'Harap lakukan absen masuk terlebih dahulu sebelum mencatat lembur.' });
+    }
+    const sess = sessRes.rows[0];
+    if (sess.attendance_type === 'kunjungan_luar') {
+      return res.status(400).json({ success: false, error: 'Kunjungan luar tidak memerlukan pencatatan lembur.' });
+    }
+    if (sess.status === 'off') {
+      return res.status(400).json({ success: false, error: 'Status hari ini tercatat libur.' });
+    }
+    if ((sess.overtime_hours || 0) > 0) {
+      return res.status(400).json({ success: false, error: 'Lembur hari ini sudah tercatat (maksimal 1x input per hari).' });
+    }
+
+    const pay = getOvertimePay(hoursNum);
+    const upd = await db.query(
+      `UPDATE attendance_sessions
+       SET overtime_hours = $1, overtime_pay = $2, overtime_note = $3, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $4 RETURNING id, overtime_hours, overtime_pay, overtime_note`,
+      [hoursNum, pay, note, sess.id]
+    );
+
+    await logAudit({
+      actorId: req.user.id,
+      action: 'RECORD_OVERTIME',
+      entityType: 'attendance_sessions',
+      entityId: sess.id,
+      changes: { work_date: workDate, overtime_hours: hoursNum, overtime_pay: pay, overtime_note: note },
+      ipAddress: req.ip
+    });
+
+    return res.json({
+      success: true,
+      message: `Lembur ${hoursNum} jam (Rp ${pay.toLocaleString('id-ID')}) berhasil dicatat.`,
+      overtime: upd.rows[0]
+    });
+  } catch (err) {
+    console.error('[Overtime Error]', err);
+    return res.status(500).json({ success: false, error: 'Gagal mencatat lembur hari ini.' });
+  }
+});
+
 // POST /api/v1/attendance/adjustments (Owner & Manager only, semua cabang)
 router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
-  const { session_id, employee_id, work_date, branch_id, new_shift_id, new_status, new_attendance_type, reason } = req.body;
+  const { session_id, employee_id, work_date, branch_id, new_shift_id, new_status, new_attendance_type, new_overtime_hours, new_overtime_note, reason } = req.body;
   if (!reason || !String(reason).trim()) {
     return res.status(400).json({ success: false, error: 'Alasan koreksi wajib diisi untuk catatan audit.' });
   }
@@ -565,6 +640,14 @@ router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), asy
   }
   if (new_attendance_type && !allowedTypes.has(new_attendance_type)) {
     return res.status(400).json({ success: false, error: 'Tipe kehadiran tidak valid.' });
+  }
+  const hasOvertimeHours = new_overtime_hours !== undefined && new_overtime_hours !== null && new_overtime_hours !== '';
+  let parsedOvertimeHours = null;
+  if (hasOvertimeHours) {
+    parsedOvertimeHours = Number(new_overtime_hours);
+    if (getOvertimePay(parsedOvertimeHours) === null) {
+      return res.status(400).json({ success: false, error: 'Jam lembur harus 0, 1, 2, 3, atau 4 jam.' });
+    }
   }
 
   const currentCutoff = resolveCutoffPeriod();
@@ -604,24 +687,7 @@ router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), asy
       });
     }
 
-    if (activeSessionId) {
-      const effectiveStatus = new_status || beforeData.status;
-      const effectiveType = new_attendance_type || beforeData.attendance_type || 'hadir';
-      const effectiveShiftId = new_shift_id || beforeData.shift_id;
-      const mealEligible = effectiveType === 'hadir' && (effectiveStatus === 'present' || effectiveStatus === 'late');
-
-      const updatedRes = await client.query(
-        `UPDATE attendance_sessions
-         SET status = $1,
-             shift_id = $2,
-             attendance_type = $3,
-             is_meal_allowance_eligible = $4,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $5 RETURNING *`,
-        [effectiveStatus, effectiveShiftId, effectiveType, mealEligible, activeSessionId]
-      );
-      afterData = { ...updatedRes.rows[0], adjusted_by: req.user.id };
-    } else {
+    if (!activeSessionId) {
       const existing = await client.query(
         `SELECT * FROM attendance_sessions WHERE employee_id = $1 AND work_date = $2`,
         [empId, targetDate]
@@ -629,48 +695,68 @@ router.post('/adjustments', requireAuth, requireRoles(['owner', 'manager']), asy
       if (existing.rows.length > 0) {
         activeSessionId = existing.rows[0].id;
         beforeData = existing.rows[0];
-        const effectiveStatus = new_status || beforeData.status;
-        const effectiveType = new_attendance_type || beforeData.attendance_type || 'hadir';
-        const effectiveShiftId = new_shift_id || beforeData.shift_id;
-        const mealEligible = effectiveType === 'hadir' && (effectiveStatus === 'present' || effectiveStatus === 'late');
-
-        const updatedRes = await client.query(
-          `UPDATE attendance_sessions
-           SET shift_id = $1,
-               status = $2,
-               attendance_type = $3,
-               is_meal_allowance_eligible = $4,
-               updated_at = CURRENT_TIMESTAMP
-           WHERE id = $5 RETURNING *`,
-          [effectiveShiftId, effectiveStatus, effectiveType, mealEligible, activeSessionId]
-        );
-        afterData = { ...updatedRes.rows[0], adjusted_by: req.user.id };
-      } else {
-        if (!targetBranchId) {
-          const empAssign = await client.query(
-            `SELECT branch_id FROM employee_assignments WHERE employee_id = $1 AND is_primary = true LIMIT 1`,
-            [empId]
-          );
-          targetBranchId = empAssign.rows.length > 0 ? empAssign.rows[0].branch_id : null;
-          if (!targetBranchId) {
-            const firstBranch = await client.query(`SELECT id FROM branches LIMIT 1`);
-            targetBranchId = firstBranch.rows[0]?.id;
-          }
-        }
-        const effectiveStatus = new_status || 'present';
-        const effectiveType = new_attendance_type || 'hadir';
-        const mealEligible = effectiveType === 'hadir' && (effectiveStatus === 'present' || effectiveStatus === 'late');
-
-        const insertRes = await client.query(
-          `INSERT INTO attendance_sessions (employee_id, branch_id, work_date, shift_id, status, attendance_type, is_meal_allowance_eligible)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
-           RETURNING *;`,
-          [empId, targetBranchId, targetDate, new_shift_id || null, effectiveStatus, effectiveType, mealEligible]
-        );
-        activeSessionId = insertRes.rows[0].id;
-        beforeData = { shift_id: null, status: null, attendance_type: null };
-        afterData = { ...insertRes.rows[0], adjusted_by: req.user.id };
       }
+    }
+
+    if (activeSessionId) {
+      const effectiveStatus = new_status || beforeData.status;
+      const effectiveType = new_attendance_type || beforeData.attendance_type || 'hadir';
+      const effectiveShiftId = new_shift_id || beforeData.shift_id;
+      const mealEligible = effectiveType === 'hadir' && (effectiveStatus === 'present' || effectiveStatus === 'late');
+      const effectiveOvertimeHours = (effectiveType === 'kunjungan_luar' || effectiveStatus === 'off')
+        ? 0
+        : (hasOvertimeHours ? parsedOvertimeHours : (beforeData.overtime_hours || 0));
+      const effectiveOvertimePay = getOvertimePay(effectiveOvertimeHours) || 0;
+      const effectiveOvertimeNote = effectiveOvertimeHours === 0
+        ? null
+        : (new_overtime_note !== undefined ? (String(new_overtime_note).trim() || null) : beforeData.overtime_note);
+
+      const updatedRes = await client.query(
+        `UPDATE attendance_sessions
+         SET status = $1,
+             shift_id = $2,
+             attendance_type = $3,
+             is_meal_allowance_eligible = $4,
+             overtime_hours = $5,
+             overtime_pay = $6,
+             overtime_note = $7,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $8 RETURNING *`,
+        [effectiveStatus, effectiveShiftId, effectiveType, mealEligible, effectiveOvertimeHours, effectiveOvertimePay, effectiveOvertimeNote, activeSessionId]
+      );
+      afterData = { ...updatedRes.rows[0], adjusted_by: req.user.id };
+    } else {
+      if (!targetBranchId) {
+        const empAssign = await client.query(
+          `SELECT branch_id FROM employee_assignments WHERE employee_id = $1 AND is_primary = true LIMIT 1`,
+          [empId]
+        );
+        targetBranchId = empAssign.rows.length > 0 ? empAssign.rows[0].branch_id : null;
+        if (!targetBranchId) {
+          const firstBranch = await client.query(`SELECT id FROM branches LIMIT 1`);
+          targetBranchId = firstBranch.rows[0]?.id;
+        }
+      }
+      const effectiveStatus = new_status || 'present';
+      const effectiveType = new_attendance_type || 'hadir';
+      const mealEligible = effectiveType === 'hadir' && (effectiveStatus === 'present' || effectiveStatus === 'late');
+      const effectiveOvertimeHours = (effectiveType === 'kunjungan_luar' || effectiveStatus === 'off')
+        ? 0
+        : (hasOvertimeHours ? parsedOvertimeHours : 0);
+      const effectiveOvertimePay = getOvertimePay(effectiveOvertimeHours) || 0;
+      const effectiveOvertimeNote = effectiveOvertimeHours === 0
+        ? null
+        : (new_overtime_note ? String(new_overtime_note).trim() : null);
+
+      const insertRes = await client.query(
+        `INSERT INTO attendance_sessions (employee_id, branch_id, work_date, shift_id, status, attendance_type, is_meal_allowance_eligible, overtime_hours, overtime_pay, overtime_note)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         RETURNING *;`,
+        [empId, targetBranchId, targetDate, new_shift_id || null, effectiveStatus, effectiveType, mealEligible, effectiveOvertimeHours, effectiveOvertimePay, effectiveOvertimeNote]
+      );
+      activeSessionId = insertRes.rows[0].id;
+      beforeData = { shift_id: null, status: null, attendance_type: null, overtime_hours: 0, overtime_pay: 0 };
+      afterData = { ...insertRes.rows[0], adjusted_by: req.user.id };
     }
 
     // Selalu sinkronkan ke work_schedules agar jadwal shift tercatat konsisten

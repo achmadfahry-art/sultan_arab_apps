@@ -456,6 +456,20 @@ function renderHome() {
   const checkInEvent = todayEvents.find(e => e.event_type === 'check_in');
   const checkOutEvent = todayEvents.find(e => e.event_type === 'check_out');
   const isKunjunganLuar = state.todaySession && state.todaySession.attendance_type === 'kunjungan_luar';
+  const overtimeHours = Number(state.todaySession?.overtime_hours || 0);
+  const overtimePay = Number(state.todaySession?.overtime_pay || 0);
+  const overtimeNote = state.todaySession?.overtime_note || '';
+  const canRecordOvertime = Boolean(checkInEvent && !isKunjunganLuar && state.todaySession?.status !== 'off');
+  const overtimeHeroBlock = !canRecordOvertime ? '' : (
+    overtimeHours > 0
+      ? `<div style="background: rgba(245, 158, 11, 0.22); border: 1px solid rgba(251, 191, 36, 0.55); border-radius: var(--radius-sm); padding: 9px 14px; font-size: 0.84rem; color: #FEF3C7; text-align: center;">
+           ${uiIcon('zap', '', 15)} <strong>Lembur Tercatat: ${overtimeHours} Jam (Rp ${formatNumber(overtimePay)})</strong>${overtimeNote ? ` • ${escapeHtml(overtimeNote)}` : ''}
+         </div>`
+      : `<button type="button" class="btn-absen-hero" onclick="openOvertimeModal()" style="background: linear-gradient(135deg, #B45309, #D97706); box-shadow: 0 4px 14px rgba(217,119,6,0.35);">
+           ${uiIcon('zap', '', 20)}
+           <span>+ CATAT LEMBUR (1-4 JAM)</span>
+         </button>`
+  );
 
   let statusBadge = `<span class="badge badge-warning">${uiIcon('alert-circle', '', 13)} Belum Absen Masuk Hari Ini</span>`;
   let heroButtonsHtml = '';
@@ -467,16 +481,19 @@ function renderHome() {
     if (checkOutEvent) {
       statusBadge = `<span class="badge badge-success">${uiIcon('check-circle', '', 13)} Absensi Hari Ini Selesai • Masuk (${inTime}) • Pulang (${outTime})</span>`;
       heroButtonsHtml = `
-        <div style="background: rgba(16, 185, 129, 0.16); border: 1.5px solid rgba(52, 211, 153, 0.4); border-radius: var(--radius-md); padding: 16px; text-align: center; color: #fff; width: 100%; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
-          <div style="font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; color: #34D399;">
-            ${uiIcon('check-circle', '', 22)} Absensi Hari Ini Telah Lengkap
+        <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+          <div style="background: rgba(16, 185, 129, 0.16); border: 1.5px solid rgba(52, 211, 153, 0.4); border-radius: var(--radius-md); padding: 16px; text-align: center; color: #fff; width: 100%; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
+            <div style="font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; color: #34D399;">
+              ${uiIcon('check-circle', '', 22)} Absensi Hari Ini Telah Lengkap
+            </div>
+            <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 6px;">
+              Masuk: ${inTime} WIB • Pulang: ${outTime} WIB
+            </div>
+            <div style="font-size: 0.8rem; color: #E2E8F0; opacity: 0.95;">
+              ✅ Anda sudah melakukan absensi hari ini. Tidak dapat melakukan absensi lagi pada hari yang sama.
+            </div>
           </div>
-          <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 6px;">
-            Masuk: ${inTime} WIB • Pulang: ${outTime} WIB
-          </div>
-          <div style="font-size: 0.8rem; color: #E2E8F0; opacity: 0.95;">
-            ✅ Anda sudah melakukan absensi hari ini. Tidak dapat melakukan absensi lagi pada hari yang sama.
-          </div>
+          ${overtimeHeroBlock}
         </div>
       `;
     } else {
@@ -494,6 +511,7 @@ function renderHome() {
             ${uiIcon('log-out', '', 20)}
             <span>ABSEN PULANG SEKARANG (OPSIONAL)</span>
           </a>
+          ${overtimeHeroBlock}
         </div>
       `;
     }
@@ -593,8 +611,8 @@ function renderHome() {
             ${uiIcon('clock', '', 18)}
           </div>
           <div>
-            <strong>Pilihan Shift:</strong> Staff/Admin (08:00 - 17:00) • Crew Pagi (08:00 - 17:00) • Crew Siang (12:00 - 21:00) • Lembur (08:00 - 21:00).
-            <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Pemilihan shift diserahkan kepada masing-masing personal saat absen masuk.</div>
+            <strong>Pilihan Shift:</strong> Staff/Admin (08:00 - 17:00) • Crew Pagi (08:00 - 17:00) • Crew Siang (12:00 - 21:00).
+            <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Pemilihan shift dilakukan saat absen masuk. Lembur (1–4 jam) dicatat lewat tombol <strong>+ Catat Lembur</strong> di Beranda (maks. 1x/hari, tidak untuk kunjungan luar).</div>
           </div>
         </div>
         <div style="display: flex; gap: 14px; align-items: flex-start; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
@@ -1254,7 +1272,7 @@ function renderManagementRecapTab() {
           <div class="kpi-icon kpi-icon-gold">${uiIcon('zap', '', 20)}</div>
           <div>
             <div class="kpi-value" id="recap-kpi-lembur">-</div>
-            <div class="kpi-label">Shift Lembur (08-21)</div>
+            <div class="kpi-label">Lembur (Jam &amp; Upah)</div>
           </div>
         </div>
         <div class="kpi-card">
@@ -1288,7 +1306,7 @@ function renderManagementRecapTab() {
               <th style="min-width: 95px;">Cabang</th>
               <th title="Kehadiran fisik di toko">Hadir</th>
               <th title="Kunjungan luar / dinas">Kunjungan</th>
-              <th title="Shift Lembur 08:00 - 21:00">Lembur</th>
+              <th title="Total jam & upah lembur">Lembur</th>
               <th title="Jumlah hari libur rutin & terjadwal bulan ini">Libur</th>
               <th title="Estimasi jam kerja">Jam Kerja</th>
               <th title="Uang makan Rp 10.000 / hari hadir fisik">Uang Makan</th>
@@ -2490,7 +2508,7 @@ async function loadMonthlyRecapData() {
   if (kpiEmp) kpiEmp.textContent = summary.totalEmployees ?? 0;
   if (kpiHadir) kpiHadir.textContent = summary.totalHadirFisik ?? 0;
   if (kpiKunjungan) kpiKunjungan.textContent = summary.totalKunjunganLuar ?? 0;
-  if (kpiLembur) kpiLembur.textContent = summary.totalLembur ?? 0;
+  if (kpiLembur) kpiLembur.textContent = `${summary.totalOvertimeHours ?? 0}j • Rp ${formatNumber(summary.totalOvertimePay || 0)}`;
   if (kpiLibur) kpiLibur.textContent = `${summary.totalLibur ?? 0} hari`;
   if (kpiUangMakan) kpiUangMakan.textContent = `Rp ${formatNumber(summary.totalUangMakan || 0)}`;
 
@@ -2522,7 +2540,9 @@ async function loadMonthlyRecapData() {
           ${item.totalKunjunganLuar > 0 ? `<span class="badge badge-info">${item.totalKunjunganLuar}</span>` : '<span style="color:var(--text-muted);">0</span>'}
         </td>
         <td data-label="Lembur">
-          ${item.totalLembur > 0 ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:700;">${uiIcon('zap', '', 11)} ${item.totalLembur}</span>` : '<span style="color:var(--text-muted);">0</span>'}
+          ${item.totalOvertimeHours > 0
+            ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:700;">${uiIcon('zap', '', 11)} ${item.totalOvertimeHours}j • Rp ${formatNumber(item.totalOvertimePay)}</span>`
+            : (item.totalLembur > 0 ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:700;">${uiIcon('zap', '', 11)} ${item.totalLembur}x</span>` : '<span style="color:var(--text-muted);">0</span>')}
         </td>
         <td data-label="Libur">
           <span class="badge badge-secondary" style="background:#f1f5f9; color:#334155; font-weight:700;">${item.totalLibur ?? 0} hr</span>
@@ -2576,6 +2596,8 @@ window.openRecapAdjustmentByIndex = function(staffIdx, recordIdx) {
     shiftId: rec.shift_id || '',
     status: rec.status || 'present',
     attendanceType: rec.attendance_type || (rec.isKunjungan ? 'kunjungan_luar' : 'hadir'),
+    overtimeHours: rec.overtime_hours || 0,
+    overtimeNote: rec.overtime_note || '',
     date: rec.work_date || rec.date || maxDate,
     minDate: period.startDate,
     maxDate,
@@ -2629,9 +2651,14 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
     <tr><td colspan="${colCount}" class="cell-empty">Tidak ada riwayat absensi pada periode cut-off ini.</td></tr>
   ` : records.map((r, rIdx) => {
     const isLembur = r.isLembur || r.is_lembur;
-    const shiftBadge = isLembur
+    const otHours = Number(r.overtime_hours || 0);
+    const otPay = Number(r.overtime_pay || 0);
+    const otBadge = otHours > 0
+      ? `<div style="margin-top:3px;"><span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:600;">${uiIcon('zap', '', 11)} +${otHours}j (Rp ${formatNumber(otPay)})</span></div>`
+      : '';
+    const shiftBadge = (isLembur && otHours === 0)
       ? `<span class="badge badge-warning" style="background:#fef3c7; color:#92400e; font-weight:600;">${uiIcon('zap', '', 12)} ${escapeHtml(r.shift_name)}</span>`
-      : `<span class="badge badge-secondary">${escapeHtml(r.shift_name || '-')}</span>`;
+      : `<span class="badge badge-secondary">${escapeHtml(r.shift_name || '-')}</span>${otBadge}`;
 
     const statusBadge = r.status === 'late'
       ? `<span class="badge badge-danger">Terlambat</span>`
@@ -2695,8 +2722,8 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
               <div style="font-size: 1.1rem; font-weight: 700;">${item.totalKunjunganLuar} hari</div>
             </div>
             <div>
-              <div style="font-size: 0.75rem; color: var(--text-muted);">Shift Lembur</div>
-              <div style="font-size: 1.1rem; font-weight: 700; color: #b45309;">${item.totalLembur} shift</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Lembur</div>
+              <div style="font-size: 1.1rem; font-weight: 700; color: #b45309;">${item.totalOvertimeHours > 0 ? `${item.totalOvertimeHours}j • Rp ${formatNumber(item.totalOvertimePay)}` : `${item.totalLembur || 0} shift`}</div>
             </div>
             <div>
               <div style="font-size: 0.75rem; color: var(--text-muted);">Hari Libur</div>
@@ -3359,6 +3386,8 @@ function openAdjustmentModal(param) {
   `).join('');
 
   const currentType = info.attendanceType || 'hadir';
+  const currentOvertime = Number(info.overtimeHours || 0);
+  const currentOvertimeNote = info.overtimeNote || '';
   const isRecapMode = info.source === 'recap';
 
   modalContainer.innerHTML = `
@@ -3406,6 +3435,22 @@ function openAdjustmentModal(param) {
                 <option value="off" ${info.status === 'off' ? 'selected' : ''}>Libur (Off)</option>
               </select>
             </div>
+            ${isRecapMode ? `
+              <div class="form-group">
+                <label class="form-label" for="adj-overtime">Tambahan Lembur:</label>
+                <select id="adj-overtime" class="form-control">
+                  <option value="0" ${currentOvertime === 0 ? 'selected' : ''}>Tidak Ada Lembur (Rp 0)</option>
+                  <option value="1" ${currentOvertime === 1 ? 'selected' : ''}>1 Jam — Rp 15.000</option>
+                  <option value="2" ${currentOvertime === 2 ? 'selected' : ''}>2 Jam — Rp 30.000</option>
+                  <option value="3" ${currentOvertime === 3 ? 'selected' : ''}>3 Jam — Rp 50.000</option>
+                  <option value="4" ${currentOvertime === 4 ? 'selected' : ''}>4 Jam — Rp 65.000</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="adj-overtime-note">Catatan Pekerjaan Lembur (Opsional):</label>
+                <input type="text" id="adj-overtime-note" class="form-control" value="${escapeHtml(currentOvertimeNote)}" placeholder="Contoh: Packing kiriman grosir">
+              </div>
+            ` : ''}
             <div class="form-group">
               <label class="form-label" for="adj-reason">Alasan Koreksi (Wajib untuk Audit Log):</label>
               <textarea id="adj-reason" class="form-control" rows="3" placeholder="Contoh: Salah pilih shift pagi seharusnya shift siang, atau koreksi lupa absen..." required></textarea>
@@ -3430,6 +3475,8 @@ function openAdjustmentModal(param) {
     const attendanceType = document.getElementById('adj-type').value;
     const dateInput = document.getElementById('adj-date');
     const selectedDate = dateInput ? dateInput.value : (info.date || null);
+    const overtimeSelect = document.getElementById('adj-overtime');
+    const overtimeNoteInput = document.getElementById('adj-overtime-note');
 
     const payload = {
       session_id: info.sessionId || null,
@@ -3439,6 +3486,8 @@ function openAdjustmentModal(param) {
       new_shift_id: shiftId || null,
       new_status: status,
       new_attendance_type: attendanceType,
+      ...(overtimeSelect ? { new_overtime_hours: Number(overtimeSelect.value) } : {}),
+      ...(overtimeNoteInput ? { new_overtime_note: overtimeNoteInput.value.trim() } : {}),
       reason
     };
 
@@ -3462,6 +3511,68 @@ function openAdjustmentModal(param) {
     }
   });
 }
+
+window.openOvertimeModal = function() {
+  const modalContainer = document.getElementById('modal-container');
+  if (!modalContainer) return;
+
+  modalContainer.innerHTML = `
+    <div class="modal-overlay active" onclick="if(event.target===this) closeModal()">
+      <div class="modal-card">
+        <div class="modal-header" style="background: linear-gradient(135deg, #B45309, #D97706); color: #fff;">
+          <div>
+            <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; color: #fff;">
+              ${uiIcon('zap', '', 18)} Catat Lembur Hari Ini
+            </h3>
+            <div style="font-size: 0.78rem; color: #FEF3C7; margin-top: 3px;">Maksimal 1x pencatatan per hari • Tidak berlaku untuk Kunjungan Luar</div>
+          </div>
+          <button type="button" class="btn btn-secondary" onclick="closeModal()" style="color:#fff; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+        <form id="form-overtime">
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label" for="ot-hours">Pilih Durasi Lembur &amp; Upah Tambahan:</label>
+              <select id="ot-hours" class="form-control" required>
+                <option value="1">1 Jam — Rp 15.000</option>
+                <option value="2">2 Jam — Rp 30.000</option>
+                <option value="3">3 Jam — Rp 50.000</option>
+                <option value="4">4 Jam — Rp 65.000</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ot-note">Keterangan Pekerjaan Tambahan (Wajib):</label>
+              <textarea id="ot-note" class="form-control" rows="3" placeholder="Contoh: Packing order partai, stok opname gudang, atau bantu shift sore..." required></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+            <button type="submit" class="btn btn-primary" style="background:#D97706; border-color:#B45309;">
+              ${uiIcon('check', '', 16)} Simpan Lembur
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('form-overtime').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const hours = Number(document.getElementById('ot-hours').value);
+    const note = document.getElementById('ot-note').value.trim();
+    const res = await api('/api/v1/attendance/overtime', {
+      method: 'POST',
+      body: JSON.stringify({ hours, note })
+    });
+    if (res.ok) {
+      showToast(res.data.message || 'Lembur berhasil dicatat!', 'success');
+      closeModal();
+      await loadTodaySession();
+      render();
+    } else {
+      showToast(res.data.error || 'Gagal mencatat lembur.', 'error');
+    }
+  });
+};
 
 function openCommissionModal(periods) {
   const modalContainer = document.getElementById('modal-container');

@@ -52,6 +52,12 @@ try {
   });
   console.log(recapAdjTest);
 
+  console.log('--- TAHAP 9: PENGUJIAN FITUR LEMBUR PER JAM (1-4 JAM) ---');
+  const overtimeTest = execFileSync('node', [path.resolve(__dirname, 'test_overtime_feature.js')], {
+    encoding: 'utf8'
+  });
+  console.log(overtimeTest);
+
   console.log('\n>>> KESIMPULAN: SELURUH PENGUJIAN OTOMATIS LULUS 100% <<<');
 } catch (err) {
   console.error('[Pengujian Gagal]', err.message);

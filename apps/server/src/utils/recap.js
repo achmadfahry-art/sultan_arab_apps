@@ -185,6 +185,7 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
 
   const attQuery = `
     SELECT s.id as session_id, s.employee_id, s.work_date, s.status, s.attendance_type, s.is_meal_allowance_eligible,
+           COALESCE(s.overtime_hours, 0) as overtime_hours, COALESCE(s.overtime_pay, 0) as overtime_pay, s.overtime_note,
            sh.id as shift_id, sh.name as shift_name, sh.start_time as shift_start, sh.end_time as shift_end,
            MIN(CASE WHEN ev.event_type = 'check_in' THEN ev.server_time END) as check_in_time,
            MAX(CASE WHEN ev.event_type = 'check_out' THEN ev.server_time END) as check_out_time,
@@ -234,6 +235,8 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
     let totalHadirFisik = 0;
     let totalKunjunganLuar = 0;
     let totalLembur = 0;
+    let totalOvertimeHours = 0;
+    let totalOvertimePay = 0;
     let totalShiftPagi = 0;
     let totalShiftSiang = 0;
     let totalTerlambat = 0;
@@ -247,13 +250,18 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
 
       const isHadir = (s.status === 'present' || s.status === 'late') && (s.attendance_type === 'hadir' || !s.attendance_type);
       const isKunjungan = s.attendance_type === 'kunjungan_luar';
-      const isLembur = Boolean(s.shift_name && /lembur/i.test(s.shift_name));
+      const overtimeHours = Number(s.overtime_hours || 0);
+      const overtimePay = Number(s.overtime_pay || 0);
+      const isShiftLembur = Boolean(s.shift_name && /lembur/i.test(s.shift_name));
+      const isLembur = overtimeHours > 0 || isShiftLembur;
       const isPagi = Boolean(s.shift_name && /pagi/i.test(s.shift_name));
       const isSiang = Boolean(s.shift_name && /siang/i.test(s.shift_name));
 
       if (isHadir) totalHadirFisik++;
       if (isKunjungan) totalKunjunganLuar++;
       if (isLembur) totalLembur++;
+      totalOvertimeHours += overtimeHours;
+      totalOvertimePay += overtimePay;
       if (isPagi) totalShiftPagi++;
       if (isSiang) totalShiftSiang++;
       if (s.status === 'late') totalTerlambat++;
@@ -264,10 +272,12 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
       if (s.check_in_time && s.check_out_time) {
         const diffMs = new Date(s.check_out_time) - new Date(s.check_in_time);
         durasiMenit = Math.max(0, Math.round(diffMs / 60000));
-      } else if (isWorkedStatus && isLembur) {
+      } else if (isWorkedStatus && isShiftLembur) {
         durasiMenit = 13 * 60;
       } else if (isWorkedStatus && (isPagi || isSiang)) {
-        durasiMenit = 9 * 60;
+        durasiMenit = (9 + overtimeHours) * 60;
+      } else if (isWorkedStatus && overtimeHours > 0) {
+        durasiMenit = overtimeHours * 60;
       }
       totalMenitKerja += durasiMenit;
 
@@ -289,6 +299,9 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
         isKunjungan,
         shift_id: s.shift_id || null,
         shift_name: s.shift_name || '-',
+        overtime_hours: overtimeHours,
+        overtime_pay: overtimePay,
+        overtime_note: s.overtime_note || null,
         is_lembur: isLembur,
         isLembur,
         check_in_time: s.check_in_time,
@@ -351,6 +364,8 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
       total_hadir_fisik: totalHadirFisik,
       total_kunjungan_luar: totalKunjunganLuar,
       total_lembur: totalLembur,
+      total_overtime_hours: totalOvertimeHours,
+      total_overtime_pay: totalOvertimePay,
       total_shift_pagi: totalShiftPagi,
       total_shift_siang: totalShiftSiang,
       total_terlambat: totalTerlambat,
@@ -371,6 +386,8 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
       totalHadirFisik,
       totalKunjunganLuar,
       totalLembur,
+      totalOvertimeHours,
+      totalOvertimePay,
       totalShiftPagi,
       totalShiftSiang,
       totalTerlambat,
@@ -385,6 +402,8 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
   const totalHadirFisik = recap.reduce((acc, r) => acc + r.total_hadir_fisik, 0);
   const totalKunjunganLuar = recap.reduce((acc, r) => acc + r.total_kunjungan_luar, 0);
   const totalLembur = recap.reduce((acc, r) => acc + r.total_lembur, 0);
+  const totalOvertimeHours = recap.reduce((acc, r) => acc + r.total_overtime_hours, 0);
+  const totalOvertimePay = recap.reduce((acc, r) => acc + r.total_overtime_pay, 0);
   const totalShiftPagi = recap.reduce((acc, r) => acc + r.total_shift_pagi, 0);
   const totalShiftSiang = recap.reduce((acc, r) => acc + r.total_shift_siang, 0);
   const totalTerlambat = recap.reduce((acc, r) => acc + r.total_terlambat, 0);
@@ -424,7 +443,7 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
   if (mostOvertime) {
     insights.push(`Shift lembur terbanyak: ${mostOvertime.employee_name} (${mostOvertime.total_lembur} shift lembur).`);
   }
-  insights.push(`Distribusi shift periode ini: Shift Pagi ${totalShiftPagi}x, Shift Siang ${totalShiftSiang}x, Lembur ${totalLembur}x; estimasi total uang makan Rp ${totalUangMakan.toLocaleString('id-ID')}.`);
+  insights.push(`Distribusi shift periode ini: Shift Pagi ${totalShiftPagi}x, Shift Siang ${totalShiftSiang}x, Lembur ${totalOvertimeHours} jam (${totalLembur} hari, Rp ${totalOvertimePay.toLocaleString('id-ID')}); estimasi total uang makan Rp ${totalUangMakan.toLocaleString('id-ID')}.`);
 
   const grandTotal = {
     totalKaryawan: recap.length,
@@ -435,6 +454,8 @@ async function buildMonthlyRecapData({ rawYear, rawMonth, rawPeriod, branchId, u
     totalKunjunganLuar,
     grandLembur: totalLembur,
     totalLembur,
+    totalOvertimeHours,
+    totalOvertimePay,
     grandTerlambat: totalTerlambat,
     totalTerlambat,
     totalTepatWaktu,
