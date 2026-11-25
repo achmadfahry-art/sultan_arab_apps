@@ -32,6 +32,17 @@ function getJakartaDateStr(d = new Date()) {
   }).format(d);
 }
 
+/** Mengecek apakah YYYY-MM-DD termasuk hari libur rutin atau jadwal libur khusus karyawan. */
+function isEmployeeDayOff(dateStr, dayOffName, specificDatesSet = null) {
+  if (specificDatesSet && specificDatesSet.has(dateStr)) return true;
+  if (!dateStr || !dayOffName) return false;
+  const parts = String(dateStr).slice(0, 10).split('-').map(Number);
+  if (parts.length !== 3 || !parts[0]) return false;
+  const dow = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])).getUTCDay();
+  const targetDow = DAY_MAP[String(dayOffName).toLowerCase().trim()];
+  return targetDow !== undefined && dow === targetDow;
+}
+
 /** Mengubah Date/string database menjadi string YYYY-MM-DD yang stabil. */
 function normalizeDateStr(val) {
   if (!val) return '';
@@ -514,5 +525,6 @@ module.exports = {
   buildMonthlyRecapData,
   resolveCutoffPeriod,
   getJakartaDateStr,
-  normalizeDateStr
+  normalizeDateStr,
+  isEmployeeDayOff
 };

@@ -4,6 +4,15 @@ Semua perubahan penting per rilis versi aplikasi absensi & payroll (`https://abs
 
 ---
 
+## [v1.3.1] — 2026-11-25
+### Rilis Produksi (`vps-sultanarab` — PM2 `sultan-app`)
+- **Status Otomatis `Libur` di Absensi & Override Masuk oleh Pengelola:**
+  - `GET /api/v1/attendance/monitoring` & `GET /api/v1/attendance/me` otomatis mendeteksi jadwal libur rutin (`employees.day_off`) maupun libur khusus (`days_off`) dan menandai status hari tersebut sebagai **`Libur`** (tidak masuk hitungan `Belum Absen`).
+  - `Owner` dan `Manager` dapat mengubah status **`Libur`** menjadi **`Hadir (Present)`** melalui tombol **Koreksi** di Monitoring Harian atau Rekap Bulanan ketika staf dibutuhkan masuk di hari liburnya.
+- **Pembaruan Jadwal Libur Arida (`SA-HL-01`):** Diubah dari `Jumat` menjadi **`Kamis`** pada database produksi.
+
+---
+
 ## [v1.3.0] — 2026-11-24
 ### Rilis Produksi (`vps-sultanarab` — PM2 `sultan-app`)
 - **Fitur Lembur Berbasis Jam (`1–4` Jam) & Peniadaan `Shift Lembur` Baru (`010_overtime_hourly.sql`):**

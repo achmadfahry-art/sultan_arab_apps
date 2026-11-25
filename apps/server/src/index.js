@@ -40,7 +40,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     appName: 'SULTAN ARAB APP',
-    version: '1.3.0',
+    version: '1.3.1',
     timestamp: new Date().toISOString()
   });
 });

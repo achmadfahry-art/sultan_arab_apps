@@ -236,6 +236,7 @@ async function loadInitialData() {
   if (sRes.ok && sRes.data.shifts) state.shifts = sRes.data.shifts;
   if (aRes.ok && aRes.data) {
     state.todaySession = aRes.data.todaySession;
+    state.todayDayOff = aRes.data.todayDayOff || null;
     state.attendanceHistory = aRes.data.history || [];
   }
 }
@@ -471,7 +472,13 @@ function renderHome() {
          </button>`
   );
 
-  let statusBadge = `<span class="badge badge-warning">${uiIcon('alert-circle', '', 13)} Belum Absen Masuk Hari Ini</span>`;
+  const isDayOffToday = Boolean(state.todayDayOff && state.todayDayOff.isDayOffToday);
+  const isWorkOverride = Boolean(state.todayDayOff && state.todayDayOff.isScheduledOff && state.todaySession && (state.todaySession.status === 'present' || state.todaySession.status === 'late'));
+  let statusBadge = isDayOffToday
+    ? `<span class="badge badge-secondary" style="background:#EEF2FF; color:#4338CA; font-weight:700;">${uiIcon('palmtree', '', 13)} Hari Ini Libur (${escapeHtml(state.todayDayOff.dayOffName || '-')})</span>`
+    : (isWorkOverride
+        ? `<span class="badge badge-warning">${uiIcon('alert-circle', '', 13)} Diminta Masuk (Jadwal Libur)</span>`
+        : `<span class="badge badge-warning">${uiIcon('alert-circle', '', 13)} Belum Absen Masuk Hari Ini</span>`);
   let heroButtonsHtml = '';
 
   if (checkInEvent) {
@@ -2306,6 +2313,16 @@ async function loadMonitoringData() {
         ? `<span class="badge badge-success" style="font-weight:700;">${outTime}</span>`
         : (r.check_in_time ? `<span class="badge badge-warning">Belum Pulang</span>` : `-`);
 
+      const tipeHadirHtml = isKunjungan
+        ? `<span style="display:inline-flex; align-items:center; gap:4px;">${uiIcon('car', '', 14)} Kunjungan Luar</span>`
+        : (r.check_in_time
+            ? `<span style="display:inline-flex; align-items:center; gap:4px;">${uiIcon('building', '', 14)} Hadir Toko</span>`
+            : (r.is_day_off
+                ? `<span class="badge badge-secondary" style="background:#EEF2FF; color:#4338CA; font-weight:700;">${uiIcon('palmtree', '', 13)} Libur (${escapeHtml(r.day_off || '-')})</span>`
+                : ((r.session_status === 'present' || r.session_status === 'late')
+                    ? `<span class="badge badge-warning">Diminta Masuk (Belum Check-in)</span>`
+                    : '<span style="color:var(--text-muted);">Belum Absen</span>')));
+
       return `
         <tr>
           <td class="cell-title" data-label="Nama"><strong>${escapeHtml(r.employee_name)}</strong> <small class="cell-code">${escapeHtml(r.employee_code)}</small></td>
@@ -2313,7 +2330,7 @@ async function loadMonitoringData() {
           <td data-label="Shift"><span class="badge badge-info" style="font-weight:600;">${escapeHtml(r.shift_name || 'Non-Shift')}</span></td>
           <td data-label="Jam Masuk">${inTime}</td>
           <td data-label="Jam Pulang">${outBadge}</td>
-          <td data-label="Tipe Hadir">${isKunjungan ? `<span style="display:inline-flex; align-items:center; gap:4px;">${uiIcon('car', '', 14)} Kunjungan Luar</span>` : (r.check_in_time ? `<span style="display:inline-flex; align-items:center; gap:4px;">${uiIcon('building', '', 14)} Hadir Toko</span>` : '<span style="color:var(--text-muted);">Belum Absen</span>')}</td>
+          <td data-label="Tipe Hadir">${tipeHadirHtml}</td>
           <td data-label="Uang Makan">${mealText}</td>
           <td data-label="Lokasi GPS">${locBadge}</td>
           <td class="cell-actions" data-label="Aksi">
@@ -2324,7 +2341,7 @@ async function loadMonitoringData() {
               data-emp-code="${escapeHtml(r.employee_code)}"
               data-branch-id="${r.branch_id || ''}"
               data-shift-id="${r.shift_id || ''}"
-              data-status="${r.session_status || 'present'}"
+              data-status="${r.session_status || (r.is_day_off ? 'off' : 'present')}"
               data-date="${r.work_date || res.data.date || ''}"
               title="Koreksi jadwal shift & absensi staf">
               ${uiIcon('edit', '', 14)} Koreksi

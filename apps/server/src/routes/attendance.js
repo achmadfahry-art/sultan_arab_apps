@@ -7,7 +7,7 @@ const db = require('../db');
 const { requireAuth, requireRoles } = require('../middleware/auth');
 const { calculateDistanceMeters } = require('../utils/geo');
 const { logAudit } = require('../utils/audit');
-const { buildMonthlyRecapData, resolveCutoffPeriod, normalizeDateStr } = require('../utils/recap');
+const { buildMonthlyRecapData, resolveCutoffPeriod, normalizeDateStr, isEmployeeDayOff } = require('../utils/recap');
 const { generateMonthlyRecapPdf } = require('../utils/pdf');
 
 const OVERTIME_RATES = { 0: 0, 1: 15000, 2: 30000, 3: 50000, 4: 65000 };
@@ -477,9 +477,30 @@ router.get('/me', requireAuth, async (req, res) => {
       LIMIT 30;
     `, [employeeId]);
 
+    const empMetaRes = await db.query(
+      `SELECT COALESCE(day_off, 'Ahad') as day_off FROM employees WHERE id = $1 LIMIT 1`,
+      [employeeId]
+    );
+    const dayOffName = empMetaRes.rows[0]?.day_off || 'Ahad';
+    const specificOffRes = await db.query(
+      `SELECT 1 FROM days_off WHERE employee_id = $1 AND off_date = $2 LIMIT 1`,
+      [employeeId, today]
+    );
+    const isScheduledOff = isEmployeeDayOff(today, dayOffName, specificOffRes.rows.length > 0 ? new Set([today]) : null);
+    const todaySess = todayRes.rows.length > 0 ? todayRes.rows[0] : null;
+    const isDayOffToday = Boolean(
+      (todaySess && todaySess.status === 'off') ||
+      (isScheduledOff && !todaySess)
+    );
+
     return res.json({
       success: true,
-      todaySession: todayRes.rows.length > 0 ? todayRes.rows[0] : null,
+      todaySession: todaySess,
+      todayDayOff: {
+        isScheduledOff,
+        isDayOffToday,
+        dayOffName
+      },
       history: historyRes.rows
     });
   } catch (err) {
@@ -498,6 +519,7 @@ router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'superv
       SELECT s.id as session_id, s.work_date, s.status as session_status, s.attendance_type, s.is_meal_allowance_eligible,
              s.overtime_hours, s.overtime_pay, s.overtime_note,
              e.id as employee_id, e.employee_code, e.name as employee_name, e.job_title,
+             COALESCE(e.day_off, 'Ahad') as day_off,
              COALESCE(s.branch_id, b.id) as branch_id, b.name as branch_name,
              COALESCE(s.shift_id, ws.shift_id) as shift_id,
              COALESCE(sh.name, wsh.name, 'Non-Shift') as shift_name,
@@ -532,12 +554,32 @@ router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'superv
     `;
 
     const result = await db.query(query, params);
+    const specificOffRes = await db.query(
+      `SELECT employee_id FROM days_off WHERE off_date = $1`,
+      [targetDate]
+    );
+    const specificOffSet = new Set(specificOffRes.rows.map(d => d.employee_id));
 
-    const totalKaryawan = result.rows.length;
-    const hadir = result.rows.filter(r => r.check_in_time !== null).length;
-    const pulang = result.rows.filter(r => r.check_out_time !== null).length;
-    const kunjunganLuar = result.rows.filter(r => r.attendance_type === 'kunjungan_luar').length;
-    const belumAbsen = totalKaryawan - hadir;
+    const records = result.rows.map(r => {
+      const empSpecific = specificOffSet.has(r.employee_id) ? new Set([targetDate]) : null;
+      const isScheduledOff = isEmployeeDayOff(targetDate, r.day_off, empSpecific);
+      const isDayOff = r.session_status === 'off' || (isScheduledOff && !r.session_status && !r.check_in_time);
+      const isOverriddenToWork = Boolean(isScheduledOff && (r.session_status === 'present' || r.session_status === 'late'));
+      return {
+        ...r,
+        is_day_off: isDayOff,
+        is_scheduled_off: isScheduledOff,
+        is_overridden_to_work: isOverriddenToWork,
+        effective_status: r.session_status || (isDayOff ? 'off' : 'unrecorded')
+      };
+    });
+
+    const totalKaryawan = records.length;
+    const hadir = records.filter(r => r.check_in_time !== null).length;
+    const pulang = records.filter(r => r.check_out_time !== null).length;
+    const kunjunganLuar = records.filter(r => r.attendance_type === 'kunjungan_luar').length;
+    const libur = records.filter(r => r.is_day_off && !r.check_in_time).length;
+    const belumAbsen = Math.max(0, totalKaryawan - hadir - libur);
 
     return res.json({
       success: true,
@@ -547,9 +589,10 @@ router.get('/monitoring', requireAuth, requireRoles(['owner', 'manager', 'superv
         hadir,
         pulang,
         kunjunganLuar,
+        libur,
         belumAbsen
       },
-      records: result.rows
+      records
     });
   } catch (err) {
     console.error('[Monitoring Error]', err);
