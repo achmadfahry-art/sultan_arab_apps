@@ -8,6 +8,7 @@ const db = require('../db');
 const { requireAuth, requireRoles } = require('../middleware/auth');
 const { logAudit } = require('../utils/audit');
 const { sendWhatsAppNotification, generateWhatsAppLink } = require('../utils/whatsapp');
+const { resolveCutoffPeriod } = require('../utils/recap');
 
 const UPLOAD_ROOT = process.env.UPLOAD_ROOT || path.resolve(__dirname, '../../../storage');
 const PAYSLIPS_DIR = path.join(UPLOAD_ROOT, 'payslips');
@@ -43,9 +44,29 @@ const upload = multer({
   }
 });
 
+/** Memastikan periode payroll cut-off 27-26 berjalan tersedia di database. */
+async function ensureCurrentPayrollPeriod() {
+  const cutoff = resolveCutoffPeriod();
+  const startShort = cutoff.prevYear === cutoff.year
+    ? cutoff.startLabel.replace(` ${cutoff.prevYear}`, '')
+    : cutoff.startLabel;
+  const label = `Periode ${startShort} - ${cutoff.endLabel}`;
+
+  await db.query(
+    `INSERT INTO payroll_periods (start_date, end_date, label, status)
+     SELECT $1::date, $2::date, $3, 'draft'
+     WHERE NOT EXISTS (
+       SELECT 1 FROM payroll_periods WHERE start_date = $1::date AND end_date = $2::date
+     );`,
+    [cutoff.startDate, cutoff.endDate, label]
+  );
+  return cutoff;
+}
+
 // GET /api/v1/payroll/periods
 router.get('/periods', requireAuth, async (req, res) => {
   try {
+    await ensureCurrentPayrollPeriod();
     const result = await db.query(`
       SELECT id, start_date, end_date, label, status, created_at 
       FROM payroll_periods 
@@ -220,6 +241,7 @@ router.post('/upload-slip', requireAuth, requireRoles(['owner', 'manager']), upl
 
   let { employee_id, period_id, notes } = req.body;
   if (!period_id || period_id === 'auto') {
+    await ensureCurrentPayrollPeriod();
     const pRes = await db.query(`SELECT id FROM payroll_periods ORDER BY start_date DESC LIMIT 1`);
     if (pRes.rows.length > 0) {
       period_id = pRes.rows[0].id;
