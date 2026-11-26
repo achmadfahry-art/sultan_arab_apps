@@ -1184,6 +1184,8 @@ select.form-control {
 }
 
 .quick-card {
+  text-decoration: none;
+  color: inherit;
   background: #FFFFFF;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
@@ -2179,4 +2181,10 @@ body.modal-open {
     color: #FFFFFF;
     box-shadow: 0 4px 14px rgba(201, 0, 0, 0.28);
   }
+}
+
+.quick-card:focus-visible,
+#btn-toggle-password:focus-visible {
+  outline: 2px solid var(--primary-red);
+  outline-offset: 2px;
 }

@@ -58,6 +58,12 @@ try {
   });
   console.log(overtimeTest);
 
+  console.log('--- TAHAP 10: PENGUJIAN REGRESI ROUTING ABSEN PULANG & AUDIT UI ---');
+  const auditTest = execFileSync('node', [path.resolve(__dirname, 'test_checkout_routing_and_audit.js')], {
+    encoding: 'utf8'
+  });
+  console.log(auditTest);
+
   console.log('\n>>> KESIMPULAN: SELURUH PENGUJIAN OTOMATIS LULUS 100% <<<');
 } catch (err) {
   console.error('[Pengujian Gagal]', err.message);

@@ -29,13 +29,35 @@ function getDefaultCutoffPeriod() {
 
 const defaultCutoff = getDefaultCutoffPeriod();
 
+function parseHashRoute(rawHash = window.location.hash) {
+  const normalized = rawHash || '#home';
+  if (normalized === '#upload-slip') {
+    return { route: '#management', params: new URLSearchParams(), raw: normalized, isUploadSlip: true };
+  }
+  const qIdx = normalized.indexOf('?');
+  if (qIdx === -1) {
+    return { route: normalized, params: new URLSearchParams(), raw: normalized, isUploadSlip: false };
+  }
+  return {
+    route: normalized.slice(0, qIdx) || '#home',
+    params: new URLSearchParams(normalized.slice(qIdx + 1)),
+    raw: normalized,
+    isUploadSlip: false
+  };
+}
+
+const initialParsedRoute = parseHashRoute(window.location.hash);
+
 const state = {
   user: null,
-  route: window.location.hash || '#home',
+  route: initialParsedRoute.route,
+  routeParams: initialParsedRoute.params,
   branches: [],
   shifts: [],
   todaySession: null,
   attendanceHistory: [],
+  historyPeriodFilter: 'all',
+  historyDateFilter: '',
   myPayslips: [],
   uploadedSlips: [],
   activeManagementTab: 'monitoring',
@@ -203,12 +225,11 @@ function startClock() {
 // --- Router & Init ---
 async function initApp() {
   window.addEventListener('hashchange', () => {
-    let hash = window.location.hash || '#home';
-    if (hash === '#upload-slip') {
-      state.route = '#management';
+    const parsed = parseHashRoute(window.location.hash);
+    state.route = parsed.route;
+    state.routeParams = parsed.params;
+    if (parsed.isUploadSlip) {
       state.activeManagementTab = 'payroll';
-    } else {
-      state.route = hash;
     }
     render();
   });
@@ -216,6 +237,12 @@ async function initApp() {
   const meRes = await api('/api/v1/auth/me');
   if (meRes.ok && meRes.data.success && meRes.data.user) {
     state.user = meRes.data.user;
+    const currentParsed = parseHashRoute(window.location.hash);
+    state.route = currentParsed.route;
+    state.routeParams = currentParsed.params;
+    if (currentParsed.isUploadSlip) {
+      state.activeManagementTab = 'payroll';
+    }
     await loadInitialData();
   } else {
     state.user = null;
@@ -293,7 +320,7 @@ function renderLogin() {
               <label class="form-label" for="login-password">Password</label>
               <div style="position: relative;">
                 <input type="password" id="login-password" class="form-control" placeholder="Masukkan password" autocomplete="current-password" required>
-                <button type="button" id="btn-toggle-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center;" title="Lihat/Sembunyikan Password">
+                <button type="button" id="btn-toggle-password" aria-label="Tampilkan atau sembunyikan kata sandi" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-width: 36px; min-height: 36px; width: 36px; height: 36px; padding: 0; background: none; border: none; border-radius: var(--radius-xs); cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center;" title="Lihat/Sembunyikan Password">
                   ${uiIcon('eye', '', 16)}
                 </button>
               </div>
@@ -334,24 +361,24 @@ function renderSidebar() {
       </div>
       <ul class="sidebar-menu">
         <li class="sidebar-item ${state.route === '#home' ? 'active' : ''}">
-          <a href="#home" title="Beranda Karyawan">${uiIcon('home', '', 18)} <span>Beranda Karyawan</span></a>
+          <a href="#home" title="Beranda Karyawan" ${state.route === '#home' ? 'aria-current="page"' : ''}>${uiIcon('home', '', 18)} <span>Beranda Karyawan</span></a>
         </li>
         <li class="sidebar-item ${state.route === '#attendance' ? 'active' : ''}">
-          <a href="#attendance" title="Absen">${uiIcon('camera', '', 18)} <span>Absen</span></a>
+          <a href="#attendance" title="Absen" ${state.route === '#attendance' ? 'aria-current="page"' : ''}>${uiIcon('camera', '', 18)} <span>Absen</span></a>
         </li>
         <li class="sidebar-item ${state.route === '#history' ? 'active' : ''}">
-          <a href="#history" title="Riwayat Absensi">${uiIcon('calendar', '', 18)} <span>Riwayat Absensi</span></a>
+          <a href="#history" title="Riwayat Absensi" ${state.route === '#history' ? 'aria-current="page"' : ''}>${uiIcon('calendar', '', 18)} <span>Riwayat Absensi</span></a>
         </li>
         <li class="sidebar-item ${state.route === '#payslips' ? 'active' : ''}">
-          <a href="#payslips" title="Slip Gaji">${uiIcon('file-text', '', 18)} <span>Slip Gaji</span></a>
+          <a href="#payslips" title="Slip Gaji" ${state.route === '#payslips' ? 'aria-current="page"' : ''}>${uiIcon('file-text', '', 18)} <span>Slip Gaji</span></a>
         </li>
         ${isMgrOrOwner ? `
         <li class="sidebar-item ${state.route === '#management' ? 'active' : ''}">
-          <a href="#management" title="Dashboard Pengelola">${uiIcon('chart', '', 18)} <span>Dashboard Pengelola</span></a>
+          <a href="#management" title="Dashboard Pengelola" ${state.route === '#management' ? 'aria-current="page"' : ''}>${uiIcon('chart', '', 18)} <span>Dashboard Pengelola</span></a>
         </li>
         ` : ''}
         <li class="sidebar-item ${state.route === '#profile' ? 'active' : ''}">
-          <a href="#profile" title="Edit Profil &amp; Password">${uiIcon('user', '', 18)} <span>Edit Profil</span></a>
+          <a href="#profile" title="Edit Profil &amp; Password" ${state.route === '#profile' ? 'aria-current="page"' : ''}>${uiIcon('user', '', 18)} <span>Edit Profil</span></a>
         </li>
       </ul>
       <div class="sidebar-footer">
@@ -401,29 +428,29 @@ function renderBottomNav() {
   const isMgrOrOwner = isManagerOrOwner(state.user);
   return `
     <nav class="bottom-nav">
-      <a href="#home" class="bottom-nav-item ${state.route === '#home' ? 'active' : ''}">
+      <a href="#home" class="bottom-nav-item ${state.route === '#home' ? 'active' : ''}" ${state.route === '#home' ? 'aria-current="page"' : ''}>
         ${uiIcon('home', '', 20)}
         <span>Beranda</span>
       </a>
-      <a href="#attendance" class="bottom-nav-item ${state.route === '#attendance' ? 'active' : ''}">
+      <a href="#attendance" class="bottom-nav-item ${state.route === '#attendance' ? 'active' : ''}" ${state.route === '#attendance' ? 'aria-current="page"' : ''}>
         ${uiIcon('camera', '', 20)}
         <span>Absen</span>
       </a>
-      <a href="#history" class="bottom-nav-item ${state.route === '#history' ? 'active' : ''}">
+      <a href="#history" class="bottom-nav-item ${state.route === '#history' ? 'active' : ''}" ${state.route === '#history' ? 'aria-current="page"' : ''}>
         ${uiIcon('calendar', '', 20)}
         <span>Riwayat</span>
       </a>
-      <a href="#payslips" class="bottom-nav-item ${state.route === '#payslips' ? 'active' : ''}">
+      <a href="#payslips" class="bottom-nav-item ${state.route === '#payslips' ? 'active' : ''}" ${state.route === '#payslips' ? 'aria-current="page"' : ''}>
         ${uiIcon('file-text', '', 20)}
         <span>Slip</span>
       </a>
       ${isMgrOrOwner ? `
-      <a href="#management" class="bottom-nav-item ${state.route === '#management' ? 'active' : ''}">
+      <a href="#management" class="bottom-nav-item ${state.route === '#management' ? 'active' : ''}" ${state.route === '#management' ? 'aria-current="page"' : ''}>
         ${uiIcon('chart', '', 20)}
         <span>Kelola</span>
       </a>
       ` : ''}
-      <a href="#profile" class="bottom-nav-item ${state.route === '#profile' ? 'active' : ''}">
+      <a href="#profile" class="bottom-nav-item ${state.route === '#profile' ? 'active' : ''}" ${state.route === '#profile' ? 'aria-current="page"' : ''}>
         ${uiIcon('user', '', 20)}
         <span>Profil</span>
       </a>
@@ -511,8 +538,8 @@ function renderHome() {
       }
       heroButtonsHtml = `
         <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
-          <div style="background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 0.82rem; color: #fff; text-align: center;">
-            ${uiIcon('check', '', 15)} Absen Masuk tercatat pukul <strong>${inTime} WIB</strong> (Tidak dapat absen masuk lagi)
+          <div class="clockin-recorded-note" style="background: var(--status-present-light, #ECFDF5); border: 1px solid var(--status-present-border, #A7F3D0); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 0.84rem; color: #065F46; font-weight: 500; text-align: center;">
+            ${uiIcon('check', '', 15)} Absen Masuk tercatat pukul <strong style="color: #064E3B;">${inTime} WIB</strong> (Tidak dapat absen masuk lagi)
           </div>
           <a href="#attendance?mode=out" class="btn-absen-hero" style="background: linear-gradient(135deg, #1E3A8A, #2563EB); box-shadow: 0 4px 14px rgba(37,99,235,0.4);">
             ${uiIcon('log-out', '', 20)}
@@ -580,31 +607,31 @@ function renderHome() {
     </div>
 
     <!-- Menu Cepat Navigasi -->
-    <div class="quick-grid">
-      <div class="quick-card" onclick="window.location.hash='#profile'" style="border-top: 3px solid var(--accent-gold);">
+    <nav class="quick-grid" aria-label="Menu Cepat Beranda">
+      <a href="#profile" class="quick-card" style="border-top: 3px solid var(--accent-gold);">
         ${uiIcon('user', '', 26)}
-        <div class="quick-label"><strong>Edit Profil</strong></div>
+        <span class="quick-label"><strong>Edit Profil</strong></span>
         <small style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Foto &amp; Password</small>
-      </div>
-      <div class="quick-card" onclick="window.location.hash='#attendance'">
+      </a>
+      <a href="#attendance" class="quick-card">
         ${uiIcon('camera', '', 26)}
-        <div class="quick-label">Absen</div>
-      </div>
-      <div class="quick-card" onclick="window.location.hash='#history'">
+        <span class="quick-label">Absen</span>
+      </a>
+      <a href="#history" class="quick-card">
         ${uiIcon('calendar', '', 26)}
-        <div class="quick-label">Riwayat Absensi</div>
-      </div>
-      <div class="quick-card" onclick="window.location.hash='#payslips'">
+        <span class="quick-label">Riwayat Absensi</span>
+      </a>
+      <a href="#payslips" class="quick-card">
         ${uiIcon('file-text', '', 26)}
-        <div class="quick-label">Slip Gaji</div>
-      </div>
+        <span class="quick-label">Slip Gaji</span>
+      </a>
       ${isManagerOrOwner(state.user) ? `
-      <div class="quick-card" onclick="window.location.hash='#management'">
+      <a href="#management" class="quick-card">
         ${uiIcon('chart', '', 26)}
-        <div class="quick-label">Dashboard Kelola</div>
-      </div>
+        <span class="quick-label">Dashboard Kelola</span>
+      </a>
       ` : ''}
-    </div>
+    </nav>
 
     <!-- Aturan Shift & Jadwal Pribadi -->
     <div class="card" style="margin-bottom: 20px;">
@@ -637,7 +664,7 @@ function renderHome() {
 
 // --- VIEW 3: PROSES ABSENSI (CAMERA & GPS & SHIFT SELECTOR) ---
 function renderAttendance() {
-  const isModeOut = window.location.hash.includes('mode=out');
+  const isModeOut = parseHashRoute(window.location.hash).params.get('mode') === 'out';
   state.attendanceMode = isModeOut ? 'out' : 'in';
   const targetBranch = state.branches.find(b => b.id === state.user.assignedBranchId) || state.branches[0] || {};
 
@@ -1330,8 +1357,53 @@ function renderManagementRecapTab() {
 }
 
 // --- VIEW 5: RIWAYAT & SLIP GAJI ---
+function getFilteredAttendanceHistory() {
+  const allItems = state.attendanceHistory || [];
+  const periodFilter = state.historyPeriodFilter || 'all';
+  const dateFilter = state.historyDateFilter || '';
+
+  const nowJakarta = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+  const y = nowJakarta.getFullYear();
+  const m = nowJakarta.getMonth() + 1;
+  const d = nowJakarta.getDate();
+
+  let cutoffStart = null;
+  let cutoffEnd = null;
+  if (periodFilter === 'current_cutoff') {
+    if (d >= 27) {
+      cutoffStart = `${y}-${String(m).padStart(2, '0')}-27`;
+      const nextM = m === 12 ? 1 : m + 1;
+      const nextY = m === 12 ? y + 1 : y;
+      cutoffEnd = `${nextY}-${String(nextM).padStart(2, '0')}-26`;
+    } else {
+      const prevM = m === 1 ? 12 : m - 1;
+      const prevY = m === 1 ? y - 1 : y;
+      cutoffStart = `${prevY}-${String(prevM).padStart(2, '0')}-27`;
+      cutoffEnd = `${y}-${String(m).padStart(2, '0')}-26`;
+    }
+  }
+
+  return allItems.filter(h => {
+    const rawDate = h.work_date ? String(h.work_date).slice(0, 10) : '';
+    if (dateFilter && rawDate !== dateFilter) return false;
+    if (periodFilter === 'current_cutoff' && rawDate) {
+      if (rawDate < cutoffStart || rawDate > cutoffEnd) return false;
+    } else if (periodFilter === '7d' && rawDate) {
+      const diffDays = (nowJakarta - new Date(rawDate + 'T00:00:00')) / 86400000;
+      if (diffDays > 7 || diffDays < -1) return false;
+    } else if (periodFilter === '30d' && rawDate) {
+      const diffDays = (nowJakarta - new Date(rawDate + 'T00:00:00')) / 86400000;
+      if (diffDays > 30 || diffDays < -1) return false;
+    }
+    return true;
+  });
+}
+
 function renderHistory() {
-  const items = state.attendanceHistory;
+  const allItems = state.attendanceHistory || [];
+  const items = getFilteredAttendanceHistory();
+  const hasFilter = Boolean(state.historyDateFilter || (state.historyPeriodFilter && state.historyPeriodFilter !== 'all'));
+
   return `
     <div class="card">
       <div class="card-header">
@@ -1341,8 +1413,38 @@ function renderHistory() {
         </div>
         <span class="badge badge-info">${escapeHtml(state.user.displayName)}</span>
       </div>
+
+      <div class="history-filter-bar" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 16px;">
+        <div style="flex: 1; min-width: 170px;">
+          <label class="form-label" for="history-period-filter" style="font-size: 0.78rem; margin-bottom: 4px;">Filter Periode</label>
+          <select id="history-period-filter" class="form-control" style="padding: 8px 10px; font-size: 0.85rem;">
+            <option value="all" ${state.historyPeriodFilter === 'all' ? 'selected' : ''}>Semua Riwayat</option>
+            <option value="current_cutoff" ${state.historyPeriodFilter === 'current_cutoff' ? 'selected' : ''}>Periode Cut-Off Berjalan (27–26)</option>
+            <option value="7d" ${state.historyPeriodFilter === '7d' ? 'selected' : ''}>7 Hari Terakhir</option>
+            <option value="30d" ${state.historyPeriodFilter === '30d' ? 'selected' : ''}>30 Hari Terakhir</option>
+          </select>
+        </div>
+        <div style="flex: 1; min-width: 160px;">
+          <label class="form-label" for="history-date-filter" style="font-size: 0.78rem; margin-bottom: 4px;">Filter Tanggal Spesifik</label>
+          <input type="date" id="history-date-filter" class="form-control" value="${escapeHtml(state.historyDateFilter || '')}" style="padding: 7px 10px; font-size: 0.85rem;">
+        </div>
+        ${hasFilter ? `
+        <div>
+          <button type="button" id="btn-reset-history-filter" class="btn btn-secondary" style="padding: 8px 12px; font-size: 0.82rem;">Reset Filter</button>
+        </div>
+        ` : ''}
+      </div>
+
       ${items.length === 0 ? `
-        <p class="cell-empty">Belum ada riwayat absensi.</p>
+        <div class="cell-empty" id="history-empty-state" style="padding: 28px 16px; text-align: center;">
+          <p style="font-weight: 700; color: var(--text-main); margin-bottom: 6px;">
+            ${allItems.length === 0 ? 'Belum ada riwayat absensi.' : 'Tidak ada riwayat absensi untuk tanggal atau periode yang dipilih.'}
+          </p>
+          ${hasFilter ? `
+            <p style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 12px;">Coba pilih periode lain atau reset filter untuk melihat seluruh data.</p>
+            <button type="button" id="btn-empty-reset-history" class="btn btn-secondary" style="font-size: 0.82rem;">Tampilkan Semua Riwayat</button>
+          ` : ''}
+        </div>
       ` : `
       <!-- Ponsel: daftar ringkas -->
       <ul class="history-list mobile-only">
@@ -1572,7 +1674,7 @@ function renderProfile() {
               <label class="form-label" for="profile-input-current-password" style="font-size: 0.85rem; font-weight: 600;">Password Saat Ini:</label>
               <div style="position: relative;">
                 <input type="password" id="profile-input-current-password" class="form-control" placeholder="Masukkan password saat ini" required autocomplete="current-password">
-                <button type="button" id="btn-peek-profile-current" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center;" title="Lihat/Sembunyikan">${uiIcon('eye', '', 16)}</button>
+                <button type="button" id="btn-peek-profile-current" aria-label="Tampilkan atau sembunyikan kata sandi" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-width: 36px; min-height: 36px; width: 36px; height: 36px; padding: 0; background: none; border: none; border-radius: var(--radius-xs); cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center;" title="Lihat/Sembunyikan">${uiIcon('eye', '', 16)}</button>
               </div>
             </div>
 
@@ -1580,7 +1682,7 @@ function renderProfile() {
               <label class="form-label" for="profile-input-new-password" style="font-size: 0.85rem; font-weight: 600;">Password Baru (Min 6 Karakter):</label>
               <div style="position: relative;">
                 <input type="password" id="profile-input-new-password" class="form-control" placeholder="Minimal 6 karakter" required minlength="6" autocomplete="new-password">
-                <button type="button" id="btn-peek-profile-new" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center;" title="Lihat/Sembunyikan">${uiIcon('eye', '', 16)}</button>
+                <button type="button" id="btn-peek-profile-new" aria-label="Tampilkan atau sembunyikan kata sandi" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-width: 36px; min-height: 36px; width: 36px; height: 36px; padding: 0; background: none; border: none; border-radius: var(--radius-xs); cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center;" title="Lihat/Sembunyikan">${uiIcon('eye', '', 16)}</button>
               </div>
             </div>
 
@@ -1588,7 +1690,7 @@ function renderProfile() {
               <label class="form-label" for="profile-input-confirm-password" style="font-size: 0.85rem; font-weight: 600;">Konfirmasi Password Baru:</label>
               <div style="position: relative;">
                 <input type="password" id="profile-input-confirm-password" class="form-control" placeholder="Ketik ulang password baru" required minlength="6" autocomplete="new-password">
-                <button type="button" id="btn-peek-profile-confirm" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center;" title="Lihat/Sembunyikan">${uiIcon('eye', '', 16)}</button>
+                <button type="button" id="btn-peek-profile-confirm" aria-label="Tampilkan atau sembunyikan kata sandi" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-width: 36px; min-height: 36px; width: 36px; height: 36px; padding: 0; background: none; border: none; border-radius: var(--radius-xs); cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center;" title="Lihat/Sembunyikan">${uiIcon('eye', '', 16)}</button>
               </div>
             </div>
 
@@ -1720,9 +1822,38 @@ function attachShellEvents() {
   if (btnHeroProfile) btnHeroProfile.addEventListener('click', openProfileActions);
 }
 
+function initHistoryView() {
+  const periodEl = document.getElementById('history-period-filter');
+  const dateEl = document.getElementById('history-date-filter');
+  const resetBtn = document.getElementById('btn-reset-history-filter');
+  const emptyResetBtn = document.getElementById('btn-empty-reset-history');
+
+  if (periodEl) {
+    periodEl.addEventListener('change', (e) => {
+      state.historyPeriodFilter = e.target.value;
+      render();
+    });
+  }
+  if (dateEl) {
+    dateEl.addEventListener('change', (e) => {
+      state.historyDateFilter = e.target.value;
+      render();
+    });
+  }
+  const doReset = () => {
+    state.historyPeriodFilter = 'all';
+    state.historyDateFilter = '';
+    render();
+  };
+  if (resetBtn) resetBtn.addEventListener('click', doReset);
+  if (emptyResetBtn) emptyResetBtn.addEventListener('click', doReset);
+}
+
 function attachViewEvents() {
   if (state.route === '#attendance') {
     initAttendanceView();
+  } else if (state.route === '#history') {
+    initHistoryView();
   } else if (state.route === '#management') {
     initManagementView();
   } else if (state.route === '#payslips') {
@@ -1937,8 +2068,28 @@ function initAttendanceView() {
     }
   };
 
-  if (tabIn) tabIn.addEventListener('click', () => setAttendanceMode('in'));
-  if (tabOut) tabOut.addEventListener('click', () => setAttendanceMode('out'));
+  const todayEventsCheck = (state.todaySession && state.todaySession.events) || [];
+  const hasCheckedInToday = todayEventsCheck.some(e => e.event_type === 'check_in');
+  const hasCheckedOutToday = todayEventsCheck.some(e => e.event_type === 'check_out');
+
+  if (tabIn) {
+    tabIn.addEventListener('click', () => {
+      if (hasCheckedInToday) {
+        window.location.hash = '#attendance?mode=in';
+        return;
+      }
+      setAttendanceMode('in');
+    });
+  }
+  if (tabOut) {
+    tabOut.addEventListener('click', () => {
+      if (hasCheckedOutToday) {
+        window.location.hash = '#attendance?mode=out';
+        return;
+      }
+      setAttendanceMode('out');
+    });
+  }
 
   // Toggle Type Kehadiran
   if (btnTypeHadir && btnTypeKunjungan) {
@@ -3214,28 +3365,73 @@ async function loadMyPayslips() {
       return;
     }
 
+    const isTestSlip = (ps) => /\b(tes|test|uji)\b/i.test(ps.slip_notes || '');
+    const slipsByPeriod = {};
+    state.myPayslips.forEach(ps => {
+      const key = ps.period_label || 'Periode Payroll';
+      if (!slipsByPeriod[key]) slipsByPeriod[key] = [];
+      slipsByPeriod[key].push(ps);
+    });
+
+    const latestOfficialByPeriod = {};
+    Object.entries(slipsByPeriod).forEach(([key, list]) => {
+      const officialList = list.filter(p => !isTestSlip(p) && p.pdf_path);
+      if (officialList.length > 0) {
+        officialList.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
+        latestOfficialByPeriod[key] = officialList[0].payslip_id;
+      }
+    });
+
+    const hasMultipleInAnyPeriod = Object.values(slipsByPeriod).some(list => list.length > 1);
+
     container.innerHTML = `
+      ${hasMultipleInAnyPeriod ? `
+        <div style="background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 0.83rem; margin-bottom: 14px;">
+          ${uiIcon('info', '', 15)} Terdapat lebih dari satu unggahan pada periode tertentu. Gunakan slip berlabel <strong>Resmi • Berlaku</strong> sebagai acuan utama; catatan uji/revisi tetap disimpan sebagai arsip.
+        </div>
+      ` : ''}
       <div style="display: flex; flex-direction: column; gap: 14px;">
         ${state.myPayslips.map(ps => {
           const hasPdf = !!ps.pdf_path;
+          const periodKey = ps.period_label || 'Periode Payroll';
+          const periodCount = (slipsByPeriod[periodKey] || []).length;
+          const testFlag = isTestSlip(ps);
+          const isLatestOfficial = latestOfficialByPeriod[periodKey] === ps.payslip_id;
+
+          let statusBadgeHtml = '';
+          let guidanceNote = '';
+          if (testFlag) {
+            statusBadgeHtml = `<span class="badge badge-warning">${uiIcon('alert-circle', '', 12)} Catatan Uji / Tes</span>`;
+            guidanceNote = latestOfficialByPeriod[periodKey]
+              ? 'Berkas bertanda catatan tes. Silakan unduh slip <strong>Resmi • Berlaku</strong> untuk periode ini.'
+              : 'Berkas bertanda catatan tes (menunggu konfirmasi pengelola payroll).';
+          } else if (isLatestOfficial) {
+            statusBadgeHtml = `<span class="badge badge-success">${uiIcon('check-circle', '', 12)} Resmi • Berlaku</span>`;
+          } else if (periodCount > 1 && hasPdf) {
+            statusBadgeHtml = `<span class="badge badge-secondary" style="background:#F1F5F9; color:#475569;">${uiIcon('clock', '', 12)} Versi Sebelumnya / Revisi</span>`;
+            guidanceNote = 'Terdapat unggahan resmi yang lebih baru untuk periode ini.';
+          }
+
           return `
-            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 18px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; box-shadow: var(--shadow-xs);">
+            <div style="background: var(--bg-card); border: 1px solid ${isLatestOfficial && periodCount > 1 ? 'var(--status-present-border, #A7F3D0)' : 'var(--border-color)'}; border-radius: var(--radius-md); padding: 18px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; box-shadow: var(--shadow-xs);">
               <div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px;">
                   <span class="badge ${hasPdf ? 'badge-success' : 'badge-warning'}">
                     ${hasPdf ? `${uiIcon('file-text', '', 12)} Berkas PDF Tersedia` : `${uiIcon('alert-circle', '', 12)} Menunggu Berkas PDF Pengelola`}
                   </span>
+                  ${statusBadgeHtml}
                 </div>
                 <h4 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin: 0 0 4px 0;">
-                  ${escapeHtml(ps.period_label || 'Periode Payroll')}
+                  ${escapeHtml(periodKey)}
                 </h4>
                 <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
                   Tanggal Terbit: ${new Date(ps.published_at).toLocaleDateString('id-ID')} ${ps.slip_notes ? '• ' + escapeHtml(ps.slip_notes) : ''}
                 </p>
+                ${guidanceNote ? `<p style="font-size: 0.78rem; color: #92400E; margin: 4px 0 0 0;">${guidanceNote}</p>` : ''}
               </div>
               <div>
                 ${hasPdf ? `
-                  <a href="/api/v1/payroll/slips/${ps.payslip_id}/download" target="_blank" class="btn btn-primary" style="font-size: 0.88rem; font-weight: 700; padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px;">
+                  <a href="/api/v1/payroll/slips/${ps.payslip_id}/download" target="_blank" class="btn ${testFlag || (periodCount > 1 && !isLatestOfficial) ? 'btn-secondary' : 'btn-primary'}" style="font-size: 0.88rem; font-weight: 700; padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px;">
                     ${uiIcon('download', '', 16)} Unduh Slip Gaji (PDF)
                   </a>
                 ` : `
