@@ -2379,8 +2379,8 @@ body {
     font-weight: 800 !important;
   }
 
-  .main-content {
-    padding-bottom: 92px !important;
+  .app-main .content-container {
+    padding-bottom: 96px !important;
   }
 }
 
@@ -2484,25 +2484,25 @@ body {
 
 /* Desktop 2-Column Staff Bento Layout on #home */
 @media (min-width: 960px) {
-  .main-content .page-container:has(.sa-clock-dial-card) {
+  .app-main main.content-container:has(.sa-clock-dial-card) {
     display: grid;
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
     gap: 20px;
     align-items: start;
   }
-  .main-content .page-container:has(.sa-clock-dial-card) > .employee-hero-card {
+  .app-main main.content-container:has(.sa-clock-dial-card) > .employee-hero-card {
     grid-column: 1 / -1;
     margin-bottom: 0;
   }
-  .main-content .page-container:has(.sa-clock-dial-card) > .sa-clock-dial-card {
+  .app-main main.content-container:has(.sa-clock-dial-card) > .sa-clock-dial-card {
     grid-column: 1;
     margin-bottom: 0;
   }
-  .main-content .page-container:has(.sa-clock-dial-card) > .quick-grid {
+  .app-main main.content-container:has(.sa-clock-dial-card) > .quick-grid {
     grid-column: 2;
     margin-bottom: 0;
   }
-  .main-content .page-container:has(.sa-clock-dial-card) > .card {
+  .app-main main.content-container:has(.sa-clock-dial-card) > .card {
     grid-column: 2;
   }
 }
