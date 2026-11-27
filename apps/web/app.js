@@ -701,6 +701,66 @@ function renderHome() {
       </div>
     </div>
 
+    ${isManagerOrOwner(state.user) ? `
+    <!-- Ringkasan Pengelola di Halaman Depan -->
+    <section class="sa-home-mgmt-section" aria-label="Ringkasan Pengelola Hari Ini">
+      <div class="sa-home-mgmt-head">
+        <div>
+          <span class="badge badge-test" style="margin-bottom: 4px;">${uiIcon('shield', '', 12)} RINGKASAN PENGELOLA</span>
+          <h3 class="sa-home-mgmt-title">Pantauan Tim Hari Ini</h3>
+        </div>
+        <a href="#management" class="btn btn-primary btn-sm" style="white-space: nowrap;">
+          ${uiIcon('chart', '', 15)} Buka Dashboard Pengelola →
+        </a>
+      </div>
+
+      <div class="sa-home-mgmt-kpis">
+        <div class="sa-home-kpi-card">
+          <div class="sa-home-kpi-lbl">Total Staf &amp; Crew</div>
+          <div class="sa-home-kpi-val" id="home-mgmt-total">-</div>
+          <div class="sa-home-kpi-sub">${state.branches.length} Cabang Aktif</div>
+        </div>
+        <div class="sa-home-kpi-card">
+          <div class="sa-home-kpi-lbl">Hadir di Toko</div>
+          <div class="sa-home-kpi-val" id="home-mgmt-hadir">-</div>
+          <div class="sa-home-kpi-sub"><span class="badge badge-success" id="home-mgmt-pct">0% Hadir</span></div>
+        </div>
+        <div class="sa-home-kpi-card">
+          <div class="sa-home-kpi-lbl">Kunjungan Luar</div>
+          <div class="sa-home-kpi-val" id="home-mgmt-kunjungan">-</div>
+          <div class="sa-home-kpi-sub">Tugas Lapangan</div>
+        </div>
+        <div class="sa-home-kpi-card">
+          <div class="sa-home-kpi-lbl">Libur / Belum Absen</div>
+          <div class="sa-home-kpi-val" id="home-mgmt-libur">-</div>
+          <div class="sa-home-kpi-sub" id="home-mgmt-libur-sub">Hari Ini</div>
+        </div>
+      </div>
+
+      <div class="sa-home-mgmt-grid">
+        <div class="card sa-bento-list-card">
+          <div class="card-header" style="margin-bottom: 10px;">
+            <h3 class="card-title">${uiIcon('users', '', 17)} Aktivitas Absen Staf Hari Ini</h3>
+            <a href="#management" style="font-size: 0.78rem; font-weight: 700; color: var(--primary-red); text-decoration: none;">Detail →</a>
+          </div>
+          <div id="home-mgmt-live-list" class="sa-recent-list">
+            <div style="font-size: 0.82rem; color: var(--text-muted);">Memuat pantauan staf...</div>
+          </div>
+        </div>
+
+        <div class="card sa-bento-list-card">
+          <div class="card-header" style="margin-bottom: 10px;">
+            <h3 class="card-title">${uiIcon('bar-chart-2', '', 17)} Kehadiran per Cabang</h3>
+          </div>
+          <div id="home-mgmt-branch-chart">
+            <div style="font-size: 0.82rem; color: var(--text-muted);">Memuat ringkasan cabang...</div>
+          </div>
+          <div id="home-mgmt-dayoff-list" class="sa-mgmt-dayoff-box"></div>
+        </div>
+      </div>
+    </section>
+    ` : ''}
+
     <!-- Aturan Shift & Jadwal Pribadi -->
     <div class="card" style="margin-bottom: 20px;">
       <div class="card-header">
@@ -979,48 +1039,64 @@ function renderDynamicDayOffRules(employees = []) {
 
 // --- VIEW 4: DASHBOARD OWNER & MANAGER ---
 function renderManagement() {
+  const todayIndoDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const roleLabel = state.user.isOwner ? 'Owner' : 'Manager';
+
   return `
     <div style="margin-bottom: 20px;">
-      <div class="mgmt-header">
+      <!-- Topbar Bento Pengelola -->
+      <div class="sa-desktop-topbar sa-mgmt-topbar">
         <div>
-          <span class="badge badge-test">${uiIcon('shield', '', 12)} PENGELOLA SULTAN ARAB</span>
-          <h2 class="mgmt-title">Dashboard Pengelola</h2>
-          <p class="mgmt-subtitle">Khusus Owner dan Manager Sultan Arab.</p>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span class="badge badge-test">${uiIcon('shield', '', 12)} ${escapeHtml(roleLabel.toUpperCase())} SULTAN ARAB</span>
+          </div>
+          <h2 class="sa-desktop-greet">Assalamu’alaikum, ${escapeHtml(state.user.displayName)}</h2>
+          <p class="sa-desktop-date">${escapeHtml(todayIndoDate)} • Pusat Kontrol Kehadiran &amp; Payroll</p>
         </div>
-        <button id="btn-refresh-monitoring" class="btn btn-secondary btn-refresh-mgmt" title="Muat ulang data">
-          ${uiIcon('refresh', '', 16)} <span>Muat Ulang</span>
-        </button>
+        <div class="sa-mgmt-topbar-actions">
+          <div class="sa-mgmt-search-wrap">
+            ${uiIcon('search', '', 15)}
+            <input type="search" id="mgmt-quick-search" class="sa-mgmt-search-input" placeholder="Cari nama atau cabang..." autocomplete="off">
+          </div>
+          <button id="btn-refresh-monitoring" class="btn btn-secondary btn-refresh-mgmt" title="Muat ulang data">
+            ${uiIcon('refresh', '', 16)} <span>Muat Ulang</span>
+          </button>
+        </div>
       </div>
 
-      <!-- KPI Summary Cards -->
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-red">${uiIcon('building', '', 20)}</div>
-          <div>
-            <div class="kpi-value" id="kpi-total-cabang">${state.branches.length}</div>
-            <div class="kpi-label">Cabang Toko</div>
+      <!-- KPI Summary Cards (Bento Style) -->
+      <div class="sa-mgmt-kpi-row">
+        <div class="sa-mgmt-kpi-card">
+          <div class="sa-home-kpi-lbl">Total Karyawan</div>
+          <div class="sa-mgmt-kpi-main">
+            <span class="sa-mgmt-kpi-val" id="kpi-total-karyawan">-</span>
+            <span class="badge badge-success">Aktif</span>
           </div>
+          <button type="button" class="sa-kpi-jump-link" data-jump-tab="master">Lihat Detail ›</button>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-gold">${uiIcon('users', '', 20)}</div>
-          <div>
-            <div class="kpi-value" id="kpi-total-karyawan">-</div>
-            <div class="kpi-label">Total Staf &amp; Crew</div>
+        <div class="sa-mgmt-kpi-card">
+          <div class="sa-home-kpi-lbl">Hadir di Toko</div>
+          <div class="sa-mgmt-kpi-main">
+            <span class="sa-mgmt-kpi-val" id="kpi-total-hadir">-</span>
+            <span class="badge badge-success" id="kpi-hadir-pct">0%</span>
           </div>
+          <button type="button" class="sa-kpi-jump-link" data-jump-tab="recap">Rekap Bulanan ›</button>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-green">${uiIcon('check-circle', '', 20)}</div>
-          <div>
-            <div class="kpi-value" id="kpi-total-hadir">-</div>
-            <div class="kpi-label">Hadir di Toko</div>
+        <div class="sa-mgmt-kpi-card">
+          <div class="sa-home-kpi-lbl">Kunjungan Luar</div>
+          <div class="sa-mgmt-kpi-main">
+            <span class="sa-mgmt-kpi-val" id="kpi-kunjungan-luar">-</span>
+            <span class="badge badge-warning">Lapangan</span>
           </div>
+          <button type="button" class="sa-kpi-jump-link" data-jump-tab="payroll">Slip Gaji ›</button>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-blue">${uiIcon('car', '', 20)}</div>
-          <div>
-            <div class="kpi-value" id="kpi-kunjungan-luar">-</div>
-            <div class="kpi-label">Kunjungan Luar</div>
+        <div class="sa-mgmt-kpi-card">
+          <div class="sa-home-kpi-lbl">Cabang Toko</div>
+          <div class="sa-mgmt-kpi-main">
+            <span class="sa-mgmt-kpi-val" id="kpi-total-cabang">${state.branches.length}</span>
+            <span class="badge badge-info">Operasional</span>
           </div>
+          <button type="button" class="sa-kpi-jump-link" data-jump-tab="schedules">Jadwal &amp; Libur ›</button>
         </div>
       </div>
 
@@ -1058,8 +1134,8 @@ function renderManagementTabContent() {
           <div class="card">
             <div class="card-header">
               <div>
-                <h3 class="card-title">${uiIcon('map-pin', '', 18)} Monitoring Absensi Hari Ini</h3>
-                <p class="card-subtitle">Pemantauan real-time status check-in staf seluruh cabang toko.</p>
+                <h3 class="card-title">${uiIcon('map-pin', '', 18)} Kehadiran Hari Ini</h3>
+                <p class="card-subtitle" id="mgmt-summary-strip">Memuat ringkasan kehadiran seluruh cabang...</p>
               </div>
               <span class="badge badge-info">Semua Cabang</span>
             </div>
@@ -1084,15 +1160,29 @@ function renderManagementTabContent() {
             </table>
           </div>
         </div>
-        <div class="card sa-branch-chart-card">
-          <div class="card-header">
-            <div>
-              <h3 class="card-title">${uiIcon('bar-chart-2', '', 18)} Ringkasan Cabang</h3>
-              <p class="card-subtitle">Distribusi kehadiran staf hari ini per cabang.</p>
+        <div class="sa-mgmt-side-col">
+          <div class="card sa-branch-chart-card">
+            <div class="card-header" style="margin-bottom: 8px;">
+              <div>
+                <h3 class="card-title">${uiIcon('bar-chart-2', '', 18)} Ringkasan Cabang</h3>
+                <p class="card-subtitle" id="mgmt-branch-total-sub">Distribusi check-in hari ini</p>
+              </div>
+            </div>
+            <div id="mgmt-branch-chart">
+              <div style="font-size: 0.82rem; color: var(--text-muted);">Memuat grafik cabang...</div>
             </div>
           </div>
-          <div id="mgmt-branch-chart">
-            <div style="font-size: 0.82rem; color: var(--text-muted);">Memuat grafik cabang...</div>
+          <div class="card sa-branch-chart-card">
+            <div class="card-header" style="margin-bottom: 8px;">
+              <div>
+                <h3 class="card-title">${uiIcon('calendar', '', 18)} Jadwal &amp; Libur Hari Ini</h3>
+                <p class="card-subtitle">Staf libur rutin &amp; status masuk</p>
+              </div>
+              <button type="button" class="sa-kpi-jump-link" data-jump-tab="schedules">Atur ›</button>
+            </div>
+            <div id="mgmt-today-dayoff">
+              <div style="font-size: 0.82rem; color: var(--text-muted);">Memuat daftar libur...</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1930,6 +2020,30 @@ function initHistoryView() {
   if (emptyResetBtn) emptyResetBtn.addEventListener('click', doReset);
 }
 
+function renderBranchBarsHtml(records) {
+  const counts = {};
+  (records || []).forEach(r => {
+    const b = r.branch_name || 'Kantor Pusat';
+    counts[b] = (counts[b] || 0) + (r.check_in_time ? 1 : 0);
+  });
+  const entries = Object.entries(counts);
+  if (entries.length === 0) {
+    return '<div style="font-size:0.82rem; color:var(--text-muted);">Belum ada data cabang.</div>';
+  }
+  const maxVal = Math.max(1, ...entries.map(([, v]) => v));
+  const palette = ['#870000', '#FEAF0D', '#B45309', '#BF360C'];
+  return `<div class="sa-branch-bars">${entries.map(([name, val], i) => {
+    const pct = val === 0 ? 6 : Math.max(18, Math.round((val / maxVal) * 100));
+    return `<div class="sa-branch-bar-col">
+      <div class="sa-branch-bar-num">${val}</div>
+      <div class="sa-branch-bar-track">
+        <div class="sa-branch-bar-fill" style="height:${pct}%; background:${palette[i % palette.length]};"></div>
+      </div>
+      <div class="sa-branch-bar-label">${escapeHtml(name)}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
 async function loadHomeBentoWidgets() {
   const history = Array.isArray(state.attendanceHistory) ? state.attendanceHistory : [];
   const hadirEl = document.getElementById('home-kpi-hadir');
@@ -1989,6 +2103,66 @@ async function loadHomeBentoWidgets() {
       }
     } catch {
       payslipEl.innerHTML = `<div style="font-size: 0.82rem; color: var(--text-muted);">Gagal memuat slip gaji.</div>`;
+    }
+  }
+
+  // Ringkasan Pengelola di Halaman Depan (khusus Owner & Manager)
+  const mgmtTotalEl = document.getElementById('home-mgmt-total');
+  if (mgmtTotalEl && isManagerOrOwner(state.user)) {
+    try {
+      const mRes = await api('/api/v1/attendance/monitoring');
+      if (mRes.ok && mRes.data && Array.isArray(mRes.data.records)) {
+        const records = mRes.data.records;
+        const summary = mRes.data.summary || {};
+        const total = summary.totalKaryawan || records.length || 0;
+        const hadir = summary.hadir || 0;
+        const kunjungan = summary.kunjunganLuar || 0;
+        const dayOffList = records.filter(r => r.is_day_off);
+        const notCheckedIn = records.filter(r => !r.check_in_time && !r.is_day_off);
+        const pct = total > 0 ? Math.round(((hadir + kunjungan) / total) * 100) : 0;
+
+        mgmtTotalEl.textContent = total;
+        const hEl = document.getElementById('home-mgmt-hadir');
+        const pEl = document.getElementById('home-mgmt-pct');
+        const kEl = document.getElementById('home-mgmt-kunjungan');
+        const lEl = document.getElementById('home-mgmt-libur');
+        const lSubEl = document.getElementById('home-mgmt-libur-sub');
+        if (hEl) hEl.textContent = hadir;
+        if (pEl) pEl.textContent = `${pct}% Aktif`;
+        if (kEl) kEl.textContent = kunjungan;
+        if (lEl) lEl.textContent = `${dayOffList.length} / ${notCheckedIn.length}`;
+        if (lSubEl) lSubEl.textContent = `${dayOffList.length} Libur • ${notCheckedIn.length} Belum Absen`;
+
+        const liveListEl = document.getElementById('home-mgmt-live-list');
+        if (liveListEl) {
+          const activeRecs = records.filter(r => r.check_in_time).slice(0, 5);
+          liveListEl.innerHTML = activeRecs.length === 0
+            ? `<div style="font-size: 0.82rem; color: var(--text-muted);">Belum ada staf yang check-in hari ini.</div>`
+            : activeRecs.map(r => {
+                const inStr = new Date(r.check_in_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                const isLate = r.session_status === 'late';
+                const dotColor = isLate ? '#BF360C' : '#B45309';
+                return `
+                  <div class="sa-recent-row">
+                    <span class="sa-recent-dot" style="background:${dotColor};"></span>
+                    <span class="sa-recent-text"><strong>${escapeHtml(r.employee_name)}</strong> (${escapeHtml(r.branch_name || '-')}) — ${r.attendance_type === 'kunjungan_luar' ? 'Kunjungan' : 'Masuk'} ${escapeHtml(inStr)}</span>
+                  </div>
+                `;
+              }).join('');
+        }
+
+        const bChartEl = document.getElementById('home-mgmt-branch-chart');
+        if (bChartEl) bChartEl.innerHTML = renderBranchBarsHtml(records);
+
+        const dayOffBox = document.getElementById('home-mgmt-dayoff-list');
+        if (dayOffBox) {
+          dayOffBox.innerHTML = dayOffList.length === 0
+            ? `<strong>Libur Hari Ini:</strong> Tidak ada staf libur rutin.`
+            : `<strong>Libur Hari Ini:</strong> ${dayOffList.map(d => escapeHtml(d.employee_name)).join(', ')}`;
+        }
+      }
+    } catch {
+      // Abaikan diam-diam jika jaringan bermasalah
     }
   }
 }
@@ -2550,6 +2724,24 @@ async function initManagementView() {
     });
   });
 
+  document.querySelectorAll('[data-jump-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.activeManagementTab = btn.dataset.jumpTab;
+      render();
+    });
+  });
+
+  const searchInput = document.getElementById('mgmt-quick-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.trim().toLowerCase();
+      document.querySelectorAll('#monitoring-table-body tr').forEach(tr => {
+        if (tr.querySelector('.cell-empty')) return;
+        tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+  }
+
   const btnRefresh = document.getElementById('btn-refresh-monitoring');
   if (btnRefresh) {
     btnRefresh.addEventListener('click', () => {
@@ -2575,36 +2767,52 @@ async function initManagementView() {
 async function loadMonitoringData() {
   const res = await api('/api/v1/attendance/monitoring');
   if (res.ok && res.data.records) {
+    const records = res.data.records;
     const summary = res.data.summary || {};
     const kpiKaryawan = document.getElementById('kpi-total-karyawan');
     const kpiHadir = document.getElementById('kpi-total-hadir');
+    const kpiHadirPct = document.getElementById('kpi-hadir-pct');
     const kpiKunjungan = document.getElementById('kpi-kunjungan-luar');
 
-    if (kpiKaryawan) kpiKaryawan.textContent = summary.totalKaryawan || 0;
-    if (kpiHadir) kpiHadir.textContent = summary.hadir || 0;
-    if (kpiKunjungan) kpiKunjungan.textContent = summary.kunjunganLuar || 0;
+    const total = summary.totalKaryawan || records.length || 0;
+    const hadir = summary.hadir || 0;
+    const kunjungan = summary.kunjunganLuar || 0;
+    const pct = total > 0 ? Math.round(((hadir + kunjungan) / total) * 100) : 0;
 
-    // Render Ringkasan Cabang bar chart if container exists
+    if (kpiKaryawan) kpiKaryawan.textContent = total;
+    if (kpiHadir) kpiHadir.textContent = hadir;
+    if (kpiHadirPct) kpiHadirPct.textContent = `${pct}%`;
+    if (kpiKunjungan) kpiKunjungan.textContent = kunjungan;
+
+    const stripEl = document.getElementById('mgmt-summary-strip');
+    if (stripEl) {
+      const tepatWaktu = records.filter(r => r.check_in_time && r.session_status !== 'late').length;
+      const terlambat = records.filter(r => r.check_in_time && r.session_status === 'late').length;
+      const liburCount = records.filter(r => r.is_day_off).length;
+      stripEl.innerHTML = `<strong>${tepatWaktu}</strong> Tepat Waktu &nbsp;|&nbsp; <strong>${terlambat}</strong> Terlambat &nbsp;|&nbsp; <strong>${liburCount}</strong> Libur Rutin`;
+    }
+
     const branchChartEl = document.getElementById('mgmt-branch-chart');
     if (branchChartEl) {
-      const counts = {};
-      res.data.records.forEach(r => {
-        const b = r.branch_name || 'Kantor Pusat';
-        counts[b] = (counts[b] || 0) + (r.check_in_time ? 1 : 0);
-      });
-      const entries = Object.entries(counts);
-      const maxVal = Math.max(1, ...entries.map(([, v]) => v));
-      const palette = ['#870000', '#FEAF0D', '#B45309', '#BF360C'];
-      branchChartEl.innerHTML = entries.length === 0
-        ? '<div style="font-size:0.82rem; color:var(--text-muted);">Belum ada data cabang.</div>'
-        : `<div class="sa-branch-bars">${entries.map(([name, val], i) => {
-            const pct = Math.max(18, Math.round((val / maxVal) * 100));
-            return `<div class="sa-branch-bar-col">
-              <div class="sa-branch-bar-num">${val}</div>
-              <div class="sa-branch-bar" style="height:${pct}%; background:${palette[i % palette.length]};"></div>
-              <div class="sa-branch-bar-lbl">${escapeHtml(name)}</div>
-            </div>`;
-          }).join('')}</div>`;
+      branchChartEl.innerHTML = renderBranchBarsHtml(records);
+    }
+
+    const branchSubEl = document.getElementById('mgmt-branch-total-sub');
+    if (branchSubEl) {
+      branchSubEl.textContent = `Total Aktif ${total} Staf`;
+    }
+
+    const dayOffEl = document.getElementById('mgmt-today-dayoff');
+    if (dayOffEl) {
+      const dayOffs = records.filter(r => r.is_day_off);
+      dayOffEl.innerHTML = dayOffs.length === 0
+        ? `<div style="font-size:0.82rem; color:var(--text-muted);">Semua staf dijadwalkan masuk hari ini.</div>`
+        : dayOffs.map(r => `
+            <div class="sa-mgmt-dayoff-item">
+              <span><strong>${escapeHtml(r.employee_name)}</strong> (${escapeHtml(r.branch_name || '-')})</span>
+              <span class="badge badge-warning">Libur ${escapeHtml(r.day_off || 'Rutin')}</span>
+            </div>
+          `).join('');
     }
 
     const tbody = document.getElementById('monitoring-table-body');

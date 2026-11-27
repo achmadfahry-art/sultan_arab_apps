@@ -2690,14 +2690,22 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sa-branch-bar-num {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text-main);
 }
 
 .sa-branch-bar-track {
   width: 100%;
-  max-width: 56px;
-  height: 150px;
+  max-width: 54px;
+  height: 140px;
   background: #FAF7F0;
+  border: 1px solid #EFE5CC;
   border-radius: 12px;
   display: flex;
   align-items: flex-end;
@@ -2706,15 +2714,162 @@ body {
 
 .sa-branch-bar-fill {
   width: 100%;
-  border-radius: 12px 12px 0 0;
+  border-radius: 10px 10px 0 0;
   transition: height 0.3s ease;
 }
 
 .sa-branch-bar-label {
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 700;
   color: var(--text-main);
   text-align: center;
+  word-break: break-word;
+}
+
+/* Home Manager Section */
+.sa-home-mgmt-section {
+  margin: 22px 0 20px;
+  padding: 18px;
+  background: #FFFBF2;
+  border: 1px solid #E2CFA3;
+  border-radius: 20px;
+}
+
+.sa-home-mgmt-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.sa-home-mgmt-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.sa-home-mgmt-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sa-home-mgmt-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.sa-mgmt-dayoff-box {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #EFE5CC;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Redesigned Management Dashboard */
+.sa-mgmt-topbar {
+  flex-wrap: wrap;
+}
+
+.sa-mgmt-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sa-mgmt-search-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFFFFF;
+  border: 1px solid #E2CFA3;
+  border-radius: 12px;
+  padding: 0 12px;
+  height: 40px;
+  min-width: 220px;
+  color: var(--text-muted);
+}
+
+.sa-mgmt-search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  width: 100%;
+}
+
+.sa-mgmt-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.sa-mgmt-kpi-card {
+  background: #FFFFFF;
+  border: 1px solid #E2CFA3;
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 16px rgba(135, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sa-mgmt-kpi-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sa-mgmt-kpi-val {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.1;
+}
+
+.sa-kpi-jump-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #870000;
+  cursor: pointer;
+  text-align: left;
+  width: fit-content;
+}
+
+.sa-kpi-jump-link:hover {
+  text-decoration: underline;
+}
+
+.sa-mgmt-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sa-mgmt-dayoff-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #FAF7F0;
+  border: 1px solid #EFE5CC;
+  font-size: 0.8rem;
+  margin-bottom: 6px;
 }
 
 @media (min-width: 960px) {
@@ -2734,7 +2889,17 @@ body {
     grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
     align-items: start;
   }
+  .sa-home-mgmt-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .sa-home-mgmt-grid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    align-items: start;
+  }
+  .sa-mgmt-kpi-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
   .sa-mgmt-bento-grid {
-    grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.75fr);
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 0.75fr);
   }
 }
