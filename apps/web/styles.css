@@ -2483,8 +2483,145 @@ body {
 }
 
 /* ========================================================
-   SULTAN ARAB BENTO MOCKUP PARITY (v1.6.0)
+   READABILITY, CONTRAST & TYPOGRAPHY POLISH (v1.6.3)
    ======================================================== */
+:root {
+  --text-main: #111827;
+  --text-body: #1F2937;
+  --text-muted: #4B5563;
+  --text-light: #6B7280;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  line-height: 1.6;
+  color: var(--text-body);
+}
+
+.card-subtitle,
+.mgmt-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Higher-contrast semantic badges (WCAG AA >= 4.5:1) */
+.badge {
+  font-size: 0.78rem;
+  padding: 4px 11px;
+  line-height: 1.45;
+}
+
+.badge-warning {
+  background-color: #FFFBEB !important;
+  color: #92400E !important;
+  border-color: #FCD34D !important;
+}
+
+.badge-danger {
+  background-color: #FEF2F2 !important;
+  color: #991B1B !important;
+  border-color: #FCA5A5 !important;
+}
+
+.badge-info {
+  background-color: #EFF6FF !important;
+  color: #1E40AF !important;
+  border-color: #BFDBFE !important;
+}
+
+/* Warm, legible data tables */
+.table {
+  font-size: 0.9rem;
+}
+
+.table th {
+  background-color: #FAF7F0;
+  color: #4B5563;
+  font-size: 0.78rem;
+  padding: 13px 14px;
+}
+
+.table td {
+  padding: 13px 14px;
+  line-height: 1.5;
+  color: var(--text-body);
+}
+
+.table tr:hover td {
+  background-color: #FFFDF7;
+}
+
+#table-monitoring th,
+#table-monitoring td {
+  padding: 12px 13px;
+  font-size: 0.875rem;
+}
+
+.cell-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-top: 3px;
+}
+
+/* Clean pill tabs without legacy bottom-border artifact */
+.nav-tabs {
+  border-bottom: 1px solid #E2CFA3 !important;
+  margin-bottom: 20px;
+}
+
+.nav-tab-btn {
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+  font-size: 0.9rem;
+  padding: 9px 15px;
+}
+
+.nav-tab-btn.active .ui-icon {
+  stroke: #FFFFFF !important;
+}
+
+/* Comfortable spacing for recent lists & day-off items */
+.sa-recent-row,
+.sa-mgmt-dayoff-item {
+  padding: 11px 14px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Full-width monitoring table below 2-column side widgets on desktop so 9 columns never feel cramped */
+@media (min-width: 960px) {
+  .sa-mgmt-bento-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .sa-mgmt-side-col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    order: -1;
+  }
+}
+
+/* Mobile table-stack readability */
+@media (max-width: 859px) {
+  .table-stack td {
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+  .table-stack td::before {
+    font-size: 0.74rem;
+    color: #4B5563;
+    margin-bottom: 3px;
+  }
+  .bottom-nav-item {
+    font-size: 0.74rem;
+  }
+}
 .desktop-only {
   display: none !important;
 }
@@ -2944,6 +3081,6 @@ body {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .sa-mgmt-bento-grid {
-    grid-template-columns: minmax(0, 1.55fr) minmax(0, 0.75fr);
+    grid-template-columns: 1fr;
   }
 }
