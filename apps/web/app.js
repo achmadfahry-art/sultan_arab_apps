@@ -488,19 +488,23 @@ function renderHome() {
   const overtimePay = Number(state.todaySession?.overtime_pay || 0);
   const overtimeNote = state.todaySession?.overtime_note || '';
   const canRecordOvertime = Boolean(checkInEvent && !isKunjunganLuar && state.todaySession?.status !== 'off');
+  const isDayOffToday = Boolean(state.todayDayOff && state.todayDayOff.isDayOffToday);
+  const isWorkOverride = Boolean(state.todayDayOff && state.todayDayOff.isScheduledOff && state.todaySession && (state.todaySession.status === 'present' || state.todaySession.status === 'late'));
+  const inTime = checkInEvent ? new Date(checkInEvent.server_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+  const outTime = checkOutEvent ? new Date(checkOutEvent.server_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+  const statusShort = isDayOffToday ? 'Libur' : (checkOutEvent ? 'Selesai' : (checkInEvent ? 'Hadir' : 'Belum'));
+
   const overtimeHeroBlock = !canRecordOvertime ? '' : (
     overtimeHours > 0
-      ? `<div style="background: rgba(245, 158, 11, 0.22); border: 1px solid rgba(251, 191, 36, 0.55); border-radius: var(--radius-sm); padding: 9px 14px; font-size: 0.84rem; color: #FEF3C7; text-align: center;">
-           ${uiIcon('zap', '', 15)} <strong>Lembur Tercatat: ${overtimeHours} Jam (Rp ${formatNumber(overtimePay)})</strong>${overtimeNote ? ` • ${escapeHtml(overtimeNote)}` : ''}
+      ? `<div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: var(--radius-pill); padding: 8px 16px; font-size: 0.82rem; color: #92400E; text-align: center;">
+           ${uiIcon('zap', '', 14)} <strong>Lembur Tercatat: ${overtimeHours} Jam (Rp ${formatNumber(overtimePay)})</strong>${overtimeNote ? ` • ${escapeHtml(overtimeNote)}` : ''}
          </div>`
-      : `<button type="button" class="btn-absen-hero" onclick="openOvertimeModal()" style="background: linear-gradient(135deg, #B45309, #D97706); box-shadow: 0 4px 14px rgba(217,119,6,0.35);">
-           ${uiIcon('zap', '', 20)}
-           <span>+ CATAT LEMBUR (1-4 JAM)</span>
+      : `<button type="button" class="sa-overtime-pill" onclick="openOvertimeModal()">
+           ${uiIcon('zap', '', 16)}
+           <span>+ Catat Lembur (1–4 Jam)</span>
          </button>`
   );
 
-  const isDayOffToday = Boolean(state.todayDayOff && state.todayDayOff.isDayOffToday);
-  const isWorkOverride = Boolean(state.todayDayOff && state.todayDayOff.isScheduledOff && state.todaySession && (state.todaySession.status === 'present' || state.todaySession.status === 'late'));
   let statusBadge = isDayOffToday
     ? `<span class="badge badge-secondary" style="background:#EEF2FF; color:#4338CA; font-weight:700;">${uiIcon('palmtree', '', 13)} Hari Ini Libur (${escapeHtml(state.todayDayOff.dayOffName || '-')})</span>`
     : (isWorkOverride
@@ -509,22 +513,16 @@ function renderHome() {
   let heroButtonsHtml = '';
 
   if (checkInEvent) {
-    const inTime = new Date(checkInEvent.server_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    const outTime = checkOutEvent ? new Date(checkOutEvent.server_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null;
-
     if (checkOutEvent) {
       statusBadge = `<span class="badge badge-success">${uiIcon('check-circle', '', 13)} Absensi Hari Ini Selesai • Masuk (${inTime}) • Pulang (${outTime})</span>`;
       heroButtonsHtml = `
-        <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
-          <div style="background: rgba(16, 185, 129, 0.16); border: 1.5px solid rgba(52, 211, 153, 0.4); border-radius: var(--radius-md); padding: 16px; text-align: center; color: #fff; width: 100%; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
-            <div style="font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; color: #34D399;">
-              ${uiIcon('check-circle', '', 22)} Absensi Hari Ini Telah Lengkap
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px; width:100%;">
+          <div style="background: #ECFDF5; border: 1.5px solid #A7F3D0; border-radius: 16px; padding: 14px 18px; text-align: center; color: #065F46; width: 100%; max-width: 420px;">
+            <div style="font-size: 1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px; color: #064E3B;">
+              ${uiIcon('check-circle', '', 20)} Absensi Hari Ini Telah Lengkap
             </div>
-            <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 6px;">
+            <div style="font-size: 0.85rem; font-weight: 600;">
               Masuk: ${inTime} WIB • Pulang: ${outTime} WIB
-            </div>
-            <div style="font-size: 0.8rem; color: #E2E8F0; opacity: 0.95;">
-              ✅ Anda sudah melakukan absensi hari ini. Tidak dapat melakukan absensi lagi pada hari yang sama.
             </div>
           </div>
           ${overtimeHeroBlock}
@@ -537,13 +535,13 @@ function renderHome() {
         statusBadge = `<span class="badge badge-success">${uiIcon('check-circle', '', 13)} Sudah Hadir (${inTime}) • Belum Pulang</span>`;
       }
       heroButtonsHtml = `
-        <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
-          <div class="clockin-recorded-note" style="background: var(--status-present-light, #ECFDF5); border: 1px solid var(--status-present-border, #A7F3D0); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 0.84rem; color: #065F46; font-weight: 500; text-align: center;">
-            ${uiIcon('check', '', 15)} Absen Masuk tercatat pukul <strong style="color: #064E3B;">${inTime} WIB</strong> (Tidak dapat absen masuk lagi)
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px; width:100%;">
+          <div class="clockin-recorded-note" style="background: var(--status-present-light, #ECFDF5); border: 1px solid var(--status-present-border, #A7F3D0); border-radius: 999px; padding: 8px 16px; font-size: 0.82rem; color: #065F46; font-weight: 600; text-align: center;">
+            ${uiIcon('check', '', 14)} Absen Masuk tercatat pukul <strong style="color: #064E3B;">${inTime} WIB</strong>
           </div>
-          <a href="#attendance?mode=out" class="btn-absen-hero" style="background: linear-gradient(135deg, #1E3A8A, #2563EB); box-shadow: 0 4px 14px rgba(37,99,235,0.4);">
-            ${uiIcon('log-out', '', 20)}
-            <span>ABSEN PULANG SEKARANG (OPSIONAL)</span>
+          <a href="#attendance?mode=out" class="btn-absen-hero sa-dial-btn is-out">
+            ${uiIcon('log-out', '', 28)}
+            <span>ABSEN<br>PULANG</span>
           </a>
           ${overtimeHeroBlock}
         </div>
@@ -551,10 +549,10 @@ function renderHome() {
     }
   } else {
     heroButtonsHtml = `
-      <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
-        <a href="#attendance?mode=in" class="btn-absen-hero">
-          ${uiIcon('camera', '', 20)}
-          <span>ABSEN MASUK SEKARANG</span>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;">
+        <a href="#attendance?mode=in" class="btn-absen-hero sa-dial-btn is-in">
+          ${uiIcon('camera', '', 28)}
+          <span>ABSEN<br>MASUK</span>
         </a>
       </div>
     `;
@@ -579,55 +577,58 @@ function renderHome() {
             <div class="employee-hero-branch">
               ${uiIcon('map-pin', '', 14)} ${escapeHtml(branchName)} • ${escapeHtml(state.user.jobTitle || 'Staff')}
             </div>
-            <a href="#profile" style="margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.22); color: #FFFFFF; border: 1px solid rgba(255,255,255,0.35); padding: 4px 11px; border-radius: var(--radius-pill); font-size: 0.78rem; font-weight: 700; text-decoration: none; cursor: pointer;">
-              ${uiIcon('edit', '', 14)} <span>Edit Profil</span>
-            </a>
           </div>
         </div>
-        <div class="employee-clock-box">
-          <div id="live-digital-clock" class="clock-time">00:00:00</div>
-          <div id="live-digital-date" class="clock-date">Memuat tanggal...</div>
-        </div>
-      </div>
-
-      <div style="background: rgba(255,255,255,0.14); border-radius: var(--radius-sm); padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; border: 1px solid rgba(255,255,255,0.12);">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-          <span style="font-weight: 600; font-size: 0.88rem; color: #FFFFFF;">Status Absensi Hari Ini:</span>
-          ${statusBadge}
-        </div>
-        <div style="font-size: 0.76rem; color: #FDE68A; display: flex; align-items: center; gap: 6px;">
-          ${uiIcon('shield', '', 13)} Ketentuan Absensi: Wajib absen masuk, absen pulang bersifat opsional.
-        </div>
+        ${statusBadge}
       </div>
     </div>
 
-    <!-- Tombol Utama Absensi -->
-    <div class="action-box-main">
+    <!-- Centerpiece Circular Attendance Dial (Referensi Terjemahan Sultan Arab) -->
+    <div class="sa-clock-dial-card">
+      <div class="sa-dial-clock-wrap">
+        <div id="live-digital-clock" class="clock-time">00:00:00</div>
+        <div id="live-digital-date" class="clock-date">Memuat tanggal...</div>
+      </div>
+
       ${heroButtonsHtml}
+
+      <div class="sa-dial-metrics">
+        <div class="sa-dial-metric">
+          <span class="sa-dial-metric-val">${inTime}</span>
+          <span class="sa-dial-metric-lbl">Jam Masuk</span>
+        </div>
+        <div class="sa-dial-metric">
+          <span class="sa-dial-metric-val">${outTime}</span>
+          <span class="sa-dial-metric-lbl">Jam Pulang</span>
+        </div>
+        <div class="sa-dial-metric">
+          <span class="sa-dial-metric-val">${statusShort}</span>
+          <span class="sa-dial-metric-lbl">Status Hari Ini</span>
+        </div>
+      </div>
     </div>
 
-    <!-- Menu Cepat Navigasi -->
+    <!-- Menu Cepat Navigasi (Bento Grid) -->
     <nav class="quick-grid" aria-label="Menu Cepat Beranda">
-      <a href="#profile" class="quick-card" style="border-top: 3px solid var(--accent-gold);">
-        ${uiIcon('user', '', 26)}
+      <a href="#profile" class="quick-card">
+        <span class="sa-q-icon is-gold">${uiIcon('user', '', 22)}</span>
         <span class="quick-label"><strong>Edit Profil</strong></span>
-        <small style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Foto &amp; Password</small>
       </a>
       <a href="#attendance" class="quick-card">
-        ${uiIcon('camera', '', 26)}
+        <span class="sa-q-icon is-maroon">${uiIcon('camera', '', 22)}</span>
         <span class="quick-label">Absen</span>
       </a>
       <a href="#history" class="quick-card">
-        ${uiIcon('calendar', '', 26)}
+        <span class="sa-q-icon is-teal">${uiIcon('calendar', '', 22)}</span>
         <span class="quick-label">Riwayat Absensi</span>
       </a>
       <a href="#payslips" class="quick-card">
-        ${uiIcon('file-text', '', 26)}
+        <span class="sa-q-icon is-amber">${uiIcon('file-text', '', 22)}</span>
         <span class="quick-label">Slip Gaji</span>
       </a>
       ${isManagerOrOwner(state.user) ? `
       <a href="#management" class="quick-card">
-        ${uiIcon('chart', '', 26)}
+        <span class="sa-q-icon is-maroon">${uiIcon('chart', '', 22)}</span>
         <span class="quick-label">Dashboard Kelola</span>
       </a>
       ` : ''}

@@ -6,17 +6,17 @@
    ======================================================== */
 
 :root {
-  /* Brand Colors */
-  --primary-red: #C90000;
-  --primary-red-hover: #A50000;
-  --primary-red-dark: #820000;
-  --primary-red-light: #FEF2F2;
-  --primary-red-ring: rgba(201, 0, 0, 0.16);
+  /* Brand Colors (Sultan Arab Gold Sand & Deep Maroon) */
+  --primary-red: #870000;
+  --primary-red-hover: #6B0000;
+  --primary-red-dark: #5A0000;
+  --primary-red-light: #FFF7F7;
+  --primary-red-ring: rgba(135, 0, 0, 0.16);
 
-  --accent-gold: #D97706;
-  --accent-gold-dark: #B45309;
+  --accent-gold: #FEAF0D;
+  --accent-gold-dark: #D99200;
   --accent-gold-light: #FFFBEB;
-  --accent-gold-ring: rgba(217, 119, 6, 0.18);
+  --accent-gold-ring: rgba(254, 175, 13, 0.22);
 
   /* Semantic Status Colors */
   --status-present: #059669;
@@ -36,19 +36,19 @@
   --status-warning-border: #FDE68A;
 
   /* Neutral Surface & Typography */
-  --bg-main: #F8FAFC;
+  --bg-main: #F7F4EC;
   --bg-card: #FFFFFF;
-  --bg-subtle: #F1F5F9;
-  --bg-input: #FFFFFF;
+  --bg-subtle: #FAF8F2;
+  --bg-input: #FFFEFA;
 
-  --text-main: #0F172A;
-  --text-body: #334155;
-  --text-muted: #64748B;
-  --text-light: #94A3B8;
+  --text-main: #1F2937;
+  --text-body: #374151;
+  --text-muted: #6B7280;
+  --text-light: #9CA3AF;
 
-  --border-color: #E2E8F0;
-  --border-subtle: #F1F5F9;
-  --border-hover: #CBD5E1;
+  --border-color: #E2CFA3;
+  --border-subtle: #F3ECD9;
+  --border-hover: #D4AF37;
 
   /* Geometry & Radius */
   --radius-xs: 4px;
@@ -2187,4 +2187,199 @@ body.modal-open {
 #btn-toggle-password:focus-visible {
   outline: 2px solid var(--primary-red);
   outline-offset: 2px;
+}
+
+
+/* ========================================================
+   SULTAN ARAB BRAND REDESIGN (v1.4.0)
+   Gold Sand + Deep Maroon (#870000) + Sultan Gold (#FEAF0D)
+   Circular Clock-In/Out Dial + Bento Cards + Floating Pill Nav
+   ======================================================== */
+body {
+  background: linear-gradient(180deg, #F7F4EC 0%, #EFE4C6 100%) fixed;
+  color: var(--text-main);
+}
+
+.card,
+.employee-hero-card,
+.quick-card {
+  border-radius: 18px;
+}
+
+.employee-hero-card {
+  background: linear-gradient(135deg, #870000 0%, #5A0000 100%) !important;
+  border: 1px solid rgba(254, 175, 13, 0.35);
+  box-shadow: 0 10px 26px rgba(135, 0, 0, 0.2);
+}
+
+/* Circular Attendance Dial Centerpiece */
+.sa-clock-dial-card {
+  background: #FFFFFF;
+  border: 1.5px solid #E2CFA3;
+  border-radius: 20px;
+  padding: 22px 18px 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 8px 24px rgba(135, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+
+.sa-dial-clock-wrap .clock-time {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #870000;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sa-dial-clock-wrap .clock-date {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #6B7280;
+  margin-top: 4px;
+}
+
+.sa-dial-btn {
+  width: 156px !important;
+  height: 156px !important;
+  border-radius: 999px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 16px !important;
+  text-align: center !important;
+  font-weight: 800 !important;
+  font-size: 0.9rem !important;
+  line-height: 1.2 !important;
+  text-decoration: none !important;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.sa-dial-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.sa-dial-btn.is-in {
+  background: linear-gradient(145deg, #9E0000 0%, #700000 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 0 10px rgba(135, 0, 0, 0.10), 0 12px 26px rgba(135, 0, 0, 0.30) !important;
+}
+
+.sa-dial-btn.is-out {
+  background: linear-gradient(145deg, #FEAF0D 0%, #E59B00 100%) !important;
+  color: #2B0900 !important;
+  border: 2px solid #D99200 !important;
+  box-shadow: 0 0 0 10px rgba(254, 175, 13, 0.16), 0 12px 24px rgba(217, 146, 0, 0.28) !important;
+}
+
+.sa-overtime-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #FAF8F2;
+  border: 1.5px solid #870000;
+  color: #870000;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.sa-overtime-pill:hover {
+  background: #870000;
+  color: #FFFFFF;
+}
+
+.sa-dial-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  padding-top: 14px;
+  border-top: 1px solid #F3ECD9;
+}
+
+.sa-dial-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.sa-dial-metric-val {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1F2937;
+  font-variant-numeric: tabular-nums;
+}
+
+.sa-dial-metric-lbl {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6B7280;
+}
+
+/* Bento Quick Cards with Colored Icon Badges */
+.quick-grid .quick-card {
+  background: #FFFFFF;
+  border: 1px solid #E2CFA3;
+  box-shadow: 0 3px 12px rgba(135, 0, 0, 0.04);
+}
+
+.quick-grid .quick-card:hover {
+  border-color: #870000;
+  transform: translateY(-2px);
+}
+
+.sa-q-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.sa-q-icon.is-maroon { background: #FFF2F2; color: #870000; }
+.sa-q-icon.is-gold   { background: #FFF8E1; color: #B45309; }
+.sa-q-icon.is-teal   { background: #ECFDF5; color: #0F766E; }
+.sa-q-icon.is-amber  { background: #FFF7ED; color: #BF360C; }
+
+/* Floating Pill Bottom Nav (Deep Maroon #820000) */
+@media (max-width: 900px) {
+  .bottom-nav {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    width: auto !important;
+    border-radius: 999px !important;
+    background: #820000 !important;
+    border: 1px solid rgba(254, 175, 13, 0.35) !important;
+    box-shadow: 0 10px 28px rgba(130, 0, 0, 0.32) !important;
+    padding: 6px 10px !important;
+  }
+
+  .bottom-nav-item {
+    color: rgba(255, 255, 255, 0.82) !important;
+    border-radius: 999px !important;
+  }
+
+  .bottom-nav-item.active {
+    background: #FEAF0D !important;
+    color: #2B0900 !important;
+    font-weight: 800 !important;
+  }
+
+  .main-content {
+    padding-bottom: 92px !important;
+  }
 }
