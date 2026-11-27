@@ -189,6 +189,14 @@ router.post('/commissions', requireAuth, requireRoles(['owner', 'manager']), asy
 // GET /api/v1/payroll/staff-slips (Daftar Seluruh Staf & Status Slip PDF untuk Manager & Owner)
 router.get('/staff-slips', requireAuth, requireRoles(['owner', 'manager']), async (req, res) => {
   try {
+    const periodId = req.query.period_id && req.query.period_id !== 'all'
+      ? String(req.query.period_id).trim()
+      : null;
+
+    const lateralSql = periodId
+      ? `SELECT * FROM payslips WHERE employee_id = e.id AND period_id = $1 ORDER BY published_at DESC LIMIT 1`
+      : `SELECT * FROM payslips WHERE employee_id = e.id ORDER BY published_at DESC LIMIT 1`;
+
     const result = await db.query(`
       SELECT e.id as employee_id, e.name as employee_name, e.employee_code, e.job_title,
              b.name as branch_name,
@@ -201,15 +209,12 @@ router.get('/staff-slips', requireAuth, requireRoles(['owner', 'manager']), asyn
       LEFT JOIN users u ON e.user_id = u.id
       LEFT JOIN profiles p ON u.id = p.id
       LEFT JOIN LATERAL (
-        SELECT * FROM payslips 
-        WHERE employee_id = e.id 
-        ORDER BY published_at DESC 
-        LIMIT 1
+        ${lateralSql}
       ) ps ON true
       LEFT JOIN payroll_periods pp ON ps.period_id = pp.id
       WHERE e.active = true
       ORDER BY b.name ASC, e.name ASC;
-    `);
+    `, periodId ? [periodId] : []);
 
     const staffWithLinks = result.rows.map(row => {
       let waLink = null;

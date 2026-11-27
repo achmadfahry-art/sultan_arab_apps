@@ -2872,6 +2872,50 @@ body {
   margin-bottom: 6px;
 }
 
+/* Payroll Monthly Period Filter Pills */
+.sa-payroll-period-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  background: #FAF7F0;
+  border: 1px solid #E2CFA3;
+  border-radius: 14px;
+}
+
+.sa-payroll-period-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sa-period-pill {
+  border: 1px solid #E2CFA3;
+  background: #FFFFFF;
+  color: var(--text-main);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sa-period-pill:hover {
+  border-color: #870000;
+  color: #870000;
+}
+
+.sa-period-pill.active {
+  background: #870000;
+  border-color: #870000;
+  color: #FFFFFF;
+  box-shadow: 0 3px 10px rgba(135, 0, 0, 0.18);
+}
+
 @media (min-width: 960px) {
   .desktop-only {
     display: block !important;

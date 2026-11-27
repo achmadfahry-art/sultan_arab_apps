@@ -1207,6 +1207,9 @@ function renderManagementTabContent() {
               </button>
             </div>
           </div>
+          <div id="payroll-period-filter-bar" class="sa-payroll-period-bar">
+            <span style="font-size:0.8rem; color:var(--text-muted);">Memuat pilihan bulan...</span>
+          </div>
           <div class="table-responsive">
             <table class="table table-stack">
               <thead>
@@ -3318,17 +3321,24 @@ window.openStaffDailyRecapModalByIndex = function(idx) {
 };
 
 // --- Fungsi Memuat Tabel Slip Gaji Per Staf ---
-async function loadStaffSlipsTable(tbodyId) {
+async function loadStaffSlipsTable(tbodyId, periodId = null) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
 
-  const res = await api('/api/v1/payroll/staff-slips');
+  const activePeriod = periodId !== null ? periodId : (state.selectedPayrollPeriodId || 'all');
+  const query = activePeriod && activePeriod !== 'all' ? `?period_id=${encodeURIComponent(activePeriod)}` : '';
+  const res = await api(`/api/v1/payroll/staff-slips${query}`);
   if (!res.ok || !res.data.staff) {
     tbody.innerHTML = `<tr><td colspan="4" class="cell-empty" style="color: var(--primary-red);">Gagal memuat daftar staf.</td></tr>`;
     return;
   }
 
   const staffList = res.data.staff;
+  const countEl = document.getElementById('payroll-period-progress');
+  if (countEl) {
+    const uploaded = staffList.filter(s => !!s.pdf_path).length;
+    countEl.textContent = `${uploaded} / ${staffList.length} Staf Sudah Upload`;
+  }
   if (staffList.length === 0) {
     tbody.innerHTML = `<tr><td colspan="4" class="cell-empty">Tidak ada data staf aktif.</td></tr>`;
     return;
@@ -3388,7 +3398,7 @@ async function loadStaffSlipsTable(tbodyId) {
 
   tbody.querySelectorAll('.btn-upload-slip-for-staff').forEach(btn => {
     btn.addEventListener('click', () => {
-      openUploadSlipPdfModal([], btn.dataset.id);
+      openUploadSlipPdfModal([], btn.dataset.id, state.selectedPayrollPeriodId || null);
     });
   });
 
@@ -3401,16 +3411,6 @@ async function loadStaffSlipsTable(tbodyId) {
 
 async function loadPayrollData() {
   const container = document.getElementById('payroll-runs-container');
-
-  // Load tabel slip gaji staf
-  loadStaffSlipsTable('payroll-staff-slips-tbody');
-  const btnRefreshStaffPayroll = document.getElementById('btn-refresh-staff-slips-payroll');
-  if (btnRefreshStaffPayroll) {
-    btnRefreshStaffPayroll.addEventListener('click', () => loadStaffSlipsTable('payroll-staff-slips-tbody'));
-  }
-
-  if (!container) return;
-
   const [runsRes, periodsRes] = await Promise.all([
     api('/api/v1/payroll/runs'),
     api('/api/v1/payroll/periods')
@@ -3418,6 +3418,45 @@ async function loadPayrollData() {
 
   const periods = (periodsRes.ok && periodsRes.data.periods) || [];
   const runs = (runsRes.ok && runsRes.data.runs) || [];
+
+  if (!state.selectedPayrollPeriodId && periods.length > 0) {
+    state.selectedPayrollPeriodId = String(periods[0].id);
+  }
+
+  const periodBar = document.getElementById('payroll-period-filter-bar');
+  if (periodBar) {
+    const activePid = String(state.selectedPayrollPeriodId || 'all');
+    periodBar.innerHTML = `
+      <div class="sa-payroll-period-pills">
+        ${periods.map(p => `
+          <button type="button" class="sa-period-pill ${String(p.id) === activePid ? 'active' : ''}" data-period-id="${p.id}">
+            ${escapeHtml(p.label)}
+          </button>
+        `).join('')}
+        <button type="button" class="sa-period-pill ${activePid === 'all' ? 'active' : ''}" data-period-id="all">
+          Terakhir (Semua)
+        </button>
+      </div>
+      <span class="badge badge-info" id="payroll-period-progress">Memuat...</span>
+    `;
+    periodBar.querySelectorAll('.sa-period-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.selectedPayrollPeriodId = btn.dataset.periodId;
+        periodBar.querySelectorAll('.sa-period-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadStaffSlipsTable('payroll-staff-slips-tbody', state.selectedPayrollPeriodId);
+      });
+    });
+  }
+
+  // Load tabel slip gaji staf sesuai periode yang dipilih
+  loadStaffSlipsTable('payroll-staff-slips-tbody', state.selectedPayrollPeriodId || 'all');
+  const btnRefreshStaffPayroll = document.getElementById('btn-refresh-staff-slips-payroll');
+  if (btnRefreshStaffPayroll) {
+    btnRefreshStaffPayroll.onclick = () => loadStaffSlipsTable('payroll-staff-slips-tbody', state.selectedPayrollPeriodId || 'all');
+  }
+
+  if (!container) return;
 
   container.innerHTML = `
     <div style="margin-bottom: 20px;">
@@ -3488,7 +3527,7 @@ async function loadPayrollData() {
 
   const btnUploadModal = document.getElementById('btn-upload-pdf-modal');
   if (btnUploadModal) {
-    btnUploadModal.addEventListener('click', () => openUploadSlipPdfModal(periods));
+    btnUploadModal.addEventListener('click', () => openUploadSlipPdfModal(periods, null, state.selectedPayrollPeriodId || null));
   }
 
   const btnCalc = document.getElementById('btn-calculate-payroll');
@@ -3827,11 +3866,12 @@ async function loadMyPayslips() {
 
 // --- Modals ---
 // Modal Upload PDF Slip Gaji oleh Manager
-async function openUploadSlipPdfModal(periods = [], preselectedEmpId = null) {
+async function openUploadSlipPdfModal(periods = [], preselectedEmpId = null, preselectedPeriodId = null) {
   if (!periods || periods.length === 0) {
     const pRes = await api('/api/v1/payroll/periods');
     periods = (pRes.ok && pRes.data.periods) || [];
   }
+  const targetPeriodId = preselectedPeriodId && preselectedPeriodId !== 'all' ? String(preselectedPeriodId) : null;
 
   const modalContainer = document.getElementById('modal-container');
   modalContainer.innerHTML = `
@@ -3848,7 +3888,7 @@ async function openUploadSlipPdfModal(periods = [], preselectedEmpId = null) {
             <div class="form-group">
               <label class="form-label">Pilih Periode Payroll:</label>
               <select id="pdf-period-select" class="form-control" required>
-                ${periods.map(p => `<option value="${p.id}">${escapeHtml(p.label)}</option>`).join('')}
+                ${periods.map(p => `<option value="${p.id}" ${targetPeriodId === String(p.id) ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
