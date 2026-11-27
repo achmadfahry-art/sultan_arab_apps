@@ -382,6 +382,13 @@ function renderSidebar() {
         </li>
       </ul>
       <div class="sidebar-footer">
+        <div class="sa-sidebar-user desktop-only" onclick="window.location.hash='#profile'" title="Edit Profil">
+          <div class="sa-sidebar-avatar">${escapeHtml(state.user.displayName ? state.user.displayName.charAt(0).toUpperCase() : 'U')}</div>
+          <div class="sa-sidebar-user-meta">
+            <div class="sa-sidebar-user-name">${escapeHtml(state.user.displayName)}</div>
+            <div class="sa-sidebar-user-role">${escapeHtml(state.user.roles.join(', '))}</div>
+          </div>
+        </div>
         <button type="button" id="btn-expand-sidebar" class="sidebar-expand-btn desktop-only" title="Perbesar Side Panel">
           ${uiIcon('chevron-right', '', 18)}
         </button>
@@ -559,12 +566,26 @@ function renderHome() {
   }
 
   const branchName = state.user.assignedBranchName || (state.branches[0] ? state.branches[0].name : 'Kantor Pusat');
+  const dayOffText = state.todayDayOff && state.todayDayOff.dayOffName ? state.todayDayOff.dayOffName : '-';
+  const todayIndoDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const userPhotoHtml = state.user.avatarUrl
     ? `<img src="${escapeHtml(state.user.avatarUrl)}" alt="${escapeHtml(state.user.displayName)}">`
     : `<span class="hero-avatar-initial">${escapeHtml(state.user.displayName ? state.user.displayName.charAt(0).toUpperCase() : 'U')}</span>`;
 
   return `
-    <div class="employee-hero-card">
+    <!-- Desktop Top Greeting Bar (Mockup Parity) -->
+    <div class="sa-desktop-topbar desktop-only">
+      <div>
+        <h2 class="sa-desktop-greet">Assalamu’alaikum, ${escapeHtml(state.user.displayName)}</h2>
+        <p class="sa-desktop-date">${escapeHtml(todayIndoDate)}</p>
+      </div>
+      <div class="sa-desktop-branch-pill">
+        ${uiIcon('map-pin', '', 15)} <span>${escapeHtml(branchName)} • ${escapeHtml(state.user.jobTitle || 'Staff')}</span>
+      </div>
+    </div>
+
+    <!-- Mobile Compact Maroon Hero Card -->
+    <div class="employee-hero-card mobile-only-card">
       <div class="employee-hero-top">
         <div class="hero-user-profile-row">
           <div class="hero-avatar-wrap" id="btn-hero-profile-avatar" title="Klik untuk ganti foto profil" onclick="window.location.hash='#profile'">
@@ -572,7 +593,7 @@ function renderHome() {
             <span class="hero-avatar-edit-icon" title="Ganti foto">${uiIcon('camera', '', 12)}</span>
           </div>
           <div>
-            <span class="badge badge-test" style="margin-bottom: 4px;">SULTAN ARAB OPERASIONAL</span>
+            <span class="badge badge-test" style="margin-bottom: 4px;">SULTAN ARAB APPS</span>
             <h2 class="employee-hero-name">${escapeHtml(state.user.displayName)}</h2>
             <div class="employee-hero-branch">
               ${uiIcon('map-pin', '', 14)} ${escapeHtml(branchName)} • ${escapeHtml(state.user.jobTitle || 'Staff')}
@@ -583,56 +604,102 @@ function renderHome() {
       </div>
     </div>
 
-    <!-- Centerpiece Circular Attendance Dial (Referensi Terjemahan Sultan Arab) -->
-    <div class="sa-clock-dial-card">
-      <div class="sa-dial-clock-wrap">
-        <div id="live-digital-clock" class="clock-time">00:00:00</div>
-        <div id="live-digital-date" class="clock-date">Memuat tanggal...</div>
+    <!-- Desktop Row 1: 3 KPI Cards -->
+    <div class="sa-home-kpi-row desktop-only">
+      <div class="sa-home-kpi-card">
+        <div class="sa-home-kpi-lbl">Kehadiran Cut-Off</div>
+        <div class="sa-home-kpi-val" id="home-kpi-hadir">- Hari</div>
+        <div class="sa-home-kpi-sub">Siklus 27 – 26</div>
       </div>
-
-      ${heroButtonsHtml}
-
-      <div class="sa-dial-metrics">
-        <div class="sa-dial-metric">
-          <span class="sa-dial-metric-val">${inTime}</span>
-          <span class="sa-dial-metric-lbl">Jam Masuk</span>
-        </div>
-        <div class="sa-dial-metric">
-          <span class="sa-dial-metric-val">${outTime}</span>
-          <span class="sa-dial-metric-lbl">Jam Pulang</span>
-        </div>
-        <div class="sa-dial-metric">
-          <span class="sa-dial-metric-val">${statusShort}</span>
-          <span class="sa-dial-metric-lbl">Status Hari Ini</span>
-        </div>
+      <div class="sa-home-kpi-card">
+        <div class="sa-home-kpi-lbl">Ketepatan Waktu</div>
+        <div class="sa-home-kpi-val" id="home-kpi-terlambat">- Terlambat</div>
+        <div class="sa-home-kpi-sub"><span class="badge badge-success">Monitoring Disiplin</span></div>
+      </div>
+      <div class="sa-home-kpi-card">
+        <div class="sa-home-kpi-lbl">Lembur &amp; Libur</div>
+        <div class="sa-home-kpi-val" id="home-kpi-lembur">0 Jam</div>
+        <div class="sa-home-kpi-sub"><span class="badge badge-warning">Libur Rutin: ${escapeHtml(dayOffText)}</span></div>
       </div>
     </div>
 
-    <!-- Menu Cepat Navigasi (Bento Grid) -->
-    <nav class="quick-grid" aria-label="Menu Cepat Beranda">
-      <a href="#profile" class="quick-card">
-        <span class="sa-q-icon is-gold">${uiIcon('user', '', 22)}</span>
-        <span class="quick-label"><strong>Edit Profil</strong></span>
-      </a>
-      <a href="#attendance" class="quick-card">
-        <span class="sa-q-icon is-maroon">${uiIcon('camera', '', 22)}</span>
-        <span class="quick-label">Absen</span>
-      </a>
-      <a href="#history" class="quick-card">
-        <span class="sa-q-icon is-teal">${uiIcon('calendar', '', 22)}</span>
-        <span class="quick-label">Riwayat Absensi</span>
-      </a>
-      <a href="#payslips" class="quick-card">
-        <span class="sa-q-icon is-amber">${uiIcon('file-text', '', 22)}</span>
-        <span class="quick-label">Slip Gaji</span>
-      </a>
-      ${isManagerOrOwner(state.user) ? `
-      <a href="#management" class="quick-card">
-        <span class="sa-q-icon is-maroon">${uiIcon('chart', '', 22)}</span>
-        <span class="quick-label">Dashboard Kelola</span>
-      </a>
-      ` : ''}
-    </nav>
+    <!-- Row 2: 2-Column Bento (Dial Kiri | Riwayat + Slip Kanan) -->
+    <div class="sa-home-bento">
+      <!-- Centerpiece Circular Attendance Dial -->
+      <div class="sa-clock-dial-card">
+        <div class="sa-dial-card-head desktop-only">Status Kehadiran Hari Ini</div>
+        <div class="sa-dial-clock-wrap">
+          <div id="live-digital-clock" class="clock-time">00:00:00</div>
+          <div id="live-digital-date" class="clock-date">Memuat tanggal...</div>
+        </div>
+
+        ${heroButtonsHtml}
+
+        <div class="sa-dial-metrics">
+          <div class="sa-dial-metric">
+            <span class="sa-dial-metric-val">${inTime}</span>
+            <span class="sa-dial-metric-lbl">Jam Masuk</span>
+          </div>
+          <div class="sa-dial-metric">
+            <span class="sa-dial-metric-val">${outTime}</span>
+            <span class="sa-dial-metric-lbl">Jam Pulang</span>
+          </div>
+          <div class="sa-dial-metric">
+            <span class="sa-dial-metric-val">${statusShort}</span>
+            <span class="sa-dial-metric-lbl">Status Hari Ini</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Riwayat Terbaru + Slip Gaji Terbaru (Desktop) & Quick Grid -->
+      <div class="sa-home-right-col">
+        <div class="card sa-bento-list-card desktop-only" style="margin-bottom: 16px;">
+          <div class="card-header" style="margin-bottom: 10px;">
+            <h3 class="card-title">${uiIcon('calendar', '', 17)} Riwayat Absensi Terbaru</h3>
+            <a href="#history" style="font-size: 0.78rem; font-weight: 700; color: var(--primary-red); text-decoration: none;">Semua →</a>
+          </div>
+          <div id="home-recent-history" class="sa-recent-list">
+            <div style="font-size: 0.82rem; color: var(--text-muted);">Memuat riwayat terbaru...</div>
+          </div>
+        </div>
+
+        <div class="card sa-bento-list-card desktop-only" style="margin-bottom: 16px;">
+          <div class="card-header" style="margin-bottom: 10px;">
+            <h3 class="card-title">${uiIcon('file-text', '', 17)} Slip Gaji Terbaru</h3>
+            <a href="#payslips" style="font-size: 0.78rem; font-weight: 700; color: var(--primary-red); text-decoration: none;">Semua →</a>
+          </div>
+          <div id="home-latest-payslip">
+            <div style="font-size: 0.82rem; color: var(--text-muted);">Memuat slip gaji...</div>
+          </div>
+        </div>
+
+        <!-- Menu Cepat Navigasi (Bento Grid) -->
+        <nav class="quick-grid" aria-label="Menu Cepat Beranda">
+          <a href="#profile" class="quick-card">
+            <span class="sa-q-icon is-gold">${uiIcon('user', '', 22)}</span>
+            <span class="quick-label"><strong>Edit Profil</strong></span>
+          </a>
+          <a href="#attendance" class="quick-card">
+            <span class="sa-q-icon is-maroon">${uiIcon('camera', '', 22)}</span>
+            <span class="quick-label">Absen</span>
+          </a>
+          <a href="#history" class="quick-card">
+            <span class="sa-q-icon is-teal">${uiIcon('calendar', '', 22)}</span>
+            <span class="quick-label">Riwayat Absensi</span>
+          </a>
+          <a href="#payslips" class="quick-card">
+            <span class="sa-q-icon is-amber">${uiIcon('file-text', '', 22)}</span>
+            <span class="quick-label">Slip Gaji</span>
+          </a>
+          ${isManagerOrOwner(state.user) ? `
+          <a href="#management" class="quick-card">
+            <span class="sa-q-icon is-maroon">${uiIcon('chart', '', 22)}</span>
+            <span class="quick-label">Dashboard Kelola</span>
+          </a>
+          ` : ''}
+        </nav>
+      </div>
+    </div>
 
     <!-- Aturan Shift & Jadwal Pribadi -->
     <div class="card" style="margin-bottom: 20px;">
@@ -987,16 +1054,17 @@ function renderManagementTabContent() {
   switch (state.activeManagementTab) {
     case 'monitoring':
       return `
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <h3 class="card-title">${uiIcon('map-pin', '', 18)} Monitoring Absensi Hari Ini</h3>
-              <p class="card-subtitle">Pemantauan real-time status check-in staf seluruh cabang toko.</p>
+        <div class="sa-mgmt-bento-grid">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">${uiIcon('map-pin', '', 18)} Monitoring Absensi Hari Ini</h3>
+                <p class="card-subtitle">Pemantauan real-time status check-in staf seluruh cabang toko.</p>
+              </div>
+              <span class="badge badge-info">Semua Cabang</span>
             </div>
-            <span class="badge badge-info">Semua Cabang</span>
-          </div>
-          <div class="table-responsive">
-            <table class="table table-stack" id="table-monitoring">
+            <div class="table-responsive">
+              <table class="table table-stack" id="table-monitoring">
               <thead>
                 <tr>
                   <th>Nama Staf</th>
@@ -1016,6 +1084,18 @@ function renderManagementTabContent() {
             </table>
           </div>
         </div>
+        <div class="card sa-branch-chart-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">${uiIcon('bar-chart-2', '', 18)} Ringkasan Cabang</h3>
+              <p class="card-subtitle">Distribusi kehadiran staf hari ini per cabang.</p>
+            </div>
+          </div>
+          <div id="mgmt-branch-chart">
+            <div style="font-size: 0.82rem; color: var(--text-muted);">Memuat grafik cabang...</div>
+          </div>
+        </div>
+      </div>
       `;
     case 'recap':
       return renderManagementRecapTab();
@@ -1850,8 +1930,73 @@ function initHistoryView() {
   if (emptyResetBtn) emptyResetBtn.addEventListener('click', doReset);
 }
 
+async function loadHomeBentoWidgets() {
+  const history = Array.isArray(state.attendanceHistory) ? state.attendanceHistory : [];
+  const hadirEl = document.getElementById('home-kpi-hadir');
+  const lateEl = document.getElementById('home-kpi-terlambat');
+  const lemburEl = document.getElementById('home-kpi-lembur');
+  const recentEl = document.getElementById('home-recent-history');
+  const payslipEl = document.getElementById('home-latest-payslip');
+
+  const hadirCount = history.filter(h => h.check_in_time).length;
+  const lateCount = history.filter(h => h.status === 'terlambat' || h.status === 'late').length;
+  const overtimeHours = history.reduce((sum, h) => sum + (Number(h.overtime_hours) || 0), 0);
+
+  if (hadirEl) hadirEl.textContent = `${hadirCount} Hari`;
+  if (lateEl) lateEl.textContent = `${lateCount} Terlambat`;
+  if (lemburEl) lemburEl.textContent = `${overtimeHours % 1 === 0 ? overtimeHours : overtimeHours.toFixed(1)} Jam`;
+
+  if (recentEl) {
+    const recent = history.slice(0, 4);
+    recentEl.innerHTML = recent.length === 0
+      ? `<div style="font-size: 0.82rem; color: var(--text-muted);">Belum ada riwayat absensi.</div>`
+      : recent.map(h => {
+          const dateStr = `${formatDayShort(h.work_date)}, ${formatDayNum(h.work_date)}`;
+          const inStr = h.check_in_time ? formatTime(h.check_in_time) : '--:--';
+          const outStr = h.check_out_time ? ` - ${formatTime(h.check_out_time)}` : '';
+          const dotColor = h.status === 'terlambat' || h.status === 'late' ? '#BF360C' : '#B45309';
+          return `
+            <div class="sa-recent-row">
+              <span class="sa-recent-dot" style="background:${dotColor};"></span>
+              <span class="sa-recent-text"><strong>${escapeHtml(dateStr)}</strong> — ${escapeHtml(statusLabel(h.status))} (${escapeHtml(inStr + outStr)})</span>
+            </div>
+          `;
+        }).join('');
+  }
+
+  if (payslipEl) {
+    try {
+      const res = await api('/api/v1/payroll/me/payslips');
+      const slips = res.ok && res.data && Array.isArray(res.data.payslips) ? res.data.payslips : [];
+      if (slips.length === 0) {
+        payslipEl.innerHTML = `<div style="font-size: 0.82rem; color: var(--text-muted);">Belum ada slip gaji terbit.</div>`;
+      } else {
+        const latest = slips.find(p => p.pdf_path) || slips[0];
+        payslipEl.innerHTML = `
+          <div class="sa-latest-slip-row">
+            <div>
+              <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">${escapeHtml(latest.period_label || 'Periode Payroll')}</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">${latest.published_at ? new Date(latest.published_at).toLocaleDateString('id-ID') : '-'}</div>
+            </div>
+            <span class="badge badge-success">Resmi • Berlaku</span>
+          </div>
+          ${latest.pdf_path ? `
+            <a href="/api/v1/payroll/slips/${latest.payslip_id}/download" target="_blank" class="btn sa-gold-download-btn">
+              ${uiIcon('download', '', 15)} Unduh Slip PDF
+            </a>
+          ` : ''}
+        `;
+      }
+    } catch {
+      payslipEl.innerHTML = `<div style="font-size: 0.82rem; color: var(--text-muted);">Gagal memuat slip gaji.</div>`;
+    }
+  }
+}
+
 function attachViewEvents() {
-  if (state.route === '#attendance') {
+  if (state.route === '#home') {
+    loadHomeBentoWidgets();
+  } else if (state.route === '#attendance') {
     initAttendanceView();
   } else if (state.route === '#history') {
     initHistoryView();
@@ -2438,6 +2583,29 @@ async function loadMonitoringData() {
     if (kpiKaryawan) kpiKaryawan.textContent = summary.totalKaryawan || 0;
     if (kpiHadir) kpiHadir.textContent = summary.hadir || 0;
     if (kpiKunjungan) kpiKunjungan.textContent = summary.kunjunganLuar || 0;
+
+    // Render Ringkasan Cabang bar chart if container exists
+    const branchChartEl = document.getElementById('mgmt-branch-chart');
+    if (branchChartEl) {
+      const counts = {};
+      res.data.records.forEach(r => {
+        const b = r.branch_name || 'Kantor Pusat';
+        counts[b] = (counts[b] || 0) + (r.check_in_time ? 1 : 0);
+      });
+      const entries = Object.entries(counts);
+      const maxVal = Math.max(1, ...entries.map(([, v]) => v));
+      const palette = ['#870000', '#FEAF0D', '#B45309', '#BF360C'];
+      branchChartEl.innerHTML = entries.length === 0
+        ? '<div style="font-size:0.82rem; color:var(--text-muted);">Belum ada data cabang.</div>'
+        : `<div class="sa-branch-bars">${entries.map(([name, val], i) => {
+            const pct = Math.max(18, Math.round((val / maxVal) * 100));
+            return `<div class="sa-branch-bar-col">
+              <div class="sa-branch-bar-num">${val}</div>
+              <div class="sa-branch-bar" style="height:${pct}%; background:${palette[i % palette.length]};"></div>
+              <div class="sa-branch-bar-lbl">${escapeHtml(name)}</div>
+            </div>`;
+          }).join('')}</div>`;
+    }
 
     const tbody = document.getElementById('monitoring-table-body');
     if (!tbody) return;

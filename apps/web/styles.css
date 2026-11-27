@@ -2482,27 +2482,259 @@ body {
   box-shadow: 0 4px 12px rgba(135, 0, 0, 0.22) !important;
 }
 
-/* Desktop 2-Column Staff Bento Layout on #home */
+/* ========================================================
+   SULTAN ARAB BENTO MOCKUP PARITY (v1.6.0)
+   ======================================================== */
+.desktop-only {
+  display: none !important;
+}
+
+.mobile-only-card {
+  display: block;
+}
+
+.sa-sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: #FFFBF0;
+  border: 1px solid #E2CFA3;
+  border-radius: 14px;
+}
+
+.sa-sidebar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #870000;
+  color: #FEAF0D;
+  font-weight: 800;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sa-sidebar-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sa-sidebar-user-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sa-sidebar-user-meta strong {
+  font-size: 0.84rem;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sa-sidebar-user-meta span {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.sa-desktop-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.sa-desktop-greet {
+  margin: 0 0 2px 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.sa-desktop-date {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+
+.sa-desktop-branch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #870000;
+  color: #FFFFFF;
+  padding: 9px 16px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(135, 0, 0, 0.2);
+}
+
+.sa-home-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.sa-home-kpi-card {
+  background: #FFFFFF;
+  border: 1px solid #E2CFA3;
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 16px rgba(135, 0, 0, 0.04);
+}
+
+.sa-home-kpi-lbl {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.sa-home-kpi-val {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.sa-home-kpi-sub {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.sa-home-bento {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.sa-dial-card-head {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 10px;
+}
+
+.sa-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sa-recent-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #FAF7F0;
+  border: 1px solid #EFE5CC;
+  font-size: 0.82rem;
+  color: var(--text-main);
+}
+
+.sa-recent-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sa-latest-slip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sa-gold-download-btn {
+  width: 100%;
+  justify-content: center;
+  background: #FEAF0D !important;
+  color: #2B0900 !important;
+  border: none !important;
+  font-weight: 800 !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+}
+
+.sa-mgmt-bento-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.sa-branch-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 12px;
+  min-height: 200px;
+  padding: 16px 8px 6px;
+}
+
+.sa-branch-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.sa-branch-bar-track {
+  width: 100%;
+  max-width: 56px;
+  height: 150px;
+  background: #FAF7F0;
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.sa-branch-bar-fill {
+  width: 100%;
+  border-radius: 12px 12px 0 0;
+  transition: height 0.3s ease;
+}
+
+.sa-branch-bar-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+}
+
 @media (min-width: 960px) {
-  .app-main main.content-container:has(.sa-clock-dial-card) {
-    display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    gap: 20px;
+  .desktop-only {
+    display: block !important;
+  }
+  .sa-desktop-topbar.desktop-only {
+    display: flex !important;
+  }
+  .sa-home-kpi-row.desktop-only {
+    display: grid !important;
+  }
+  .mobile-only-card {
+    display: none !important;
+  }
+  .sa-home-bento {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
     align-items: start;
   }
-  .app-main main.content-container:has(.sa-clock-dial-card) > .employee-hero-card {
-    grid-column: 1 / -1;
-    margin-bottom: 0;
-  }
-  .app-main main.content-container:has(.sa-clock-dial-card) > .sa-clock-dial-card {
-    grid-column: 1;
-    margin-bottom: 0;
-  }
-  .app-main main.content-container:has(.sa-clock-dial-card) > .quick-grid {
-    grid-column: 2;
-    margin-bottom: 0;
-  }
-  .app-main main.content-container:has(.sa-clock-dial-card) > .card {
-    grid-column: 2;
+  .sa-mgmt-bento-grid {
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.75fr);
   }
 }
