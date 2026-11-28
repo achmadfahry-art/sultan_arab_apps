@@ -15,6 +15,33 @@ const payrollRoutes = require('./routes/payroll');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
+// Redirect HTTP -> HTTPS for public domain (keep localhost & Tailscale HTTP intact)
+app.use((req, res, next) => {
+  if (req.headers['x-forwarded-proto'] === 'http' && req.hostname === 'absen.sultanarab.store') {
+    return res.redirect(301, `https://${req.hostname}${req.originalUrl}`);
+  }
+  return next();
+});
+
+// HTTP Security Headers (MDN Observatory & App Camera/GPS Compatibility)
+app.use((req, res, next) => {
+  if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(self), geolocation=(self), microphone=()');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https:; frame-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self';"
+  );
+  next();
+});
+
 // Security & Parsing Middleware
 app.use(cors({
   origin: true,
